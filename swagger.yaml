@@ -1,0 +1,150 @@
+swagger: "2.0"
+info:
+  description: "An API used to search information on published datasets by the ONS."
+  version: "1.0.0"
+  title: "Search API"
+  license:
+    name: "Open Government Licence v3.0"
+    url: "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+basePath: "/v1"
+tags:
+- name: "Public"
+- name: "Private user"
+schemes:
+- "http"
+parameters:
+  dimension_name:
+    name: dimension_name
+    description: "A dimension from a dataset"
+    in: path
+    required: true
+    type: string
+  instance_id:
+    name: instance_id
+    description: "A unique id for an instance"
+    in: path
+    required: true
+    type: string
+  limit:
+    name: limit
+    description: "The number of resources to be returned"
+    in: query
+    type: integer
+  offset:
+    name: offset
+    description: "The first row of resources to retrieve, starting at 0. Use this parameter as a pagination mechanism along with the limit parameter"
+    in: query
+    type: integer
+  query:
+    name: q
+    description: "The query text to search datasets with"
+    in: query
+    type: string
+securityDefinitions:
+  FlorenceAPIKey:
+    name: florence-token
+    description: "API key used to allow florence users to create and query the progress of importing a dataset"
+    in: header
+    type: apiKey
+  InternalAPIKey:
+    name: internal-token
+    description: "API key used to allow only internal services to update the state of an import job"
+    in: header
+    type: apiKey
+paths:
+  /search/instances/{instance_id}/hierarchies/{dimension_name}:
+    get:
+      tags:
+      - "Public"
+      summary: "Search for datasets"
+      description: "Perform a search on hierarchies of an instance by the ONS"
+      parameters:
+      - $ref: '#/parameters/instance_id'
+      - $ref: '#/parameters/dimension_name'
+      - $ref: '#/parameters/limit'
+      - $ref: '#/parameters/offset'
+      - $ref: '#/parameters/query'
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "A json list containing search results of dimension options which are within a hierarchy of a published instance of a dataset by the ONS"
+          schema:
+            $ref: '#/definitions/Dimension_Options'
+        400:
+          $ref: '#/responses/InvalidRequestError'
+        401:
+          $ref: '#/responses/UnauthorisedError'
+        404:
+          description: "Hierarchy not found"
+        500:
+          $ref: '#/responses/InternalError'
+responses:
+  InvalidRequestError:
+    description: "Failed to process the request due to invalid request"
+  InternalError:
+    description: "Failed to process the request due to an internal error"
+  UnauthorisedError:
+    description: "The token provided is unauthorised to carry out this operation"
+definitions:
+  Dimension_Options:
+    description: "The resulting resource of the completed search against a dimension hierarchy"
+    type: object
+    properties:
+      count:
+        description: "The number of items returned"
+        readOnly: true
+        type: integer
+      items:
+        description: "The results of the completed search against a dimension hierarchy"
+        type: array
+        items:
+          $ref: '#/definitions/HierarchyDimensionOptionResponse'
+      limit:
+        description: "The number of items requested, defaulted to 50 and limited to 1000"
+        type: integer
+      offset:
+        description: "The first row of items to retrieve, starting at 0. Use this parameter as a pagination mechanism along with the limit parameter"
+        type: integer
+      total_count:
+        description: "The total number of items that one can page through, limited to 1000 items"
+        readOnly: true
+        type: integer
+  HierarchyDimensionOptionResponse:
+    description: "An individual result of the completed search of dimension hierarchy"
+    type: object
+    properties:
+      code:
+        type: string
+        description: "The code for this dimension option"
+      dimension_option_url: 
+        type: string
+        description: "The id of a collection of datasets that a dataset is associated to"
+      has_data:
+        type: boolean
+        description: "Indicator "
+      label:
+        type: string
+        description: "The label for this dimension option"
+      matches:
+        $ref: '#/definitions/Matches'
+      number_of_children:
+        type: integer
+        description: "A description for a dataset"
+  Matches:
+    description: "A list of members and arrays of character offset, defining substrings that matched the search terms"
+    type: object
+    properties:
+      code:
+        description: "An array of character offset into the `code` string. These always occur in pairs, and define the start and end of substrings in the member `code` that matched the search terms. The first character of the string is index 1. "
+        type: array
+        items:
+          $ref: '#/definitions/Snippet'
+      label:
+        description: "An array of character offset into the `label` string. These always occur in pairs, and define the start and end of substrings in the member `label` that matched the search terms. The first character of the string is index 1."
+        type: array
+        items:
+          $ref: '#/definitions/Snippet'
+  Snippet:
+    description: "A pair of comma separated integers to define the start and end of substring in the member taht matched the search terms. The first character of the string is index 1."
+    type: string
