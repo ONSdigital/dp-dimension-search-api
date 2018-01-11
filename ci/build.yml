@@ -1,0 +1,19 @@
+---
+
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: golang
+    tag: 1.9.2
+
+inputs:
+  - name: dp-search-api
+    path: go/src/github.com/ONSdigital/dp-search-api
+
+outputs:
+  - name: build
+
+run:
+  path: go/src/github.com/ONSdigital/dp-search-api/ci/scripts/build.sh
