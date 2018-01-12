@@ -62,12 +62,7 @@ parameters:
 securityDefinitions:
   FlorenceAPIKey:
     name: florence-token
-    description: "API key used to allow florence users to create and query the progress of importing a dataset."
-    in: header
-    type: apiKey
-  InternalAPIKey:
-    name: internal-token
-    description: "API key used to allow only internal services to update the state of an import job."
+    description: "API key used to allow florence users to be able to preview the unpublished version."
     in: header
     type: apiKey
 paths:
@@ -75,37 +70,13 @@ paths:
     get:
       tags:
       - "Public"
+      - "Private User"
       summary: "Search for datasets"
       description: "Perform a search on hierarchies of an instance by the ONS."
       parameters:
       - $ref: '#/parameters/id'
       - $ref: '#/parameters/edition'
       - $ref: '#/parameters/version'
-      - $ref: '#/parameters/dimension_name'
-      - $ref: '#/parameters/limit'
-      - $ref: '#/parameters/offset'
-      - $ref: '#/parameters/query'
-      produces:
-      - "application/json"
-      responses:
-        200:
-          description: "A json list containing search results of dimension options which are within a hierarchy of a published instance of a dataset by the ONS."
-          schema:
-            $ref: '#/definitions/Dimension_Options'
-        400:
-          $ref: '#/responses/InvalidRequestError'
-        404:
-          $ref: '#/responses/NotFoundError'
-        500:
-          $ref: '#/responses/InternalError'
-  /search/instances/{instance_id}/dimensions/{name}:
-    get:
-      tags:
-      - "Private user"
-      summary: "Search for datasets"
-      description: "Perform a search on hierarchies of an instance by the ONS."
-      parameters:
-      - $ref: '#/parameters/instance_id'
       - $ref: '#/parameters/dimension_name'
       - $ref: '#/parameters/limit'
       - $ref: '#/parameters/offset'
@@ -189,10 +160,19 @@ definitions:
         items:
           $ref: '#/definitions/Snippet'
       label:
-        description: "An array of character offset into the `label` string. These always occur in pairs, and define the start and end of substrings in the member `label` that matched the search terms. The first character of the string is index 1."
+        description: "An array of character offsets into the `label` string. These always occur in pairs, and define the start and end of substrings in the member `label` that matched the search terms. The first character of the string is index 1."
         type: array
         items:
           $ref: '#/definitions/Snippet'
   Snippet:
-    description: "A pair of comma separated integers to define the start and end of substring in the member taht matched the search terms. The first character of the string is index 1."
-    type: string
+    description: "A pair of integers to define the start and end of substring in the member that matched the search terms. The first character of the string is index 1."
+    type: object
+    properties:
+      start:
+        type: integer
+        description: "An integer to define the start of a substring in the member that matched. The first character of the string is index 1."
+        example: 3
+      end:
+        type: integer
+        description: "An integer to define the end of a substring in the member that matched."
+        example: 8
