@@ -139,6 +139,7 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 	return jsonBody, resp.StatusCode, nil
 }
 
+// Body represents the request body to elasticsearch
 type Body struct {
 	From      int        `json:"from"`
 	Size      int        `json:"size"`
@@ -147,35 +148,50 @@ type Body struct {
 	Sort      []Scores   `json:"sort"`
 }
 
+// Highlight represents parts of the fields that matched
 type Highlight struct {
-	PreTags  []string `json:"pre_tags,omitempty"`
-	PostTags []string `json:"post_tags,omitempty"`
-	Fields   []string `json:"fields,omitempty"` // guessing type for now
-	Order    string   `json:"score,omitempty"`
+	PreTags  []string          `json:"pre_tags,omitempty"`
+	PostTags []string          `json:"post_tags,omitempty"`
+	Fields   map[string]Object `json:"fields,omitempty"`
+	Order    string            `json:"score,omitempty"`
 }
 
+// Object represents an empty object (as expected by elasticsearch)
+type Object struct{}
+
+// Query represents the request query details
 type Query struct {
 	Bool Bool `json:"bool"`
 }
 
+// Bool represents the desirable goals for query
 type Bool struct {
 	Must   []Match `json:"must,omitempty"`
 	Should []Match `json:"should,omitempty"`
 }
 
+// Match represents the fields that the term should or must match too in query
 type Match struct {
 	Match map[string]string `json:"match,omitempty"`
 }
 
+// Scores represents a list of scoring, e.g. scoring on relevance, but can add in secondary
+// score such as alphabetical order if relevance is the same for two search results
 type Scores struct {
 	Score Score `json:"_score"`
 }
 
+// Score contains the ordering of the score (ascending ot descending)
 type Score struct {
 	Order string `json:"order"`
 }
 
 func buildSearchQuery(term string, limit, offset int) *Body {
+	var object Object
+	highlight := make(map[string]Object)
+
+	highlight["label"] = object
+	highlight["code"] = object
 
 	label := make(map[string]string)
 	code := make(map[string]string)
@@ -202,6 +218,11 @@ func buildSearchQuery(term string, limit, offset int) *Body {
 	query := &Body{
 		From: offset,
 		Size: limit,
+		Highlight: &Highlight{
+			PreTags:  []string{"\001S"},
+			PostTags: []string{"\001E"},
+			Fields:   highlight,
+		},
 		Query: Query{
 			Bool: Bool{
 				Should: []Match{

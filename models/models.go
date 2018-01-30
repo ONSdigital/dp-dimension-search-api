@@ -18,8 +18,14 @@ type Hits struct {
 }
 
 type HitList struct {
-	Score  float64      `json:"_score"`
-	Source SearchResult `json:"_source"`
+	Highlight Highlight    `json:"highlight"`
+	Score     float64      `json:"_score"`
+	Source    SearchResult `json:"_source"`
+}
+
+type Highlight struct {
+	Code  []string `json:"code,omitempty"`
+	Label []string `json:"label,omitempty"`
 }
 
 // SearchResults represents a structure for a list of returned objects

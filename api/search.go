@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/ONSdigital/dp-search-api/models"
 	"github.com/ONSdigital/go-ns/log"
@@ -108,8 +109,6 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Trace("nathan here", log.Data{"response": response})
-
 	searchResults := &models.SearchResults{
 		Count:      response.Hits.Total,
 		Limit:      page.Limit,
@@ -121,7 +120,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		result.Source.DimensionOptionURL = result.Source.URL
 		result.Source.URL = ""
 
-		// TODO Matches will need to be worked on here?
+		result = getSnippets(result)
 
 		doc := result.Source
 		searchResults.Items = append(searchResults.Items, doc)
@@ -147,4 +146,67 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 
 func setJSONContentType(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
+}
+
+func getSnippets(result models.HitList) models.HitList {
+
+	if len(result.Highlight.Code) > 0 {
+		highlightedCode := result.Highlight.Code[0]
+		var prevEnd int
+		logData := log.Data{}
+		for {
+			start := prevEnd + strings.Index(highlightedCode, "\u0001S") + 1
+
+			logData["start"] = start
+
+			end := strings.Index(highlightedCode, "\u0001E")
+			if end == -1 {
+				break
+			}
+			logData["end"] = prevEnd + end - 2
+
+			snippet := models.Snippet{
+				Start: start,
+				End:   prevEnd + end - 2,
+			}
+
+			prevEnd = snippet.End
+
+			result.Source.Matches.Code = append(result.Source.Matches.Code, snippet)
+			log.Info("added code snippet", logData)
+
+			highlightedCode = string(highlightedCode[end+2:])
+		}
+	}
+
+	if len(result.Highlight.Label) > 0 {
+		highlightedLabel := result.Highlight.Label[0]
+		var prevEnd int
+		logData := log.Data{}
+		for {
+			start := prevEnd + strings.Index(highlightedLabel, "\u0001S") + 1
+
+			logData["start"] = start
+
+			end := strings.Index(highlightedLabel, "\u0001E")
+			if end == -1 {
+				break
+			}
+			logData["end"] = prevEnd + end - 2
+
+			snippet := models.Snippet{
+				Start: start,
+				End:   prevEnd + end - 2,
+			}
+
+			prevEnd = snippet.End
+
+			result.Source.Matches.Label = append(result.Source.Matches.Label, snippet)
+			log.Info("added label snippet", logData)
+
+			highlightedLabel = string(highlightedLabel[end+2:])
+		}
+	}
+
+	return result
 }
