@@ -36,7 +36,7 @@ func NewDatasetAPI(client *rchttp.Client, url string) *API {
 	}
 }
 
-// GetVersion queries the Dataset API to get a version
+// GetVersion queries the dataset API to get a version
 func (api *API) GetVersion(ctx context.Context, datasetID, edition, version, authToken string) (versionDoc *models.Version, err error) {
 	path := api.url + "/datasets/" + datasetID + "/editions/" + edition + "/versions/" + version
 	logData := log.Data{"func": "GetVersion", "url": path, "dataset_id": datasetID, "edition": edition, "version": version}

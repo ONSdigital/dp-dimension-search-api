@@ -19,13 +19,16 @@ type pageVariables struct {
 
 const (
 	internalToken = "Internal-Token"
+
+	defaultLimit  = 20
+	defaultOffset = 0
 )
 
 var (
-	err error
+	internalError = "Failed to process the request due to an internal error"
+	notFoundError = "Resource not found"
 
-	limit  = 20
-	offset = 0
+	err error
 )
 
 func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +65,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	// Get instanceID from datasetAPI
 	versionDoc, err := api.datasetAPI.GetVersion(context.Background(), datasetID, edition, version, authToken)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		setErrorCode(w, err)
 		return
 	}
 
@@ -71,6 +74,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	instanceID := versionDoc.ID
 	logData["instance_id"] = instanceID
 
+	limit := defaultLimit
 	if requestedLimit != "" {
 		limit, err = strconv.Atoi(requestedLimit)
 		if err != nil {
@@ -79,6 +83,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	offset := defaultOffset
 	if requestedOffset != "" {
 		offset, err = strconv.Atoi(requestedOffset)
 		if err != nil {
@@ -105,7 +110,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 
 	response, _, err := api.elasticsearch.QuerySearchIndex(context.Background(), instanceID, dimension, term, page.Limit, page.Offset)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		setErrorCode(w, err)
 		return
 	}
 
@@ -209,4 +214,19 @@ func getSnippets(result models.HitList) models.HitList {
 	}
 
 	return result
+}
+
+func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
+	switch err.Error() {
+	case "Not found":
+		http.Error(w, notFoundError, http.StatusNotFound)
+	case "Version not found":
+		http.Error(w, notFoundError, http.StatusNotFound)
+	case "Index not found":
+		http.Error(w, notFoundError, http.StatusNotFound)
+	default:
+		http.Error(w, internalError, http.StatusInternalServerError)
+		return
+	}
+
 }

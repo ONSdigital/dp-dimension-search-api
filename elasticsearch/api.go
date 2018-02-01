@@ -32,7 +32,7 @@ func NewElasticSearchAPI(client *rchttp.Client, elasticSearchAPIURL string) *API
 	}
 }
 
-// DeleteSearchIndex removes an index from elastic search
+// DeleteSearchIndex removes an index from elasticsearch
 func (api *API) DeleteSearchIndex(ctx context.Context, instanceID, dimension string) (int, error) {
 	path := api.url + "/" + instanceID + "_" + dimension
 
@@ -44,7 +44,7 @@ func (api *API) DeleteSearchIndex(ctx context.Context, instanceID, dimension str
 	return status, nil
 }
 
-// QuerySearchIndex builds query to call elasticsearch index with
+// QuerySearchIndex builds query as a json body to call an elasticsearch index with
 func (api *API) QuerySearchIndex(ctx context.Context, instanceID, dimension, term string, limit, offset int) (*models.SearchResponse, int, error) {
 	response := &models.SearchResponse{}
 
