@@ -170,6 +170,59 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 	})
 }
 
+func TestDeleteSearchIndex(t *testing.T) {
+	Convey("Given a search index exists return a status 200 (ok)", t, func() {
+		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", secretKey)
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+}
+
+func TestFailToDeleteSearchIndex(t *testing.T) {
+	Convey("Given a search index exists but no auth header set return a status 401 (unauthorised)", t, func() {
+		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
+		w := httptest.NewRecorder()
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusUnauthorized)
+	})
+
+	Convey("Given a search index exists but auth header is wrong return a status 401 (unauthorised)", t, func() {
+		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", "abcdef")
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusUnauthorized)
+	})
+
+	Convey("Given a search index exists but unable to connect to elasticsearch cluster return a status 500 (internal service error)", t, func() {
+		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", secretKey)
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{InternalServerError: true}, defaultMaxResults)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusInternalServerError)
+	})
+
+	Convey("Given a search index does not exists return a status 404 (not found)", t, func() {
+		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", secretKey)
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{IndexNotFound: true}, defaultMaxResults)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+	})
+}
+
 func TestCheckhighlights(t *testing.T) {
 	Convey("Given the elasticsearch results contain highlights then the correct snippet pairs are returned", t, func() {
 		result := models.HitList{

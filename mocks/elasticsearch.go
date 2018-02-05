@@ -71,5 +71,9 @@ func (api *Elasticsearch) DeleteSearchIndex(ctx context.Context, instanceID, dim
 		return 0, errorInternalServer
 	}
 
+	if api.IndexNotFound {
+		return http.StatusNotFound, errorIndexNotFound
+	}
+
 	return http.StatusOK, nil
 }

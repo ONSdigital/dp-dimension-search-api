@@ -71,7 +71,7 @@ func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, sea
 	router.Path("/healthcheck").Methods("GET").HandlerFunc(healthcheck.Do)
 
 	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.getSearch).Methods("GET")
-	//api.router.HandleFunc("/search/{index}", api.privateAuth.Check(deleteSearchIndex)).Methods("DELETE")
+	api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", api.privateAuth.Check(api.deleteSearchIndex)).Methods("DELETE")
 
 	return &api
 }

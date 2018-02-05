@@ -216,6 +216,28 @@ func getSnippets(result models.HitList) models.HitList {
 	return result
 }
 
+func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	instanceID := vars["instance_id"]
+	dimension := vars["dimension"]
+
+	logData := log.Data{"instance_id": instanceID, "dimension": dimension}
+
+	status, err := api.elasticsearch.DeleteSearchIndex(context.Background(), instanceID, dimension)
+	logData["status"] = status
+	if err != nil {
+		log.ErrorC("failed to delete index", err, logData)
+		setErrorCode(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	log.Info("index deleted", logData)
+}
+
 func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 	switch err.Error() {
 	case "Not found":
@@ -228,5 +250,4 @@ func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
 		http.Error(w, internalError, http.StatusInternalServerError)
 		return
 	}
-
 }
