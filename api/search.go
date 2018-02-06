@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -18,7 +17,7 @@ type pageVariables struct {
 }
 
 const (
-	internalToken = "Internal-Token"
+	internalTokenHeader = "Internal-Token"
 
 	defaultLimit  = 20
 	defaultOffset = 0
@@ -57,13 +56,13 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 
 	var authToken string
 
-	if r.Header.Get(internalToken) == api.internalToken {
+	if r.Header.Get(internalTokenHeader) == api.internalToken {
 		// Authorised to search against an unpublished version
 		authToken = api.datasetAPISecretKey
 	}
 
 	// Get instanceID from datasetAPI
-	versionDoc, err := api.datasetAPI.GetVersion(context.Background(), datasetID, edition, version, authToken)
+	versionDoc, err := api.datasetAPI.GetVersion(r.Context(), datasetID, edition, version, authToken)
 	if err != nil {
 		setErrorCode(w, err)
 		return
@@ -108,7 +107,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("just before calling query search index", logData)
 
-	response, _, err := api.elasticsearch.QuerySearchIndex(context.Background(), instanceID, dimension, term, page.Limit, page.Offset)
+	response, _, err := api.elasticsearch.QuerySearchIndex(r.Context(), instanceID, dimension, term, page.Limit, page.Offset)
 	if err != nil {
 		setErrorCode(w, err)
 		return
@@ -147,10 +146,6 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 	log.Debug("get all datasets", nil)
-}
-
-func setJSONContentType(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
 }
 
 func getSnippets(result models.HitList) models.HitList {
@@ -224,7 +219,7 @@ func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) 
 
 	logData := log.Data{"instance_id": instanceID, "dimension": dimension}
 
-	status, err := api.elasticsearch.DeleteSearchIndex(context.Background(), instanceID, dimension)
+	status, err := api.elasticsearch.DeleteSearchIndex(r.Context(), instanceID, dimension)
 	logData["status"] = status
 	if err != nil {
 		log.ErrorC("failed to delete index", err, logData)
@@ -232,10 +227,14 @@ func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
 
 	log.Info("index deleted", logData)
+}
+
+func setJSONContentType(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
 }
 
 func setErrorCode(w http.ResponseWriter, err error, typ ...string) {

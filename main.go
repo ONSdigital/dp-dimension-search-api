@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"os"
-	"strconv"
 
 	"github.com/ONSdigital/dp-search-api/config"
 	dataset "github.com/ONSdigital/dp-search-api/dataset"
@@ -21,12 +20,6 @@ func main() {
 	cfg, err := config.Get()
 	if err != nil {
 		log.Error(err, nil)
-		os.Exit(1)
-	}
-
-	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, 10, 32)
-	if err != nil {
-		log.ErrorC("encountered error parsing kafka max bytes", err, nil)
 		os.Exit(1)
 	}
 
@@ -56,7 +49,7 @@ func main() {
 		DefaultMaxResults:   cfg.MaxSearchResultsOffset,
 		Elasticsearch:       elasticsearch,
 		ElasticsearchURL:    cfg.ElasticSearchAPIURL,
-		EnvMax:              envMax,
+		EnvMax:              cfg.KafkaMaxBytes,
 		HealthCheckInterval: cfg.HealthCheckInterval,
 		HealthCheckTimeout:  cfg.HealthCheckTimeout,
 		HTTPClient:          client,

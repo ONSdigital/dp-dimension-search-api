@@ -24,7 +24,7 @@ type API struct {
 	url    string
 }
 
-// NewElasticSearchAPI creates an ElasticSearchAPI object
+// NewElasticSearchAPI creates an API object
 func NewElasticSearchAPI(client *rchttp.Client, elasticSearchAPIURL string) *API {
 	return &API{
 		client: client,
@@ -48,13 +48,11 @@ func (api *API) DeleteSearchIndex(ctx context.Context, instanceID, dimension str
 func (api *API) QuerySearchIndex(ctx context.Context, instanceID, dimension, term string, limit, offset int) (*models.SearchResponse, int, error) {
 	response := &models.SearchResponse{}
 
-	logData := log.Data{"term": term}
-
-	log.Info("searching index", logData)
-
 	path := api.url + "/" + instanceID + "_" + dimension + "/_search"
 
-	logData["path"] = path
+	logData := log.Data{"term": term, "path": path}
+
+	log.Info("searching index", logData)
 
 	body := buildSearchQuery(term, limit, offset)
 
@@ -65,8 +63,6 @@ func (api *API) QuerySearchIndex(ctx context.Context, instanceID, dimension, ter
 	}
 
 	logData["request_body"] = string(bytes)
-
-	log.Info("path is", logData)
 
 	responseBody, status, err := api.CallElastic(ctx, path, "GET", bytes)
 	logData["status"] = status
@@ -82,7 +78,7 @@ func (api *API) QuerySearchIndex(ctx context.Context, instanceID, dimension, ter
 		return nil, status, errors.New("Failed to parse json body")
 	}
 
-	log.Info("search results", log.Data{"results": response})
+	log.Info("search results", logData)
 
 	return response, status, nil
 }
@@ -121,7 +117,7 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 	}
 	defer resp.Body.Close()
 
-	logData["http_code"] = resp.StatusCode
+	logData["status_code"] = resp.StatusCode
 
 	jsonBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -129,7 +125,6 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 		return nil, resp.StatusCode, err
 	}
 	logData["json_body"] = string(jsonBody)
-	logData["status_code"] = resp.StatusCode
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= 300 {
 		log.ErrorC("failed", ErrorUnexpectedStatusCode, logData)
@@ -170,7 +165,7 @@ type Bool struct {
 	Should []Match `json:"should,omitempty"`
 }
 
-// Match represents the fields that the term should or must match too in query
+// Match represents the fields that the term should or must match within query
 type Match struct {
 	Match map[string]string `json:"match,omitempty"`
 }
@@ -181,7 +176,7 @@ type Scores struct {
 	Score Score `json:"_score"`
 }
 
-// Score contains the ordering of the score (ascending ot descending)
+// Score contains the ordering of the score (ascending or descending)
 type Score struct {
 	Order string `json:"order"`
 }
@@ -219,8 +214,8 @@ func buildSearchQuery(term string, limit, offset int) *Body {
 		From: offset,
 		Size: limit,
 		Highlight: &Highlight{
-			PreTags:  []string{"\001S"},
-			PostTags: []string{"\001E"},
+			PreTags:  []string{"\u0001S"},
+			PostTags: []string{"\u0001E"},
 			Fields:   highlight,
 		},
 		Query: Query{

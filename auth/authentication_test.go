@@ -12,7 +12,7 @@ func TestMiddleWareAuthenticationReturnsForbidden(t *testing.T) {
 	t.Parallel()
 	Convey("When no access token is provide, unauthorised status code is returned", t, func() {
 		auth := &Authenticator{"123", "internal-token"}
-		r, err := http.NewRequest("POST", "http://localhost:21800/instances", nil)
+		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		So(err, ShouldBeNil)
 		w := httptest.NewRecorder()
 		auth.Check(mockHTTPHandler).ServeHTTP(w, r)
@@ -24,7 +24,7 @@ func TestMiddleWareAuthenticationReturnsUnauthorised(t *testing.T) {
 	t.Parallel()
 	Convey("When a invalid access token is provide, unauthorised status code is returned", t, func() {
 		auth := &Authenticator{"123", "internal-token"}
-		r, err := http.NewRequest("POST", "http://localhost:21800/instances", nil)
+		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		r.Header.Set("internal-token", "12")
 		So(err, ShouldBeNil)
 		w := httptest.NewRecorder()
@@ -37,7 +37,7 @@ func TestMiddleWareAuthentication(t *testing.T) {
 	t.Parallel()
 	Convey("When a valid access token is provide, OK code is returned", t, func() {
 		auth := &Authenticator{"123", "internal-token"}
-		r, err := http.NewRequest("POST", "http://localhost:21800/instances", nil)
+		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		r.Header.Set("internal-token", "123")
 		So(err, ShouldBeNil)
 		w := httptest.NewRecorder()
@@ -50,7 +50,7 @@ func TestMiddleWareAuthenticationWithValue(t *testing.T) {
 	t.Parallel()
 	Convey("When a valid access token is provide, true is passed to a http handler", t, func() {
 		auth := &Authenticator{"123", "internal-token"}
-		r, err := http.NewRequest("POST", "http://localhost:21800/instances", nil)
+		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		r.Header.Set("internal-token", "123")
 		So(err, ShouldBeNil)
 		w := httptest.NewRecorder()
@@ -63,6 +63,5 @@ func TestMiddleWareAuthenticationWithValue(t *testing.T) {
 	})
 }
 
-func mockHTTPHandler(w http.ResponseWriter, r *http.Request) {
-
-}
+// mockHTTPHandler is an empty http handler used for testing auth check function
+func mockHTTPHandler(w http.ResponseWriter, r *http.Request) {}

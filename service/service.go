@@ -55,34 +55,29 @@ func (svc *Service) Start() {
 
 	api.CreateSearchAPI(svc.SearchAPIURL, svc.BindAddr, svc.SecretKey, svc.DatasetAPISecretKey, apiErrors, svc.SearchIndexProducer, svc.DatasetAPI, svc.Elasticsearch, svc.DefaultMaxResults)
 
+	// blocks until a fatal error occurs
+	select {
+	case err := <-apiErrors:
+		log.ErrorC("api error received", err, nil)
+	case <-signals:
+		log.Debug("os signal received", nil)
+	}
+
 	// Gracefully shutdown the application closing any open resources.
-	gracefulShutdown := func() {
-		log.Info(fmt.Sprintf("shutdown with timeout: %s", svc.Shutdown), nil)
-		ctx, cancel := context.WithTimeout(context.Background(), svc.Shutdown)
+	log.Info(fmt.Sprintf("shutdown with timeout: %s", svc.Shutdown), nil)
+	ctx, cancel := context.WithTimeout(context.Background(), svc.Shutdown)
 
-		// stop any incoming requests before closing any outbound connections
-		api.Close(ctx)
+	// stop any incoming requests before closing any outbound connections
+	api.Close(ctx)
 
-		if err := svc.SearchIndexProducer.Close(ctx); err != nil {
-			log.Error(errors.Wrap(err, "error while attempting to shutdown kafka producer"), nil)
-		}
-
-		healthTicker.Close()
-
-		log.Info("shutdown complete", nil)
-
-		cancel()
-		os.Exit(1)
+	if err := svc.SearchIndexProducer.Close(ctx); err != nil {
+		log.Error(errors.Wrap(err, "error while attempting to shutdown kafka producer"), nil)
 	}
 
-	for {
-		select {
-		case err := <-apiErrors:
-			log.ErrorC("api error received", err, nil)
-			gracefulShutdown()
-		case <-signals:
-			log.Debug("os signal received", nil)
-			gracefulShutdown()
-		}
-	}
+	healthTicker.Close()
+
+	log.Info("shutdown complete", nil)
+
+	cancel()
+	os.Exit(1)
 }

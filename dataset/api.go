@@ -46,6 +46,9 @@ func (api *API) GetVersion(ctx context.Context, datasetID, edition, version, aut
 	logData["json_result"] = jsonResult
 	if err != nil {
 		log.ErrorC("api get", err, logData)
+		if httpCode == http.StatusInternalServerError {
+			return
+		}
 		return nil, ErrorVersionNotFound
 	}
 
