@@ -23,6 +23,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	log.Info("config on startup", log.Data{"config": sanitiseConfig(cfg)})
+
 	client := rchttp.DefaultClient
 	elasticsearch := elasticsearch.NewElasticSearchAPI(client, cfg.ElasticSearchAPIURL)
 	_, status, err := elasticsearch.CallElastic(context.Background(), cfg.ElasticSearchAPIURL, "GET", nil)
@@ -38,9 +40,6 @@ func main() {
 	}
 
 	datasetAPI := dataset.NewDatasetAPI(client, cfg.DatasetAPIURL)
-
-	// TODO This needs to be sanitised to hide sensitive configs
-	log.Info("config on startup", log.Data{"config": cfg})
 
 	svc := &service.Service{
 		BindAddr:            cfg.BindAddr,
@@ -61,4 +60,21 @@ func main() {
 	}
 
 	svc.Start()
+}
+
+func sanitiseConfig(cfg *config.Config) *config.Config {
+	sanitisedConfig := &config.Config{
+		DatasetAPIURL:           cfg.DatasetAPIURL,
+		GracefulShutdownTimeout: cfg.GracefulShutdownTimeout,
+		HealthCheckInterval:     cfg.HealthCheckInterval,
+		HealthCheckTimeout:      cfg.HealthCheckTimeout,
+		HierarchyBuiltTopic:     cfg.HierarchyBuiltTopic,
+		KafkaMaxBytes:           cfg.KafkaMaxBytes,
+		MaxRetries:              cfg.MaxRetries,
+		MaxSearchResultsOffset:  cfg.MaxSearchResultsOffset,
+		SearchAPIURL:            cfg.SearchAPIURL,
+	}
+
+	return sanitisedConfig
+
 }
