@@ -23,7 +23,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Info("config on startup", log.Data{"config": sanitiseConfig(cfg)})
+	// sensitive fields are omitted from config.String().
+	log.Info("config on startup", log.Data{"config": cfg})
 
 	client := rchttp.DefaultClient
 	elasticsearch := elasticsearch.NewElasticSearchAPI(client, cfg.ElasticSearchAPIURL)
@@ -60,21 +61,4 @@ func main() {
 	}
 
 	svc.Start()
-}
-
-func sanitiseConfig(cfg *config.Config) *config.Config {
-	sanitisedConfig := &config.Config{
-		DatasetAPIURL:           cfg.DatasetAPIURL,
-		GracefulShutdownTimeout: cfg.GracefulShutdownTimeout,
-		HealthCheckInterval:     cfg.HealthCheckInterval,
-		HealthCheckTimeout:      cfg.HealthCheckTimeout,
-		HierarchyBuiltTopic:     cfg.HierarchyBuiltTopic,
-		KafkaMaxBytes:           cfg.KafkaMaxBytes,
-		MaxRetries:              cfg.MaxRetries,
-		MaxSearchResultsOffset:  cfg.MaxSearchResultsOffset,
-		SearchAPIURL:            cfg.SearchAPIURL,
-	}
-
-	return sanitisedConfig
-
 }

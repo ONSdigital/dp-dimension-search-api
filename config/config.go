@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
@@ -8,11 +9,11 @@ import (
 
 // Config is the filing resource handler config
 type Config struct {
-	BindAddr                string        `envconfig:"BIND_ADDR"`
-	Brokers                 []string      `envconfig:"KAFKA_ADDR"`
+	BindAddr                string        `envconfig:"BIND_ADDR"                  json:"-"`
+	Brokers                 []string      `envconfig:"KAFKA_ADDR"                 json:"-"`
 	DatasetAPIURL           string        `envconfig:"DATASET_API_URL"`
-	DatasetAPISecretKey     string        `envconfig:"DATASET_API_SECRET_KEY"`
-	ElasticSearchAPIURL     string        `envconfig:"ELASTIC_SEARCH_URL"`
+	DatasetAPISecretKey     string        `envconfig:"DATASET_API_SECRET_KEY"     json:"-"`
+	ElasticSearchAPIURL     string        `envconfig:"ELASTIC_SEARCH_URL"         json:"-"`
 	GracefulShutdownTimeout time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 	HealthCheckInterval     time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	HealthCheckTimeout      time.Duration `envconfig:"HEALTHCHECK_TIMEOUT"`
@@ -21,7 +22,7 @@ type Config struct {
 	MaxRetries              int           `envconfig:"REQUEST_MAX_RETRIES"`
 	MaxSearchResultsOffset  int           `envconfig:"MAX_SEARCH_RESULTS_OFFSET"`
 	SearchAPIURL            string        `envconfig:"SEARCH_API_URL"`
-	SecretKey               string        `envconfig:"SECRET_KEY"`
+	SecretKey               string        `envconfig:"SECRET_KEY"                 json:"-"`
 }
 
 var cfg *Config
@@ -50,4 +51,11 @@ func Get() (*Config, error) {
 	}
 
 	return cfg, envconfig.Process("", cfg)
+}
+
+// String is implemented to prevent sensitive fields being logged.
+// The config is returned as JSON with sensitive fields omitted.
+func (config Config) String() string {
+	json, _ := json.Marshal(config)
+	return string(json)
 }
