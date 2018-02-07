@@ -38,6 +38,9 @@ func (api *API) DeleteSearchIndex(ctx context.Context, instanceID, dimension str
 
 	_, status, err := api.CallElastic(ctx, path, "DELETE", nil)
 	if err != nil {
+		if status == http.StatusNotFound {
+			return status, errors.New("Index not found")
+		}
 		return status, err
 	}
 
