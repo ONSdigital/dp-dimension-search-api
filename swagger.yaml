@@ -62,7 +62,7 @@ parameters:
 securityDefinitions:
   FlorenceAPIKey:
     name: florence-token
-    description: "API key used to allow florence users to be able to preview the unpublished version."
+    description: "API key used to allow florence users to be able to preview the dimension search for an unpublished version."
     in: header
     type: apiKey
 paths:
@@ -70,9 +70,8 @@ paths:
     get:
       tags:
       - "Public"
-      - "Private User"
-      summary: "Search for datasets"
-      description: "Perform a search on hierarchies of an instance by the ONS."
+      summary: "Search for dimension option within a hierarchy for a version of a dataset"
+      description: "Perform a search on dimension options which are within a hierarchy of a published version of a dataset by the ONS."
       parameters:
       - $ref: '#/parameters/id'
       - $ref: '#/parameters/edition'
@@ -85,7 +84,7 @@ paths:
       - "application/json"
       responses:
         200:
-          description: "A json list containing search results of dimension options which are within a hierarchy of a published instance of a dataset by the ONS."
+          description: "A json list containing search results of dimension options which are within a hierarchy of a published version of a dataset by the ONS."
           schema:
             $ref: '#/definitions/Dimension_Options'
         400:
@@ -94,6 +93,24 @@ paths:
           $ref: '#/responses/UnauthorisedError'
         404:
           $ref: '#/responses/NotFoundError'
+        500:
+          $ref: '#/responses/InternalError'
+  /search/instances/{instance_id}/dimensions/{name}:
+    delete:
+      tags:
+      - "Private user"
+      summary: "Delete a search index"
+      description: "Remove a search index containing a list of dimension options for an instance"
+      parameters:
+      - $ref: '#/parameters/instance_id'
+      - $ref: '#/parameters/dimension_name'
+      responses:
+        200:
+          description: "The index was removed"
+        401:
+          $ref: '#/responses/UnauthorisedError'
+        404:
+          description: "The index was not found"
         500:
           $ref: '#/responses/InternalError'
 responses:
@@ -123,10 +140,7 @@ definitions:
         description: "The number of items requested, defaulted to 50 and limited to 1000."
         type: integer
       offset:
-        description: "The first row of items to retrieve, starting at 0. Use this parameter as a pagination mechanism along with the limit parameter."
-        type: integer
-      total_count:
-        description: "The total number of items that one can page through, limited to 1000 items."
+        description: "The first row of items to retrieve, starting at 0. Use this parameter as a pagination mechanism along with the limit parameter. The total number of items that one can page through is limited to 1000 items."
         type: integer
   HierarchyDimensionOptionResponse:
     description: "An individual result of the completed search of dimension hierarchy."

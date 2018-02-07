@@ -30,11 +30,10 @@ type Highlight struct {
 
 // SearchResults represents a structure for a list of returned objects
 type SearchResults struct {
-	Count      int            `json:"count"`
-	Items      []SearchResult `json:"items"`
-	Limit      int            `json:"limit"`
-	Offset     int            `json:"offset"`
-	TotalCount int            `json:"total_count"`
+	Count  int            `json:"count"`
+	Items  []SearchResult `json:"items"`
+	Limit  int            `json:"limit"`
+	Offset int            `json:"offset"`
 }
 
 // SearchResult represents data on a single item of search results
