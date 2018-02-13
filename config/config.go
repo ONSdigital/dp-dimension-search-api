@@ -17,7 +17,6 @@ type Config struct {
 	GracefulShutdownTimeout time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 	HealthCheckInterval     time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	HealthCheckTimeout      time.Duration `envconfig:"HEALTHCHECK_TIMEOUT"`
-	HierarchyBuiltTopic     string        `envconfig:"HIERARCHY_BUILT_TOPIC"`
 	KafkaMaxBytes           int64         `envconfig:"KAFKA_MAX_BYTES"`
 	MaxRetries              int           `envconfig:"REQUEST_MAX_RETRIES"`
 	MaxSearchResultsOffset  int           `envconfig:"MAX_SEARCH_RESULTS_OFFSET"`
@@ -42,7 +41,6 @@ func Get() (*Config, error) {
 		GracefulShutdownTimeout: 5 * time.Second,
 		HealthCheckInterval:     1 * time.Minute,
 		HealthCheckTimeout:      2 * time.Second,
-		HierarchyBuiltTopic:     "hierarchy-built",
 		KafkaMaxBytes:           2000000,
 		MaxRetries:              3,
 		MaxSearchResultsOffset:  1000,

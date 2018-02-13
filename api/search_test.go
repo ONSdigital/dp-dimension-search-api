@@ -11,7 +11,6 @@ import (
 
 	"github.com/ONSdigital/dp-search-api/mocks"
 	"github.com/ONSdigital/dp-search-api/models"
-	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -25,22 +24,13 @@ var (
 	topic               = "testing"
 )
 
-// TODO this should really be mocked
-func getTestProducer() kafka.Producer {
-	producer, err := kafka.NewProducer(brokers, topic, 0)
-	if err != nil {
-		os.Exit(1)
-	}
-	return producer
-}
-
 func TestGetSearchReturnsOK(t *testing.T) {
 	t.Parallel()
 	Convey("Given the search query satisfies the search index then return a status 200", t, func() {
 		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
 		w := httptest.NewRecorder()
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -81,7 +71,7 @@ func TestGetSearchReturnsOK(t *testing.T) {
 		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&limit=5&offset=20", nil)
 		w := httptest.NewRecorder()
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, 40)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, 40)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -101,7 +91,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
 		w := httptest.NewRecorder()
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{InternalServerError: true}, &mocks.Elasticsearch{}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{InternalServerError: true}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 	})
@@ -110,7 +100,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
 		w := httptest.NewRecorder()
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{VersionNotFound: true}, &mocks.Elasticsearch{}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{VersionNotFound: true}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 	})
@@ -119,7 +109,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&limit=four", nil)
 		w := httptest.NewRecorder()
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 	})
@@ -128,7 +118,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&offset=fifty", nil)
 		w := httptest.NewRecorder()
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 	})
@@ -137,7 +127,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		w := httptest.NewRecorder()
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 	})
@@ -146,7 +136,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&offset=50", nil)
 		w := httptest.NewRecorder()
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
 	})
@@ -155,7 +145,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
 		w := httptest.NewRecorder()
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{InternalServerError: true}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{InternalServerError: true}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 	})
@@ -164,7 +154,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
 		w := httptest.NewRecorder()
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{IndexNotFound: true}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{IndexNotFound: true}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 	})
@@ -176,7 +166,7 @@ func TestDeleteSearchIndex(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -187,7 +177,7 @@ func TestFailToDeleteSearchIndex(t *testing.T) {
 		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
 		w := httptest.NewRecorder()
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusUnauthorized)
 	})
@@ -197,7 +187,7 @@ func TestFailToDeleteSearchIndex(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", "abcdef")
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusUnauthorized)
 	})
@@ -207,7 +197,7 @@ func TestFailToDeleteSearchIndex(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{InternalServerError: true}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{InternalServerError: true}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 	})
@@ -217,7 +207,7 @@ func TestFailToDeleteSearchIndex(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), getTestProducer(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{IndexNotFound: true}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{IndexNotFound: true}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 	})

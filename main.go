@@ -5,13 +5,11 @@ import (
 	"os"
 
 	"github.com/ONSdigital/dp-search-api/config"
-	dataset "github.com/ONSdigital/dp-search-api/dataset"
+	"github.com/ONSdigital/dp-search-api/dataset"
 	"github.com/ONSdigital/dp-search-api/elasticsearch"
 	"github.com/ONSdigital/dp-search-api/service"
-	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/rchttp"
-	"github.com/pkg/errors"
 )
 
 func main() {
@@ -34,12 +32,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	createSearchIndexProducer, err := kafka.NewProducer(cfg.Brokers, cfg.HierarchyBuiltTopic, 0)
-	if err != nil {
-		log.Error(errors.Wrap(err, "error creating kakfa producer"), nil)
-		os.Exit(1)
-	}
-
 	datasetAPI := dataset.NewDatasetAPI(client, cfg.DatasetAPIURL)
 
 	svc := &service.Service{
@@ -55,7 +47,6 @@ func main() {
 		HTTPClient:          client,
 		MaxRetries:          cfg.MaxRetries,
 		SearchAPIURL:        cfg.SearchAPIURL,
-		SearchIndexProducer: createSearchIndexProducer,
 		SecretKey:           cfg.SecretKey,
 		Shutdown:            cfg.GracefulShutdownTimeout,
 	}

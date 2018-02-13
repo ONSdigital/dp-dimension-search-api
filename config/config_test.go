@@ -27,7 +27,6 @@ func TestSpec(t *testing.T) {
 				So(cfg.GracefulShutdownTimeout, ShouldEqual, 5*time.Second)
 				So(cfg.HealthCheckInterval, ShouldEqual, 60*time.Second)
 				So(cfg.HealthCheckTimeout, ShouldEqual, 2*time.Second)
-				So(cfg.HierarchyBuiltTopic, ShouldEqual, "hierarchy-built")
 				So(cfg.KafkaMaxBytes, ShouldEqual, 2000000)
 				So(cfg.MaxRetries, ShouldEqual, 3)
 				So(cfg.MaxSearchResultsOffset, ShouldEqual, 1000)
