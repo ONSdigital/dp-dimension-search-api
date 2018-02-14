@@ -12,6 +12,7 @@ import (
 	"github.com/ONSdigital/dp-search-api/models"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/rchttp"
+	"github.com/smartystreets/go-aws-auth"
 )
 
 // ErrorUnexpectedStatusCode represents the error message to be returned when
@@ -20,15 +21,17 @@ var ErrorUnexpectedStatusCode = errors.New("unexpected status code from api")
 
 // API aggregates a client and URL and other common data for accessing the API
 type API struct {
-	client *rchttp.Client
-	url    string
+	client       *rchttp.Client
+	url          string
+	signRequests bool
 }
 
 // NewElasticSearchAPI creates an API object
-func NewElasticSearchAPI(client *rchttp.Client, elasticSearchAPIURL string) *API {
+func NewElasticSearchAPI(client *rchttp.Client, elasticSearchAPIURL string, signRequests bool) *API {
 	return &API{
-		client: client,
-		url:    elasticSearchAPIURL,
+		client:       client,
+		url:          elasticSearchAPIURL,
+		signRequests: signRequests,
 	}
 }
 
@@ -111,6 +114,10 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 	if err != nil {
 		log.ErrorC("failed to create request for call to elastic", err, logData)
 		return nil, 0, err
+	}
+
+	if api.signRequests {
+		awsauth.Sign(req)
 	}
 
 	resp, err := api.client.Do(ctx, req)
