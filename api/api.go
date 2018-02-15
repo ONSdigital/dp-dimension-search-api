@@ -6,7 +6,6 @@ import (
 	"github.com/ONSdigital/dp-dataset-api/store"
 	"github.com/ONSdigital/dp-search-api/auth"
 	"github.com/ONSdigital/go-ns/healthcheck"
-	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
@@ -34,7 +33,6 @@ type SearchAPI struct {
 	internalToken       string
 	privateAuth         *auth.Authenticator
 	router              *mux.Router
-	searchIndexProducer kafka.Producer
 }
 
 // CreateSearchAPI manages all the routes configured to API
