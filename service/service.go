@@ -18,20 +18,21 @@ import (
 
 // Service represents the necessary config for dp-dimension-extractor
 type Service struct {
-	BindAddr            string
-	DatasetAPI          api.DatasetAPIer
-	DatasetAPISecretKey string
-	DefaultMaxResults   int
-	Elasticsearch       api.Elasticsearcher
-	ElasticsearchURL    string
-	EnvMax              int64
-	HealthCheckInterval time.Duration
-	HealthCheckTimeout  time.Duration
-	HTTPClient          *rchttp.Client
-	MaxRetries          int
-	SearchAPIURL        string
-	SecretKey           string
-	Shutdown            time.Duration
+	BindAddr                  string
+	DatasetAPI                api.DatasetAPIer
+	DatasetAPISecretKey       string
+	DefaultMaxResults         int
+	Elasticsearch             api.Elasticsearcher
+	ElasticsearchURL          string
+	SignElasticsearchRequests bool
+	EnvMax                    int64
+	HealthCheckInterval       time.Duration
+	HealthCheckTimeout        time.Duration
+	HTTPClient                *rchttp.Client
+	MaxRetries                int
+	SearchAPIURL              string
+	SecretKey                 string
+	Shutdown                  time.Duration
 }
 
 // Start handles consumption of events
@@ -50,7 +51,15 @@ func (svc *Service) Start() {
 		elasticsearch.NewHealthCheckClient(svc.ElasticsearchURL),
 	)
 
-	api.CreateSearchAPI(svc.SearchAPIURL, svc.BindAddr, svc.SecretKey, svc.DatasetAPISecretKey, apiErrors, svc.DatasetAPI, svc.Elasticsearch, svc.DefaultMaxResults)
+	api.CreateSearchAPI(
+		svc.SearchAPIURL,
+		svc.BindAddr,
+		svc.SecretKey,
+		svc.DatasetAPISecretKey,
+		apiErrors,
+		svc.DatasetAPI,
+		svc.Elasticsearch,
+		svc.DefaultMaxResults)
 
 	// blocks until a fatal error occurs
 	select {

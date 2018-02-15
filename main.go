@@ -25,7 +25,7 @@ func main() {
 	log.Info("config on startup", log.Data{"config": cfg})
 
 	client := rchttp.DefaultClient
-	elasticsearch := elasticsearch.NewElasticSearchAPI(client, cfg.ElasticSearchAPIURL)
+	elasticsearch := elasticsearch.NewElasticSearchAPI(client, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests)
 	_, status, err := elasticsearch.CallElastic(context.Background(), cfg.ElasticSearchAPIURL, "GET", nil)
 	if err != nil {
 		log.ErrorC("failed to start up, unable to connect to elastic search instance", err, log.Data{"http_status": status})
@@ -35,20 +35,20 @@ func main() {
 	datasetAPI := dataset.NewDatasetAPI(client, cfg.DatasetAPIURL)
 
 	svc := &service.Service{
-		BindAddr:            cfg.BindAddr,
-		DatasetAPI:          datasetAPI,
-		DatasetAPISecretKey: cfg.DatasetAPISecretKey,
-		DefaultMaxResults:   cfg.MaxSearchResultsOffset,
-		Elasticsearch:       elasticsearch,
-		ElasticsearchURL:    cfg.ElasticSearchAPIURL,
-		EnvMax:              cfg.KafkaMaxBytes,
-		HealthCheckInterval: cfg.HealthCheckInterval,
-		HealthCheckTimeout:  cfg.HealthCheckTimeout,
-		HTTPClient:          client,
-		MaxRetries:          cfg.MaxRetries,
-		SearchAPIURL:        cfg.SearchAPIURL,
-		SecretKey:           cfg.SecretKey,
-		Shutdown:            cfg.GracefulShutdownTimeout,
+		BindAddr:                  cfg.BindAddr,
+		DatasetAPI:                datasetAPI,
+		DatasetAPISecretKey:       cfg.DatasetAPISecretKey,
+		DefaultMaxResults:         cfg.MaxSearchResultsOffset,
+		Elasticsearch:             elasticsearch,
+		ElasticsearchURL:          cfg.ElasticSearchAPIURL,
+		SignElasticsearchRequests: cfg.SignElasticsearchRequests,
+		HealthCheckInterval:       cfg.HealthCheckInterval,
+		HealthCheckTimeout:        cfg.HealthCheckTimeout,
+		HTTPClient:                client,
+		MaxRetries:                cfg.MaxRetries,
+		SearchAPIURL:              cfg.SearchAPIURL,
+		SecretKey:                 cfg.SecretKey,
+		Shutdown:                  cfg.GracefulShutdownTimeout,
 	}
 
 	svc.Start()
