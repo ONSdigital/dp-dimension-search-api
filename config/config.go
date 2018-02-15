@@ -43,7 +43,7 @@ func Get() (*Config, error) {
 		MaxSearchResultsOffset:    1000,
 		SearchAPIURL:              "http://localhost:23100",
 		SecretKey:                 "SD0108EA-825D-411C-45J3-41EF7727F123",
-		SignElasticsearchRequests: true,
+		SignElasticsearchRequests: false,
 	}
 
 	return cfg, envconfig.Process("", cfg)
