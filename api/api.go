@@ -6,7 +6,6 @@ import (
 	"github.com/ONSdigital/dp-dataset-api/store"
 	"github.com/ONSdigital/dp-search-api/auth"
 	"github.com/ONSdigital/go-ns/healthcheck"
-	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
@@ -34,13 +33,12 @@ type SearchAPI struct {
 	internalToken       string
 	privateAuth         *auth.Authenticator
 	router              *mux.Router
-	searchIndexProducer kafka.Producer
 }
 
 // CreateSearchAPI manages all the routes configured to API
-func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, errorChan chan error, SearchIndexProducer kafka.Producer, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int) {
+func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, errorChan chan error, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int) {
 	router := mux.NewRouter()
-	routes(host, secretKey, datasetAPISecretKey, router, SearchIndexProducer, datasetAPI, elasticsearch, defaultMaxResults)
+	routes(host, secretKey, datasetAPISecretKey, router, datasetAPI, elasticsearch, defaultMaxResults)
 
 	httpServer = server.New(bindAddr, router)
 	// Disable this here to allow service to manage graceful shutdown of the entire app.
@@ -55,13 +53,12 @@ func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, erro
 	}()
 }
 
-func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, searchIndexProducer kafka.Producer, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int) *SearchAPI {
+func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int) *SearchAPI {
 	api := SearchAPI{
 		datasetAPI:          datasetAPI,
 		datasetAPISecretKey: datasetAPISecretKey,
 		defaultMaxResults:   defaultMaxResults,
 		elasticsearch:       elasticsearch,
-		searchIndexProducer: searchIndexProducer,
 		host:                host,
 		internalToken:       secretKey,
 		privateAuth:         &auth.Authenticator{SecretKey: secretKey, HeaderName: "internal-token"},
