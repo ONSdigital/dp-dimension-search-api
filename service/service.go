@@ -48,7 +48,7 @@ func (svc *Service) Start() {
 	healthTicker := healthcheck.NewTicker(
 		svc.HealthCheckInterval,
 		svc.DatasetAPI.GetHealthCheckClient(),
-		elasticsearch.NewHealthCheckClient(svc.ElasticsearchURL),
+		elasticsearch.NewHealthCheckClient(svc.ElasticsearchURL, svc.SignElasticsearchRequests),
 	)
 
 	api.CreateSearchAPI(
