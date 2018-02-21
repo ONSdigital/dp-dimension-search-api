@@ -33,6 +33,7 @@ type Service struct {
 	SearchAPIURL              string
 	SecretKey                 string
 	Shutdown                  time.Duration
+	Subnet					  string
 }
 
 // Start handles consumption of events
@@ -59,7 +60,8 @@ func (svc *Service) Start() {
 		apiErrors,
 		svc.DatasetAPI,
 		svc.Elasticsearch,
-		svc.DefaultMaxResults)
+		svc.DefaultMaxResults,
+		svc.Subnet)
 
 	// blocks until a fatal error occurs
 	select {

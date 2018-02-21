@@ -9,6 +9,7 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
+	"github.com/ONSdigital/dp-search-api/models"
 )
 
 var httpServer *server.Server
@@ -36,9 +37,9 @@ type SearchAPI struct {
 }
 
 // CreateSearchAPI manages all the routes configured to API
-func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, errorChan chan error, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int) {
+func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, errorChan chan error, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, subnet string) {
 	router := mux.NewRouter()
-	routes(host, secretKey, datasetAPISecretKey, router, datasetAPI, elasticsearch, defaultMaxResults)
+	routes(host, secretKey, datasetAPISecretKey, router, datasetAPI, elasticsearch, defaultMaxResults, subnet)
 
 	httpServer = server.New(bindAddr, router)
 	// Disable this here to allow service to manage graceful shutdown of the entire app.
@@ -53,7 +54,7 @@ func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, erro
 	}()
 }
 
-func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int) *SearchAPI {
+func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, subnet string) *SearchAPI {
 	api := SearchAPI{
 		datasetAPI:          datasetAPI,
 		datasetAPISecretKey: datasetAPISecretKey,
@@ -68,7 +69,11 @@ func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, dat
 	router.Path("/healthcheck").Methods("GET").HandlerFunc(healthcheck.Do)
 
 	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.getSearch).Methods("GET")
-	api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", api.privateAuth.Check(api.deleteSearchIndex)).Methods("DELETE")
+
+	// Only add the delete endpoint if we're in the publishing subnet.
+	if subnet == models.SubnetPublishing {
+		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", api.privateAuth.Check(api.deleteSearchIndex)).Methods("DELETE")
+	}
 
 	return &api
 }
