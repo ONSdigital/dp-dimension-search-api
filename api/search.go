@@ -30,7 +30,7 @@ var (
 	err error
 )
 
-func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
+func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request, hasAuth bool) {
 	vars := mux.Vars(r)
 
 	datasetID := vars["id"]
@@ -56,7 +56,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 
 	var authToken string
 
-	if r.Header.Get(internalTokenHeader) == api.internalToken {
+	if hasAuth == true {
 		// Authorised to search against an unpublished version
 		authToken = api.datasetAPISecretKey
 	}

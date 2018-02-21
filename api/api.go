@@ -55,6 +55,10 @@ func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, erro
 }
 
 func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, subnet string) *SearchAPI {
+
+	// Remove Private auth if its the web subnet
+
+
 	api := SearchAPI{
 		datasetAPI:          datasetAPI,
 		datasetAPISecretKey: datasetAPISecretKey,
@@ -62,13 +66,13 @@ func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, dat
 		elasticsearch:       elasticsearch,
 		host:                host,
 		internalToken:       secretKey,
-		privateAuth:         &auth.Authenticator{SecretKey: secretKey, HeaderName: "internal-token"},
+		privateAuth:         &auth.Authenticator{SecretKey: secretKey, HeaderName: "internal-token", Subnet: subnet},
 		router:              router,
 	}
 
 	router.Path("/healthcheck").Methods("GET").HandlerFunc(healthcheck.Do)
 
-	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.getSearch).Methods("GET")
+	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.privateAuth.ManualCheck(getSearch)).Methods("GET")
 
 	// Only add the delete endpoint if we're in the publishing subnet.
 	if subnet == models.SubnetPublishing {
