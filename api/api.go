@@ -37,9 +37,9 @@ type SearchAPI struct {
 }
 
 // CreateSearchAPI manages all the routes configured to API
-func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, errorChan chan error, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, subnet string) {
+func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey, subnet string, errorChan chan error, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int) {
 	router := mux.NewRouter()
-	routes(host, secretKey, datasetAPISecretKey, router, datasetAPI, elasticsearch, defaultMaxResults, subnet)
+	routes(host, secretKey, datasetAPISecretKey, subnet, router, datasetAPI, elasticsearch, defaultMaxResults)
 
 	httpServer = server.New(bindAddr, router)
 	// Disable this here to allow service to manage graceful shutdown of the entire app.
@@ -54,10 +54,7 @@ func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, erro
 	}()
 }
 
-func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, subnet string) *SearchAPI {
-
-	// Remove Private auth if its the web subnet
-
+func routes(host, secretKey, datasetAPISecretKey, subnet string, router *mux.Router, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int) *SearchAPI {
 
 	api := SearchAPI{
 		datasetAPI:          datasetAPI,

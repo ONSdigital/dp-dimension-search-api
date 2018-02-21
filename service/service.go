@@ -57,11 +57,11 @@ func (svc *Service) Start() {
 		svc.BindAddr,
 		svc.SecretKey,
 		svc.DatasetAPISecretKey,
+		svc.Subnet,
 		apiErrors,
 		svc.DatasetAPI,
 		svc.Elasticsearch,
-		svc.DefaultMaxResults,
-		svc.Subnet)
+		svc.DefaultMaxResults)
 
 	// blocks until a fatal error occurs
 	select {
