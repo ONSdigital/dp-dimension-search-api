@@ -21,8 +21,8 @@ func (a *Authenticator) Check(handle func(http.ResponseWriter, *http.Request)) h
 
 		// If we're not in in the publishing subnet. Nothing has auth
 		if a.Subnet != models.SubnetPublishing {
-			http.Error(w, "Unauthorised access to API", http.StatusUnauthorized)
-			log.Error(errors.New("attempted access to authorisation required endpoint via the web-subnet"), log.Data{"header": a.HeaderName})
+			w.WriteHeader(http.StatusNotFound)
+			log.Error(errors.New("failed attempted access to authorisation required endpoint via the web-subnet"), log.Data{"header": a.HeaderName})
 			return
 		} else {
 

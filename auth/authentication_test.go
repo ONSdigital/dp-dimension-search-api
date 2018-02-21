@@ -6,12 +6,13 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/ONSdigital/dp-search-api/models"
 )
 
 func TestMiddleWareAuthenticationReturnsForbidden(t *testing.T) {
 	t.Parallel()
 	Convey("When no access token is provide, unauthorised status code is returned", t, func() {
-		auth := &Authenticator{"123", "internal-token"}
+		auth := &Authenticator{"123", "internal-token", models.SubnetPublishing}
 		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		So(err, ShouldBeNil)
 		w := httptest.NewRecorder()
@@ -23,7 +24,7 @@ func TestMiddleWareAuthenticationReturnsForbidden(t *testing.T) {
 func TestMiddleWareAuthenticationReturnsUnauthorised(t *testing.T) {
 	t.Parallel()
 	Convey("When a invalid access token is provide, unauthorised status code is returned", t, func() {
-		auth := &Authenticator{"123", "internal-token"}
+		auth := &Authenticator{"123", "internal-token", models.SubnetPublishing}
 		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		r.Header.Set("internal-token", "12")
 		So(err, ShouldBeNil)
@@ -36,7 +37,7 @@ func TestMiddleWareAuthenticationReturnsUnauthorised(t *testing.T) {
 func TestMiddleWareAuthentication(t *testing.T) {
 	t.Parallel()
 	Convey("When a valid access token is provide, OK code is returned", t, func() {
-		auth := &Authenticator{"123", "internal-token"}
+		auth := &Authenticator{"123", "internal-token",models.SubnetPublishing}
 		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		r.Header.Set("internal-token", "123")
 		So(err, ShouldBeNil)
@@ -49,7 +50,7 @@ func TestMiddleWareAuthentication(t *testing.T) {
 func TestMiddleWareAuthenticationWithValue(t *testing.T) {
 	t.Parallel()
 	Convey("When a valid access token is provide, true is passed to a http handler", t, func() {
-		auth := &Authenticator{"123", "internal-token"}
+		auth := &Authenticator{"123", "internal-token", models.SubnetPublishing}
 		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		r.Header.Set("internal-token", "123")
 		So(err, ShouldBeNil)
