@@ -19,7 +19,7 @@ var (
 	host                = "8080"
 	secretKey           = "coffee"
 	datasetAPISecretKey = "tea"
-	subnet				= "test"
+	subnet				= models.SubnetWeb   // will need to be switched to models.SubnetPublishing if auth is expected to pass.
 	defaultMaxResults   = 20
 	brokers             = []string{"localhost:9092"}
 	topic               = "testing"

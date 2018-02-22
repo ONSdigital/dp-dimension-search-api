@@ -69,7 +69,7 @@ func routes(host, secretKey, datasetAPISecretKey, subnet string, router *mux.Rou
 
 	router.Path("/healthcheck").Methods("GET").HandlerFunc(healthcheck.Do)
 
-	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.privateAuth.ManualCheck(getSearch)).Methods("GET")
+	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.privateAuth.ManualCheck(api.getSearch)).Methods("GET")
 
 	// Only add the delete endpoint if we're in the publishing subnet.
 	if subnet == models.SubnetPublishing {
