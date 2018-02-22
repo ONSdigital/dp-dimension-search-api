@@ -64,7 +64,7 @@ func TestMiddleWareAuthenticationWithValueInPublishing(t *testing.T) {
 	})
 }
 
-func TestMiddleWareAuthenticationWithTokenReturnsStatusNotFoundInWeb(t *testing.T) {
+func TestMiddleWareAuthenticationWithValidTokenReturnsStatusNotFoundInWeb(t *testing.T) {
 	t.Parallel()
 	Convey("When a valid access token is provided in web Subnet, status not found is returned", t, func() {
 		auth := &Authenticator{"123", "internal-token", models.SubnetWeb}
@@ -77,9 +77,9 @@ func TestMiddleWareAuthenticationWithTokenReturnsStatusNotFoundInWeb(t *testing.
 	})
 }
 
-func TestMiddleWareAuthenticationWithoutTokenReturnsStatusNotFoundInWeb(t *testing.T) {
+func TestMiddleWareAuthenticationWithoutValidTokenReturnsStatusNotFoundInWeb(t *testing.T) {
 	t.Parallel()
-	Convey("When an invalid token is providedi n web Subnet, status not found is returned", t, func() {
+	Convey("When an invalid token is provided in web Subnet, status not found is returned", t, func() {
 		auth := &Authenticator{"123", "internal-token", models.SubnetWeb}
 		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		r.Header.Set("internal-token", "12")
