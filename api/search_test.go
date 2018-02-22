@@ -19,7 +19,7 @@ var (
 	host                = "8080"
 	secretKey           = "coffee"
 	datasetAPISecretKey = "tea"
-	subnet				= models.SubnetWeb   // will need to be switched to models.SubnetPublishing if auth is expected to pass.
+	subnet				= models.SubnetWeb   // will need to be specified as models.SubnetPublishing for any tests that require auth
 	defaultMaxResults   = 20
 	brokers             = []string{"localhost:9092"}
 	topic               = "testing"
@@ -161,24 +161,37 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 	})
 }
 
-func TestDeleteSearchIndex(t *testing.T) {
+func TestDeleteSearchIndexInPublishing(t *testing.T) {
 	Convey("Given a search index exists return a status 200 (ok)", t, func() {
+		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", secretKey)
+
+		api := routes(host, secretKey, datasetAPISecretKey, models.SubnetPublishing, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+}
+
+func TestDeleteSearchIndexDoesntExistInWeb(t *testing.T) {
+	Convey("Given a search index exists return a status 404 (not found)", t, func() {
 		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
 		api := routes(host, secretKey, datasetAPISecretKey, subnet, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
 	})
 }
+
 
 func TestFailToDeleteSearchIndex(t *testing.T) {
 	Convey("Given a search index exists but no auth header set return a status 401 (unauthorised)", t, func() {
 		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
 		w := httptest.NewRecorder()
 
-		api := routes(host, secretKey, datasetAPISecretKey, subnet, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, models.SubnetPublishing, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusUnauthorized)
 	})
@@ -188,7 +201,7 @@ func TestFailToDeleteSearchIndex(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", "abcdef")
 
-		api := routes(host, secretKey, datasetAPISecretKey, subnet, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, models.SubnetPublishing, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusUnauthorized)
 	})
@@ -198,7 +211,7 @@ func TestFailToDeleteSearchIndex(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
-		api := routes(host, secretKey, datasetAPISecretKey, subnet, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{InternalServerError: true}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, models.SubnetPublishing, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{InternalServerError: true}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 	})
@@ -208,7 +221,7 @@ func TestFailToDeleteSearchIndex(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
-		api := routes(host, secretKey, datasetAPISecretKey, subnet, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{IndexNotFound: true}, defaultMaxResults)
+		api := routes(host, secretKey, datasetAPISecretKey, models.SubnetPublishing, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{IndexNotFound: true}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 	})
