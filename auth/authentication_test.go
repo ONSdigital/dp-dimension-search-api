@@ -12,7 +12,7 @@ import (
 func TestMiddleWareAuthenticationReturnsForbiddenInPublishing(t *testing.T) {
 	t.Parallel()
 	Convey("When no access token is provide, unauthorised status code is returned", t, func() {
-		auth := &Authenticator{"123", "internal-token", models.SubnetPublishing}
+		auth := &Authenticator{"123", "internal-token", models.EnablePrivateEndpoints}
 		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		So(err, ShouldBeNil)
 		w := httptest.NewRecorder()
@@ -24,7 +24,7 @@ func TestMiddleWareAuthenticationReturnsForbiddenInPublishing(t *testing.T) {
 func TestMiddleWareAuthenticationReturnsUnauthorisedInPublishing(t *testing.T) {
 	t.Parallel()
 	Convey("When a invalid access token is provide, unauthorised status code is returned", t, func() {
-		auth := &Authenticator{"123", "internal-token", models.SubnetPublishing}
+		auth := &Authenticator{"123", "internal-token", models.EnablePrivateEndpoints}
 		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		r.Header.Set("internal-token", "12")
 		So(err, ShouldBeNil)
@@ -37,7 +37,7 @@ func TestMiddleWareAuthenticationReturnsUnauthorisedInPublishing(t *testing.T) {
 func TestMiddleWareAuthenticationInPublishing(t *testing.T) {
 	t.Parallel()
 	Convey("When a valid access token is provide, OK code is returned", t, func() {
-		auth := &Authenticator{"123", "internal-token",models.SubnetPublishing}
+		auth := &Authenticator{"123", "internal-token",models.EnablePrivateEndpoints}
 		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		r.Header.Set("internal-token", "123")
 		So(err, ShouldBeNil)
@@ -50,7 +50,7 @@ func TestMiddleWareAuthenticationInPublishing(t *testing.T) {
 func TestMiddleWareAuthenticationWithValueInPublishing(t *testing.T) {
 	t.Parallel()
 	Convey("When a valid access token is provide, true is passed to a http handler", t, func() {
-		auth := &Authenticator{"123", "internal-token", models.SubnetPublishing}
+		auth := &Authenticator{"123", "internal-token", models.EnablePrivateEndpoints}
 		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		r.Header.Set("internal-token", "123")
 		So(err, ShouldBeNil)
@@ -67,7 +67,7 @@ func TestMiddleWareAuthenticationWithValueInPublishing(t *testing.T) {
 func TestMiddleWareAuthenticationWithValidTokenReturnsStatusNotFoundInWeb(t *testing.T) {
 	t.Parallel()
 	Convey("When a valid access token is provided in web Subnet, status not found is returned", t, func() {
-		auth := &Authenticator{"123", "internal-token", models.SubnetWeb}
+		auth := &Authenticator{"123", "internal-token", models.DisablePrivateEndpoints}
 		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		r.Header.Set("internal-token", "123")
 		So(err, ShouldBeNil)
@@ -80,7 +80,7 @@ func TestMiddleWareAuthenticationWithValidTokenReturnsStatusNotFoundInWeb(t *tes
 func TestMiddleWareAuthenticationWithoutValidTokenReturnsStatusNotFoundInWeb(t *testing.T) {
 	t.Parallel()
 	Convey("When an invalid token is provided in web Subnet, status not found is returned", t, func() {
-		auth := &Authenticator{"123", "internal-token", models.SubnetWeb}
+		auth := &Authenticator{"123", "internal-token", models.DisablePrivateEndpoints}
 		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		r.Header.Set("internal-token", "12")
 		So(err, ShouldBeNil)
