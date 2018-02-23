@@ -10,9 +10,9 @@ import (
 
 // Authenticator structure which holds the secret key for validating clients. This will be replaced in the future, after the `thin-slices` has been delivered
 type Authenticator struct {
-	SecretKey  string
-	HeaderName string
-	Subnet     string
+	SecretKey  				string
+	HeaderName 				string
+	HasPrivateEndpoints     bool
 }
 
 // Check wraps a HTTP handle. If authentication fails an error code is returned else the HTTP handler is called
@@ -20,7 +20,7 @@ func (a *Authenticator) Check(handle func(http.ResponseWriter, *http.Request)) h
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		// If we're not in in the publishing subnet. Nothing has auth
-		if a.Subnet != models.SubnetPublishing {
+		if a.HasPrivateEndpoints != models.EnablePrivateEndpoints {
 			w.WriteHeader(http.StatusNotFound)
 			log.Error(errors.New("failed attempted access to authorisation required endpoint via the web-subnet"), log.Data{"header": a.HeaderName})
 			return
@@ -50,7 +50,7 @@ func (a *Authenticator) ManualCheck(handle func(http.ResponseWriter, *http.Reque
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		// If we're not in in the publishing subnet. Nothing has auth
-		if a.Subnet != models.SubnetPublishing {
+		if a.HasPrivateEndpoints != models.EnablePrivateEndpoints {
 			handle(w, r, false)
 		} else {
 

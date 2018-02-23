@@ -37,9 +37,9 @@ type SearchAPI struct {
 }
 
 // CreateSearchAPI manages all the routes configured to API
-func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey, subnet string, errorChan chan error, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int) {
+func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, errorChan chan error, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, HasPrivateEndpoints bool) {
 	router := mux.NewRouter()
-	routes(host, secretKey, datasetAPISecretKey, subnet, router, datasetAPI, elasticsearch, defaultMaxResults)
+	routes(host, secretKey, datasetAPISecretKey, router, datasetAPI, elasticsearch, defaultMaxResults, HasPrivateEndpoints)
 
 	httpServer = server.New(bindAddr, router)
 	// Disable this here to allow service to manage graceful shutdown of the entire app.
@@ -54,7 +54,7 @@ func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey, subnet stri
 	}()
 }
 
-func routes(host, secretKey, datasetAPISecretKey, subnet string, router *mux.Router, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int) *SearchAPI {
+func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, HasPrivateEndpoints bool) *SearchAPI {
 
 	api := SearchAPI{
 		datasetAPI:          datasetAPI,
@@ -63,7 +63,7 @@ func routes(host, secretKey, datasetAPISecretKey, subnet string, router *mux.Rou
 		elasticsearch:       elasticsearch,
 		host:                host,
 		internalToken:       secretKey,
-		privateAuth:         &auth.Authenticator{SecretKey: secretKey, HeaderName: "internal-token", Subnet: subnet},
+		privateAuth:         &auth.Authenticator{SecretKey: secretKey, HeaderName: "internal-token", HasPrivateEndpoints: HasPrivateEndpoints},
 		router:              router,
 	}
 
@@ -72,7 +72,7 @@ func routes(host, secretKey, datasetAPISecretKey, subnet string, router *mux.Rou
 	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.privateAuth.ManualCheck(api.getSearch)).Methods("GET")
 
 	// Only add the delete endpoint if we're in the publishing subnet.
-	if subnet == models.SubnetPublishing {
+	if HasPrivateEndpoints == models.EnablePrivateEndpoints {
 		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", api.privateAuth.Check(api.deleteSearchIndex)).Methods("DELETE")
 	}
 

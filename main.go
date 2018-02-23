@@ -49,7 +49,7 @@ func main() {
 		SearchAPIURL:              cfg.SearchAPIURL,
 		SecretKey:                 cfg.SecretKey,
 		Shutdown:                  cfg.GracefulShutdownTimeout,
-		Subnet:					   cfg.Subnet,
+		HasPrivateEndpoints:	   cfg.HasPrivateEndpoints,
 	}
 
 	svc.Start()
