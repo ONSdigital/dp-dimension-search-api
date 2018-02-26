@@ -91,6 +91,12 @@ job "dp-search-api" {
         name = "dp-search-api"
         port = "http"
         tags = ["publishing"]
+        check {
+          type     = "http"
+          path     = "/healthcheck"
+          interval = "10s"
+          timeout  = "2s"
+        }
       }
 
       resources {
