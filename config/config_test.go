@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-search-api/config"
+	"github.com/ONSdigital/dp-search-api/models"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -30,6 +31,8 @@ func TestSpec(t *testing.T) {
 				So(cfg.MaxSearchResultsOffset, ShouldEqual, 1000)
 				So(cfg.SearchAPIURL, ShouldEqual, "http://localhost:23100")
 				So(cfg.SecretKey, ShouldEqual, "SD0108EA-825D-411C-45J3-41EF7727F123")
+				So(cfg.SearchAPIURL, ShouldEqual, false)
+				So(cfg.SearchAPIURL, ShouldEqual, models.DisablePrivateEndpoints)
 			})
 		})
 	})
