@@ -21,6 +21,19 @@
 			"revisionTime": "2018-01-29T14:53:39Z"
 		},
 		{
+			"checksumSHA1": "7ktFjGIGhu47N6olqwLqilyjXNw=",
+			"path": "github.com/ONSdigital/dp-import/events",
+			"revision": "d3cc28e452c3bd178277aa2af8b5167e20178479",
+			"revisionTime": "2018-02-02T12:09:37Z"
+		},
+		{
+			"checksumSHA1": "WI5P8MbnHHGqzuQje+qFoQSUHgk=",
+			"origin": "github.com/ONSdigital/dp-import/vendor/github.com/ONSdigital/go-ns/avro",
+			"path": "github.com/ONSdigital/go-ns/avro",
+			"revision": "d3cc28e452c3bd178277aa2af8b5167e20178479",
+			"revisionTime": "2018-02-02T12:09:37Z"
+		},
+		{
 			"checksumSHA1": "zgQXB6EtoNdvUCvMjxA6U9cfDDI=",
 			"path": "github.com/ONSdigital/go-ns/clients/clientlog",
 			"revision": "1a58c1f1fc0bd5f4218f3ea6f68f6b358356ec94",
@@ -121,6 +134,13 @@
 			"path": "github.com/eapache/queue",
 			"revision": "1a58c1f1fc0bd5f4218f3ea6f68f6b358356ec94",
 			"revisionTime": "2018-01-24T10:54:05Z"
+		},
+		{
+			"checksumSHA1": "I6MnUzkLJt+sh73CodD0NKswFrs=",
+			"origin": "github.com/ONSdigital/dp-import/vendor/github.com/go-avro/avro",
+			"path": "github.com/go-avro/avro",
+			"revision": "d3cc28e452c3bd178277aa2af8b5167e20178479",
+			"revisionTime": "2018-02-02T12:09:37Z"
 		},
 		{
 			"checksumSHA1": "p/8vSviYF91gFflhrt5vkyksroo=",
