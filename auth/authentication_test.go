@@ -9,9 +9,14 @@ import (
 	"github.com/ONSdigital/dp-search-api/models"
 )
 
+
+/*
+This block of tests refers to the service as run in the publishing subnet,
+*/
+
 func TestMiddleWareAuthenticationReturnsForbiddenInPublishing(t *testing.T) {
 	t.Parallel()
-	Convey("When no access token is provide, unauthorised status code is returned", t, func() {
+	Convey("When no access token is provided in publishing subnet, unauthorised status code is returned", t, func() {
 		auth := &Authenticator{"123", "internal-token", models.EnablePrivateEndpoints}
 		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		So(err, ShouldBeNil)
@@ -23,7 +28,7 @@ func TestMiddleWareAuthenticationReturnsForbiddenInPublishing(t *testing.T) {
 
 func TestMiddleWareAuthenticationReturnsUnauthorisedInPublishing(t *testing.T) {
 	t.Parallel()
-	Convey("When a invalid access token is provide, unauthorised status code is returned", t, func() {
+	Convey("When a invalid access token is provided in publishing subnet, unauthorised status code is returned", t, func() {
 		auth := &Authenticator{"123", "internal-token", models.EnablePrivateEndpoints}
 		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		r.Header.Set("internal-token", "12")
@@ -36,7 +41,7 @@ func TestMiddleWareAuthenticationReturnsUnauthorisedInPublishing(t *testing.T) {
 
 func TestMiddleWareAuthenticationInPublishing(t *testing.T) {
 	t.Parallel()
-	Convey("When a valid access token is provide, OK code is returned", t, func() {
+	Convey("When a valid access token is provided in publishing subnet, OK code is returned", t, func() {
 		auth := &Authenticator{"123", "internal-token",models.EnablePrivateEndpoints}
 		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		r.Header.Set("internal-token", "123")
@@ -49,7 +54,7 @@ func TestMiddleWareAuthenticationInPublishing(t *testing.T) {
 
 func TestMiddleWareAuthenticationWithValueInPublishing(t *testing.T) {
 	t.Parallel()
-	Convey("When a valid access token is provide, true is passed to a http handler", t, func() {
+	Convey("When a valid access token is provided in publishing subnet, true is passed to a http handler", t, func() {
 		auth := &Authenticator{"123", "internal-token", models.EnablePrivateEndpoints}
 		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
 		r.Header.Set("internal-token", "123")
@@ -63,6 +68,11 @@ func TestMiddleWareAuthenticationWithValueInPublishing(t *testing.T) {
 		So(isRequestAuthenticated, ShouldEqual, true)
 	})
 }
+
+
+/*
+This block of tests refers to the service as run in the web subnet.
+*/
 
 func TestMiddleWareAuthenticationWithValidTokenReturnsStatusNotFoundInWeb(t *testing.T) {
 	t.Parallel()
@@ -90,6 +100,35 @@ func TestMiddleWareAuthenticationWithoutValidTokenReturnsStatusNotFoundInWeb(t *
 	})
 }
 
+func TestMiddleWareAuthenticationInWeb(t *testing.T) {
+	t.Parallel()
+	Convey("When a valid access token is provided in web subnet, status not found is returned", t, func() {
+		auth := &Authenticator{"123", "internal-token",models.DisablePrivateEndpoints}
+		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
+		r.Header.Set("internal-token", "123")
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		auth.Check(mockHTTPHandler).ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+	})
+}
+
+func TestMiddleWareAuthenticationWithValueInWeb(t *testing.T) {
+	t.Parallel()
+	Convey("When a valid access token is provided in web subnet, false is passed to a http handler", t, func() {
+		auth := &Authenticator{"123", "internal-token", models.DisablePrivateEndpoints}
+		r, err := http.NewRequest("POST", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate", nil)
+		r.Header.Set("internal-token", "123")
+		So(err, ShouldBeNil)
+		w := httptest.NewRecorder()
+		var isRequestAuthenticated bool
+		auth.ManualCheck(func(w http.ResponseWriter, r *http.Request, isAuth bool) {
+			isRequestAuthenticated = isAuth
+		}).ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(isRequestAuthenticated, ShouldEqual, false)
+	})
+}
 
 // mockHTTPHandler is an empty http handler used for testing auth check function
 func mockHTTPHandler(w http.ResponseWriter, r *http.Request) {}
