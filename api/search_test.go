@@ -168,6 +168,32 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 	})
 }
 
+// Web env specific
+func TestDeleteSearchIndexReturnsNotFoundWithValidAuthInWeb(t *testing.T) {
+	Convey("Given a search index exists return a status 404 (not found)", t, func() {
+		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", secretKey)
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, models.DisablePrivateEndpoints)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+	})
+}
+
+// Web env specific
+func TestDeleteSearchIndexReturnsNotFoundWithoutValidAuthInWeb(t *testing.T) {
+	Convey("Given a search index exists return a status 404 (not found)", t, func() {
+		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", "")
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, models.DisablePrivateEndpoints)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+	})
+}
+
 // Publishing env specific
 func TestDeleteSearchIndexWithValidAuthInPublishing(t *testing.T) {
 	Convey("Given a search index exists return a status 200 (ok)", t, func() {
@@ -194,20 +220,7 @@ func TestDeleteSearchIndexWithoutValidAuthInPublishing(t *testing.T) {
 	})
 }
 
-// Web env specific
-func TestDeleteSearchIndexDoesntExistInWeb(t *testing.T) {
-	Convey("Given a search index exists return a status 404 (not found)", t, func() {
-		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
-		w := httptest.NewRecorder()
-		r.Header.Add("internal-token", secretKey)
-
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, models.DisablePrivateEndpoints)
-		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-	})
-}
-
-
+// Publishing env specific
 func TestFailToDeleteSearchIndex(t *testing.T) {
 	Convey("Given a search index exists but no auth header set return a status 401 (unauthorised)", t, func() {
 		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
