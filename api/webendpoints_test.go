@@ -18,7 +18,7 @@ func TestDeleteSearchIndexReturnsNotFoundWithValidAuthInWeb(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, models.DisablePrivateEndpoints)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{IndexNotFound: true}, defaultMaxResults, models.DisablePrivateEndpoints)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 	})
@@ -31,7 +31,7 @@ func TestDeleteSearchIndexReturnsNotFoundWithoutValidAuthInWeb(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", "")
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, models.DisablePrivateEndpoints)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{IndexNotFound: true}, defaultMaxResults, models.DisablePrivateEndpoints)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 	})

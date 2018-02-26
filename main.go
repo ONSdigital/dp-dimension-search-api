@@ -3,13 +3,17 @@ package main
 import (
 	"context"
 	"os"
+	"strconv"
 
 	"github.com/ONSdigital/dp-search-api/config"
 	"github.com/ONSdigital/dp-search-api/dataset"
 	"github.com/ONSdigital/dp-search-api/elasticsearch"
+	"github.com/ONSdigital/dp-search-api/searchOutputQueue"
 	"github.com/ONSdigital/dp-search-api/service"
+	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/rchttp"
+	"github.com/pkg/errors"
 )
 
 func main() {
@@ -32,7 +36,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, 10, 32)
+	if err != nil {
+		log.ErrorC("encountered error parsing kafka max bytes", err, nil)
+		os.Exit(1)
+	}
+
+	producer, err := kafka.NewProducer(cfg.Brokers, cfg.HierarchyBuiltTopic, int(envMax))
+	if err != nil {
+		log.Error(errors.Wrap(err, "error creating kafka producer"), nil)
+		os.Exit(1)
+	}
+
 	datasetAPI := dataset.NewDatasetAPI(client, cfg.DatasetAPIURL)
+	outputQueue := searchOutputQueue.CreateOutputQueue(producer.Output())
 
 	svc := &service.Service{
 		BindAddr:                  cfg.BindAddr,
@@ -41,15 +58,17 @@ func main() {
 		DefaultMaxResults:         cfg.MaxSearchResultsOffset,
 		Elasticsearch:             elasticsearch,
 		ElasticsearchURL:          cfg.ElasticSearchAPIURL,
-		SignElasticsearchRequests: cfg.SignElasticsearchRequests,
 		HealthCheckInterval:       cfg.HealthCheckInterval,
 		HealthCheckTimeout:        cfg.HealthCheckTimeout,
 		HTTPClient:                client,
 		MaxRetries:                cfg.MaxRetries,
+		OutputQueue:               outputQueue,
 		SearchAPIURL:              cfg.SearchAPIURL,
+		SearchIndexProducer:       producer,
 		SecretKey:                 cfg.SecretKey,
 		Shutdown:                  cfg.GracefulShutdownTimeout,
 		HasPrivateEndpoints:	   cfg.HasPrivateEndpoints,
+		SignElasticsearchRequests: cfg.SignElasticsearchRequests
 	}
 
 	svc.Start()

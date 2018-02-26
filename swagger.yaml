@@ -96,6 +96,21 @@ paths:
         500:
           $ref: '#/responses/InternalError'
   /search/instances/{instance_id}/dimensions/{name}:
+    put:
+      tags:
+      - "Private user"
+      summary: "Create a search index"
+      description: "Create a search index containing a list of dimension options for an instance"
+      parameters:
+      - $ref: '#/parameters/instance_id'
+      - $ref: '#/parameters/dimension_name'
+      responses:
+        200:
+          description: "The index was created"
+        401:
+          $ref: '#/responses/UnauthorisedError'
+        500:
+          $ref: '#/responses/InternalError'
     delete:
       tags:
       - "Private user"

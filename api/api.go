@@ -5,6 +5,7 @@ import (
 
 	"github.com/ONSdigital/dp-dataset-api/store"
 	"github.com/ONSdigital/dp-search-api/auth"
+	"github.com/ONSdigital/dp-search-api/searchOutputQueue"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
@@ -24,6 +25,11 @@ type DownloadsGenerator interface {
 	Generate(datasetID, instanceID, edition, version string) error
 }
 
+// OutputQueue - An interface used to queue search outputs
+type OutputQueue interface {
+	Queue(output *searchOutputQueue.Search) error
+}
+
 // SearchAPI manages searches across indices
 type SearchAPI struct {
 	datasetAPI          DatasetAPIer
@@ -34,12 +40,13 @@ type SearchAPI struct {
 	internalToken       string
 	privateAuth         *auth.Authenticator
 	router              *mux.Router
+	searchOutputQueue   OutputQueue
 }
 
 // CreateSearchAPI manages all the routes configured to API
-func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, errorChan chan error, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool) {
+func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, errorChan chan error, searchOutputQueue OutputQueue, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool) {
 	router := mux.NewRouter()
-	routes(host, secretKey, datasetAPISecretKey, router, datasetAPI, elasticsearch, defaultMaxResults, hasPrivateEndpoints)
+	routes(host, secretKey, datasetAPISecretKey, router, searchOutputQueue, datasetAPI, elasticsearch, defaultMaxResults, hasPrivateEndpoints)
 
 	httpServer = server.New(bindAddr, router)
 	// Disable this here to allow service to manage graceful shutdown of the entire app.
@@ -54,13 +61,15 @@ func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, erro
 	}()
 }
 
-func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool) *SearchAPI {
+
+func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, searchOutputQueue OutputQueue, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool) *SearchAPI {
 
 	api := SearchAPI{
 		datasetAPI:          datasetAPI,
 		datasetAPISecretKey: datasetAPISecretKey,
 		defaultMaxResults:   defaultMaxResults,
 		elasticsearch:       elasticsearch,
+		searchOutputQueue:   searchOutputQueue,
 		host:                host,
 		internalToken:       secretKey,
 		privateAuth:         &auth.Authenticator{SecretKey: secretKey, HeaderName: "internal-token", HasPrivateEndpoints: hasPrivateEndpoints},
@@ -71,11 +80,11 @@ func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, dat
 
 	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.privateAuth.ManualCheck(api.getSearch)).Methods("GET")
 
-	// Only add the delete endpoint if we're in the publishing subnet.
+	// Only add the create and delete endpoint if we're in the publishing subnet.
 	if hasPrivateEndpoints == models.EnablePrivateEndpoints {
+		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", api.privateAuth.Check(api.createSearchIndex)).Methods("PUT")
 		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", api.privateAuth.Check(api.deleteSearchIndex)).Methods("DELETE")
 	}
-
 	return &api
 }
 
