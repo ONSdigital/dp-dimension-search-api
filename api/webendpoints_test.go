@@ -37,3 +37,28 @@ func TestDeleteSearchIndexReturnsNotFoundWithoutValidAuthInWeb(t *testing.T) {
 	})
 }
 
+
+func TestCreateSearchIndexReturnsNotFoundWithValidAuthInWeb(t *testing.T) {
+	Convey("Even if instance and dimension exist return a status 404 (not found)", t, func() {
+		r := httptest.NewRequest("PUT", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", secretKey)
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, models.DisablePrivateEndpoints)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+	})
+}
+
+func TestCreateSearchIndexReturnsNotFoundWithoutValidAuthInWeb(t *testing.T) {
+	Convey("Even if instance and dimension exist return a status 404 (not found)", t, func() {
+		r := httptest.NewRequest("PUT", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", "")
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, models.DisablePrivateEndpoints)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+	})
+}
+
