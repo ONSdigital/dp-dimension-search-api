@@ -12,8 +12,10 @@ import (
 	"github.com/ONSdigital/dp-search-api/api"
 	"github.com/ONSdigital/go-ns/elasticsearch"
 	"github.com/ONSdigital/go-ns/healthcheck"
+	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/rchttp"
+	"github.com/pkg/errors"
 )
 
 // Service represents the necessary config for dp-dimension-extractor
@@ -24,15 +26,16 @@ type Service struct {
 	DefaultMaxResults         int
 	Elasticsearch             api.Elasticsearcher
 	ElasticsearchURL          string
-	SignElasticsearchRequests bool
 	EnvMax                    int64
 	HealthCheckInterval       time.Duration
 	HealthCheckTimeout        time.Duration
 	HTTPClient                *rchttp.Client
 	MaxRetries                int
 	SearchAPIURL              string
+	SearchIndexProducer       kafka.Producer
 	SecretKey                 string
 	Shutdown                  time.Duration
+	SignElasticsearchRequests bool
 }
 
 // Start handles consumption of events
@@ -57,6 +60,7 @@ func (svc *Service) Start() {
 		svc.SecretKey,
 		svc.DatasetAPISecretKey,
 		apiErrors,
+		svc.SearchIndexProducer,
 		svc.DatasetAPI,
 		svc.Elasticsearch,
 		svc.DefaultMaxResults)
@@ -75,6 +79,9 @@ func (svc *Service) Start() {
 
 	// stop any incoming requests before closing any outbound connections
 	api.Close(ctx)
+	if err := svc.SearchIndexProducer.Close(ctx); err != nil {
+		log.Error(errors.Wrap(err, "error while attempting to shutdown kafka producer"), nil)
+	}
 	healthTicker.Close()
 
 	log.Info("shutdown complete", nil)

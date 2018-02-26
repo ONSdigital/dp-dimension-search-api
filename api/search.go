@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ONSdigital/dp-import/events"
 	"github.com/ONSdigital/dp-search-api/models"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
@@ -208,6 +209,34 @@ func getSnippets(result models.HitList) models.HitList {
 	}
 
 	return result
+}
+
+func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	instanceID := vars["instance_id"]
+	dimension := vars["dimension"]
+
+	logData := log.Data{"instance_id": instanceID, "dimension": dimension}
+
+	hierarchyBuiltEvent := &events.HierarchyBuilt{
+		DimensionName: dimension,
+		InstanceID:    instanceID,
+	}
+
+	producerMessage, err := events.HierarchyBuiltSchema.Marshal(hierarchyBuiltEvent)
+	if err != nil {
+		log.ErrorC("failed to create message to drive index creation", err, logData)
+		setErrorCode(w, err)
+		return
+	}
+
+	api.searchIndexProducer.Output() <- producerMessage
+
+	setJSONContentType(w)
+	w.WriteHeader(http.StatusOK)
+
+	log.Info("index deleted", logData)
 }
 
 func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) {

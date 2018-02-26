@@ -8,8 +8,10 @@ import (
 	"github.com/ONSdigital/dp-search-api/dataset"
 	"github.com/ONSdigital/dp-search-api/elasticsearch"
 	"github.com/ONSdigital/dp-search-api/service"
+	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/rchttp"
+	"github.com/pkg/errors"
 )
 
 func main() {
@@ -23,6 +25,12 @@ func main() {
 
 	// sensitive fields are omitted from config.String().
 	log.Info("config on startup", log.Data{"config": cfg})
+
+	createSearchIndexProducer, err := kafka.NewProducer(cfg.Brokers, cfg.HierarchyBuiltTopic, 0)
+	if err != nil {
+		log.Error(errors.Wrap(err, "error creating kakfa producer"), nil)
+		os.Exit(1)
+	}
 
 	client := rchttp.DefaultClient
 	elasticsearch := elasticsearch.NewElasticSearchAPI(client, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests)
@@ -41,14 +49,15 @@ func main() {
 		DefaultMaxResults:         cfg.MaxSearchResultsOffset,
 		Elasticsearch:             elasticsearch,
 		ElasticsearchURL:          cfg.ElasticSearchAPIURL,
-		SignElasticsearchRequests: cfg.SignElasticsearchRequests,
 		HealthCheckInterval:       cfg.HealthCheckInterval,
 		HealthCheckTimeout:        cfg.HealthCheckTimeout,
 		HTTPClient:                client,
 		MaxRetries:                cfg.MaxRetries,
 		SearchAPIURL:              cfg.SearchAPIURL,
+		SearchIndexProducer:       createSearchIndexProducer,
 		SecretKey:                 cfg.SecretKey,
 		Shutdown:                  cfg.GracefulShutdownTimeout,
+		SignElasticsearchRequests: cfg.SignElasticsearchRequests,
 	}
 
 	svc.Start()
