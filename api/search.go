@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ONSdigital/dp-import/events"
 	"github.com/ONSdigital/dp-search-api/models"
+	"github.com/ONSdigital/dp-search-api/searchOutputQueue"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
 )
@@ -219,19 +219,16 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 
 	logData := log.Data{"instance_id": instanceID, "dimension": dimension}
 
-	hierarchyBuiltEvent := &events.HierarchyBuilt{
-		DimensionName: dimension,
-		InstanceID:    instanceID,
+	output := &searchOutputQueue.Search{
+		Dimension:  dimension,
+		InstanceID: instanceID,
 	}
 
-	producerMessage, err := events.HierarchyBuiltSchema.Marshal(hierarchyBuiltEvent)
-	if err != nil {
+	if err := api.searchOutputQueue.Queue(output); err != nil {
 		log.ErrorC("failed to create message to drive index creation", err, logData)
 		setErrorCode(w, err)
 		return
 	}
-
-	api.searchIndexProducer.Output() <- producerMessage
 
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)

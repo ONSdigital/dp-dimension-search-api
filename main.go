@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"os"
+	"strconv"
 
 	"github.com/ONSdigital/dp-search-api/config"
 	"github.com/ONSdigital/dp-search-api/dataset"
 	"github.com/ONSdigital/dp-search-api/elasticsearch"
+	"github.com/ONSdigital/dp-search-api/searchOutputQueue"
 	"github.com/ONSdigital/dp-search-api/service"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
@@ -26,12 +28,6 @@ func main() {
 	// sensitive fields are omitted from config.String().
 	log.Info("config on startup", log.Data{"config": cfg})
 
-	createSearchIndexProducer, err := kafka.NewProducer(cfg.Brokers, cfg.HierarchyBuiltTopic, 0)
-	if err != nil {
-		log.Error(errors.Wrap(err, "error creating kakfa producer"), nil)
-		os.Exit(1)
-	}
-
 	client := rchttp.DefaultClient
 	elasticsearch := elasticsearch.NewElasticSearchAPI(client, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests)
 	_, status, err := elasticsearch.CallElastic(context.Background(), cfg.ElasticSearchAPIURL, "GET", nil)
@@ -40,7 +36,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, 10, 32)
+	if err != nil {
+		log.ErrorC("encountered error parsing kafka max bytes", err, nil)
+		os.Exit(1)
+	}
+
+	producer, err := kafka.NewProducer(cfg.Brokers, cfg.HierarchyBuiltTopic, int(envMax))
+	if err != nil {
+		log.Error(errors.Wrap(err, "error creating kafka producer"), nil)
+		os.Exit(1)
+	}
+
 	datasetAPI := dataset.NewDatasetAPI(client, cfg.DatasetAPIURL)
+	outputQueue := searchOutputQueue.CreateOutputQueue(producer.Output())
 
 	svc := &service.Service{
 		BindAddr:                  cfg.BindAddr,
@@ -53,8 +62,9 @@ func main() {
 		HealthCheckTimeout:        cfg.HealthCheckTimeout,
 		HTTPClient:                client,
 		MaxRetries:                cfg.MaxRetries,
+		OutputQueue:               outputQueue,
 		SearchAPIURL:              cfg.SearchAPIURL,
-		SearchIndexProducer:       createSearchIndexProducer,
+		SearchIndexProducer:       producer,
 		SecretKey:                 cfg.SecretKey,
 		Shutdown:                  cfg.GracefulShutdownTimeout,
 		SignElasticsearchRequests: cfg.SignElasticsearchRequests,

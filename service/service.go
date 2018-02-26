@@ -10,6 +10,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/ONSdigital/dp-search-api/api"
+	"github.com/ONSdigital/dp-search-api/searchOutputQueue"
 	"github.com/ONSdigital/go-ns/elasticsearch"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/kafka"
@@ -31,6 +32,7 @@ type Service struct {
 	HealthCheckTimeout        time.Duration
 	HTTPClient                *rchttp.Client
 	MaxRetries                int
+	OutputQueue               searchOutputQueue.Output
 	SearchAPIURL              string
 	SearchIndexProducer       kafka.Producer
 	SecretKey                 string
@@ -60,7 +62,7 @@ func (svc *Service) Start() {
 		svc.SecretKey,
 		svc.DatasetAPISecretKey,
 		apiErrors,
-		svc.SearchIndexProducer,
+		&svc.OutputQueue,
 		svc.DatasetAPI,
 		svc.Elasticsearch,
 		svc.DefaultMaxResults)
