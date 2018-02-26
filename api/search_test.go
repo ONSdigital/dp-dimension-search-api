@@ -24,6 +24,11 @@ var (
 	topic               = "testing"
 )
 
+/*
+Unless we're testing authentication-required functionality, all tests will be set to use the default "web" subnet,
+via passing in models.DisablePrivateEndpoints
+*/
+
 func TestGetSearchReturnsOK(t *testing.T) {
 	t.Parallel()
 	Convey("Given the search query satisfies the search index then return a status 200", t, func() {
