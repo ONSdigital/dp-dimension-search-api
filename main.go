@@ -68,7 +68,7 @@ func main() {
 		SecretKey:                 cfg.SecretKey,
 		Shutdown:                  cfg.GracefulShutdownTimeout,
 		HasPrivateEndpoints:	   cfg.HasPrivateEndpoints,
-		SignElasticsearchRequests: cfg.SignElasticsearchRequests
+		SignElasticsearchRequests: cfg.SignElasticsearchRequests,
 	}
 
 	svc.Start()
