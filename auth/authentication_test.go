@@ -125,7 +125,7 @@ func TestMiddleWareAuthenticationWithValueInWeb(t *testing.T) {
 		auth.ManualCheck(func(w http.ResponseWriter, r *http.Request, isAuth bool) {
 			isRequestAuthenticated = isAuth
 		}).ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Code, ShouldEqual, http.StatusOK)
 		So(isRequestAuthenticated, ShouldEqual, false)
 	})
 }
