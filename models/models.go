@@ -1,12 +1,19 @@
 package models
 
-import "errors"
+import (
+	"errors"
+	"strconv"
+)
 
 // A list of errors that maybe returned from model
 var (
-	ErrorEmptySearchTerm      = errors.New("search term empty")
-	ErrorMaximumOffsetReached = errors.New("the maximum offset has been reached, the offset cannot be more than 1000")
+	ErrorEmptySearchTerm = errors.New("search term empty")
 )
+
+func ErrorMaximumOffsetReached(m int) error {
+	err := errors.New("the maximum offset has been reached, the offset cannot be more than " + strconv.Itoa(m))
+	return err
+}
 
 type SearchResponse struct {
 	Hits Hits `json:"hits"`
@@ -73,7 +80,7 @@ func (page *PageVariables) ValidateQueryParameters(term string) error {
 	}
 
 	if page.Offset >= page.DefaultMaxResults {
-		return ErrorMaximumOffsetReached
+		return ErrorMaximumOffsetReached(page.DefaultMaxResults)
 	}
 
 	if page.Offset+page.Limit > page.DefaultMaxResults {

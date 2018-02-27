@@ -5,7 +5,7 @@ import (
 
 	"github.com/ONSdigital/dp-dataset-api/store"
 	"github.com/ONSdigital/dp-search-api/auth"
-	"github.com/ONSdigital/dp-search-api/searchOutputQueue"
+	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
@@ -26,7 +26,7 @@ type DownloadsGenerator interface {
 
 // OutputQueue - An interface used to queue search outputs
 type OutputQueue interface {
-	Queue(output *searchOutputQueue.Search) error
+	Queue(output *searchoutputqueue.Search) error
 }
 
 // SearchAPI manages searches across indices

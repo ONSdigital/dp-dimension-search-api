@@ -3,7 +3,7 @@ package mocks
 import (
 	"fmt"
 
-	"github.com/ONSdigital/dp-search-api/searchOutputQueue"
+	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 )
 
 // BuildSearch contains a flag indicating whether the message failed to go on queue
@@ -18,7 +18,7 @@ type MessageData struct {
 }
 
 // Queue checks whether the filter job has errored
-func (bs *BuildSearch) Queue(search *searchOutputQueue.Search) error {
+func (bs *BuildSearch) Queue(search *searchoutputqueue.Search) error {
 	if bs.ReturnError {
 		return fmt.Errorf("No message produced for hierarchy built")
 	}

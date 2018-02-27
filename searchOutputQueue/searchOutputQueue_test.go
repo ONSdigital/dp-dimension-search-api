@@ -1,4 +1,4 @@
-package searchOutputQueue
+package searchoutputqueue
 
 import (
 	"testing"
@@ -16,8 +16,11 @@ func TestFilterOuputQueue(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		bytes := <-searchOutputQueue
+		So(bytes, ShouldNotBeNil)
+
 		var searchMessage events.HierarchyBuilt
 		events.HierarchyBuiltSchema.Unmarshal(bytes, &searchMessage)
+
 		So(searchMessage.InstanceID, ShouldEqual, search.InstanceID)
 		So(searchMessage.DimensionName, ShouldEqual, search.Dimension)
 	})
