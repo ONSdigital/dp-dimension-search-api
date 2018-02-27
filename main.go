@@ -67,6 +67,7 @@ func main() {
 		SearchIndexProducer:       producer,
 		SecretKey:                 cfg.SecretKey,
 		Shutdown:                  cfg.GracefulShutdownTimeout,
+		HasPrivateEndpoints:	   cfg.HasPrivateEndpoints,
 		SignElasticsearchRequests: cfg.SignElasticsearchRequests,
 	}
 

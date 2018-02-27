@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
+	"github.com/ONSdigital/dp-search-api/models"
 )
 
 // Config is the filing resource handler config
@@ -24,6 +25,7 @@ type Config struct {
 	SearchAPIURL              string        `envconfig:"SEARCH_API_URL"`
 	SecretKey                 string        `envconfig:"SECRET_KEY"                 json:"-"`
 	SignElasticsearchRequests bool          `envconfig:"SIGN_ELASTICSEARCH_REQUESTS"`
+	HasPrivateEndpoints		  bool		    `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
 }
 
 var cfg *Config
@@ -50,6 +52,7 @@ func Get() (*Config, error) {
 		SearchAPIURL:              "http://localhost:23100",
 		SecretKey:                 "SD0108EA-825D-411C-45J3-41EF7727F123",
 		SignElasticsearchRequests: false,
+		HasPrivateEndpoints:	   models.DisablePrivateEndpoints,
 	}
 
 	return cfg, envconfig.Process("", cfg)

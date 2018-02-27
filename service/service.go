@@ -37,6 +37,7 @@ type Service struct {
 	SearchIndexProducer       kafka.Producer
 	SecretKey                 string
 	Shutdown                  time.Duration
+	HasPrivateEndpoints		  bool
 	SignElasticsearchRequests bool
 }
 
@@ -65,7 +66,8 @@ func (svc *Service) Start() {
 		&svc.OutputQueue,
 		svc.DatasetAPI,
 		svc.Elasticsearch,
-		svc.DefaultMaxResults)
+		svc.DefaultMaxResults,
+		svc.HasPrivateEndpoints)
 
 	// blocks until a fatal error occurs
 	select {
