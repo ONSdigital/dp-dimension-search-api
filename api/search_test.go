@@ -307,7 +307,7 @@ func getSearchResults(body *bytes.Buffer) *models.SearchResults {
 }
 
 
-func TestAccessDeleteEndpointInWebReturnsNotFound(t *testing.T) {
+func TestDeleteEndpointInWebReturnsNotFound(t *testing.T) {
 	Convey("Given a search index exists and credetials are correct, return a status 404 (not found)", t, func() {
 		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
 		w := httptest.NewRecorder()
