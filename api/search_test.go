@@ -321,13 +321,13 @@ func TestAccessDeleteEndpointInWebReturnsNotFound(t *testing.T) {
 
 
 func TestCreateSearchIndexEndpointInWebReturnsNotFound(t *testing.T) {
-	Convey("Given instance and dimension exist return a status 404 (not found)", t, func() {
+	Convey("Given instance and dimension exist and has valid auth return a status 404 (not found)", t, func() {
 		r := httptest.NewRequest("PUT", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, false)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusOK)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
 	})
 }
