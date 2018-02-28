@@ -38,7 +38,7 @@ type Service struct {
 	SecretKey                 string
 	Shutdown                  time.Duration
 	SignElasticsearchRequests bool
-	HasPrivateEndpoints		  bool
+	HasPrivateEndpoints       bool
 }
 
 // Start handles consumption of events
