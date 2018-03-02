@@ -89,8 +89,6 @@ paths:
             $ref: '#/definitions/Dimension_Options'
         400:
           $ref: '#/responses/InvalidRequestError'
-        401:
-          $ref: '#/responses/UnauthorisedError'
         404:
           $ref: '#/responses/NotFoundError'
         500:
@@ -107,8 +105,8 @@ paths:
       responses:
         200:
           description: "The index was created"
-        401:
-          $ref: '#/responses/UnauthorisedError'
+        404:
+          $ref: '#/responses/NotFoundError'
         500:
           $ref: '#/responses/InternalError'
     delete:
@@ -122,8 +120,6 @@ paths:
       responses:
         200:
           description: "The index was removed"
-        401:
-          $ref: '#/responses/UnauthorisedError'
         404:
           description: "The index was not found"
         500:
@@ -134,9 +130,7 @@ responses:
   InternalError:
     description: "Failed to process the request due to an internal error."
   NotFoundError:
-    description: "Dimension not found."
-  UnauthorisedError:
-    description: "The token provided is unauthorised to carry out this operation."
+    description: "Dimension or option not found."
 definitions:
   Dimension_Options:
     description: "The resulting resource of the completed search against a dimension hierarchy."
@@ -165,7 +159,7 @@ definitions:
       code:
         type: string
         description: "The code for this dimension option."
-      dimension_option_url: 
+      dimension_option_url:
         type: string
         description: "The id of a collection of datasets that a dataset is associated to."
       has_data:

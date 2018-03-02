@@ -182,25 +182,25 @@ func TestCreateSearchIndexReturnsOK(t *testing.T) {
 }
 
 func TestFailToCreateSearchIndex(t *testing.T) {
-	Convey("Given a request to create search index but no auth header is set return a status 401 (unauthorised)", t, func() {
+	Convey("Given a request to create search index but no auth header is set return a status 404 (not found)", t, func() {
 		r := httptest.NewRequest("PUT", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
 		w := httptest.NewRecorder()
 
 		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusUnauthorized)
-		So(w.Body.String(), ShouldEqual, "No authentication header provided\n")
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Body.String(), ShouldEqual, "Resource not found\n")
 	})
 
-	Convey("Given a request to create search index but the auth header is wrong return a status 401 (unauthorised)", t, func() {
+	Convey("Given a request to create search index but the auth header is wrong return a status 404 (not found)", t, func() {
 		r := httptest.NewRequest("PUT", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", "abcdef")
 
 		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusUnauthorized)
-		So(w.Body.String(), ShouldEqual, "Unauthorised access to API\n")
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Body.String(), ShouldEqual, "Resource not found\n")
 	})
 
 	Convey("Given a request to create search index but unable to connect to kafka broker return a status 500 (internal service error)", t, func() {
@@ -228,25 +228,25 @@ func TestDeleteSearchIndexReturnsOK(t *testing.T) {
 }
 
 func TestFailToDeleteSearchIndex(t *testing.T) {
-	Convey("Given a search index exists but no auth header set return a status 401 (unauthorised)", t, func() {
+	Convey("Given a search index exists but no auth header set return a status 404 (not found)", t, func() {
 		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
 		w := httptest.NewRecorder()
 
 		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusUnauthorized)
-		So(w.Body.String(), ShouldEqual, "No authentication header provided\n")
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Body.String(), ShouldEqual, "Resource not found\n")
 	})
 
-	Convey("Given a search index exists but auth header is wrong return a status 401 (unauthorised)", t, func() {
+	Convey("Given a search index exists but auth header is wrong return a status 404 (not found)", t, func() {
 		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", "abcdef")
 
 		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
-		So(w.Code, ShouldEqual, http.StatusUnauthorized)
-		So(w.Body.String(), ShouldEqual, "Unauthorised access to API\n")
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Body.String(), ShouldEqual, "Resource not found\n")
 	})
 
 	Convey("Given a search index exists but unable to connect to elasticsearch cluster return a status 500 (internal service error)", t, func() {

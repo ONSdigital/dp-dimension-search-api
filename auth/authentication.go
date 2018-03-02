@@ -13,19 +13,22 @@ type Authenticator struct {
 	HeaderName string
 }
 
-const UnauthorisedPublicStatus = http.StatusNotFound
+const (
+	UnauthorisedPublicStatus = http.StatusNotFound
+	UnauthorisedReturnedBody = "Resource not found"
+)
 
 // Check wraps a HTTP handle. If authentication fails an error code is returned else the HTTP handler is called
 func (a *Authenticator) Check(handle func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		key := r.Header.Get(a.HeaderName)
 		if key == "" {
-			http.Error(w, "No authentication header provided", UnauthorisedPublicStatus)
+			http.Error(w, UnauthorisedReturnedBody, UnauthorisedPublicStatus)
 			log.Error(errors.New("client missing token"), log.Data{"header": a.HeaderName})
 			return
 		}
 		if key != a.SecretKey {
-			http.Error(w, "Unauthorised access to API", UnauthorisedPublicStatus)
+			http.Error(w, UnauthorisedReturnedBody, UnauthorisedPublicStatus)
 			log.Error(errors.New("unauthorised access to API"), log.Data{"header": a.HeaderName})
 			return
 		}
