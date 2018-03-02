@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/ONSdigital/dp-search-api/mocks"
@@ -144,7 +145,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusBadRequest)
-		So(w.Body.String(), ShouldEqual, "the maximum offset has been reached, the offset cannot be more than 1000\n")
+		So(w.Body.String(), ShouldEqual, "the maximum offset has been reached, the offset cannot be more than "+strconv.Itoa(defaultMaxResults)+"\n")
 	})
 
 	Convey("Given search API fails to connect to elastic search cluster return status 500 (internal service error)", t, func() {

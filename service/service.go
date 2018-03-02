@@ -10,7 +10,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/ONSdigital/dp-search-api/api"
-	"github.com/ONSdigital/dp-search-api/searchOutputQueue"
+	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/elasticsearch"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/kafka"
@@ -27,12 +27,12 @@ type Service struct {
 	DefaultMaxResults         int
 	Elasticsearch             api.Elasticsearcher
 	ElasticsearchURL          string
-	EnvMax                    int64
+	EnvMax                    int
 	HealthCheckInterval       time.Duration
 	HealthCheckTimeout        time.Duration
 	HTTPClient                *rchttp.Client
 	MaxRetries                int
-	OutputQueue               searchOutputQueue.Output
+	OutputQueue               searchoutputqueue.Output
 	SearchAPIURL              string
 	SearchIndexProducer       kafka.Producer
 	SecretKey                 string

@@ -36,7 +36,7 @@ one of:
 | HEALTHCHECK_INTERVAL       | 1m                                   | The time between calling the healthcheck endpoint for check subsystems
 | HEALTHCHECK_TIMEOUT        | 2s                                   | The timeout that the healthcheck allows for checked subsystems
 | HIERARCHY_BUILT_TOPIC      | hierarchy-built                      | The kafka topic to write messages to
-| KAFKA_ADDR                 | "localhost:9092"                     | The list of kafka hosts
+| KAFKA_ADDR                 | localhost:9092                       | The list of kafka hosts
 | KAFKA_MAX_BYTES            | 2000000                              | The maximum permitted size of a message. Should be set equal to or smaller than the broker's `message.max.bytes`
 | MAX_SEARCH_RESULTS_OFFSET  | 1000                                 | The maximum offset for the number of results returned by search query
 | REQUEST_MAX_RETRIES        | 3                                    | The maximum number of attempts for a single http request due to external service failure

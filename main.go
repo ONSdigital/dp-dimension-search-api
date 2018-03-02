@@ -3,17 +3,15 @@ package main
 import (
 	"context"
 	"os"
-	"strconv"
 
 	"github.com/ONSdigital/dp-search-api/config"
 	"github.com/ONSdigital/dp-search-api/dataset"
 	"github.com/ONSdigital/dp-search-api/elasticsearch"
-	"github.com/ONSdigital/dp-search-api/searchOutputQueue"
+	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/dp-search-api/service"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/rchttp"
-	"github.com/pkg/errors"
 )
 
 func main() {
@@ -36,20 +34,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, 10, 32)
+	producer, err := kafka.NewProducer(cfg.Brokers, cfg.HierarchyBuiltTopic, cfg.KafkaMaxBytes)
 	if err != nil {
-		log.ErrorC("encountered error parsing kafka max bytes", err, nil)
-		os.Exit(1)
-	}
-
-	producer, err := kafka.NewProducer(cfg.Brokers, cfg.HierarchyBuiltTopic, int(envMax))
-	if err != nil {
-		log.Error(errors.Wrap(err, "error creating kafka producer"), nil)
+		log.ErrorC("error creating kafka producer", err, nil)
 		os.Exit(1)
 	}
 
 	datasetAPI := dataset.NewDatasetAPI(client, cfg.DatasetAPIURL)
-	outputQueue := searchOutputQueue.CreateOutputQueue(producer.Output())
+	outputQueue := searchoutputqueue.CreateOutputQueue(producer.Output())
 
 	svc := &service.Service{
 		BindAddr:                  cfg.BindAddr,

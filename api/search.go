@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/ONSdigital/dp-search-api/models"
-	"github.com/ONSdigital/dp-search-api/searchOutputQueue"
+	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
 )
@@ -219,7 +219,7 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 
 	logData := log.Data{"instance_id": instanceID, "dimension": dimension}
 
-	output := &searchOutputQueue.Search{
+	output := &searchoutputqueue.Search{
 		Dimension:  dimension,
 		InstanceID: instanceID,
 	}
