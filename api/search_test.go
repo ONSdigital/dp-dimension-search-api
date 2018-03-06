@@ -31,7 +31,7 @@ func TestGetSearchReturnsOK(t *testing.T) {
 		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
 		w := httptest.NewRecorder()
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, false)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 
@@ -306,7 +306,6 @@ func getSearchResults(body *bytes.Buffer) *models.SearchResults {
 	return searchResults
 }
 
-
 func TestDeleteEndpointInWebReturnsNotFound(t *testing.T) {
 	Convey("Given a search index exists and credetials are correct, return a status 404 (not found)", t, func() {
 		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
@@ -318,7 +317,6 @@ func TestDeleteEndpointInWebReturnsNotFound(t *testing.T) {
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 	})
 }
-
 
 func TestCreateSearchIndexEndpointInWebReturnsNotFound(t *testing.T) {
 	Convey("Given instance and dimension exist and has valid auth return a status 404 (not found)", t, func() {

@@ -50,6 +50,7 @@ func main() {
 		DefaultMaxResults:         cfg.MaxSearchResultsOffset,
 		Elasticsearch:             elasticsearch,
 		ElasticsearchURL:          cfg.ElasticSearchAPIURL,
+		HasPrivateEndpoints:       cfg.HasPrivateEndpoints,
 		HealthCheckInterval:       cfg.HealthCheckInterval,
 		HealthCheckTimeout:        cfg.HealthCheckTimeout,
 		HTTPClient:                client,
@@ -60,7 +61,6 @@ func main() {
 		SecretKey:                 cfg.SecretKey,
 		Shutdown:                  cfg.GracefulShutdownTimeout,
 		SignElasticsearchRequests: cfg.SignElasticsearchRequests,
-		HasPrivateEndpoints:	   cfg.HasPrivateEndpoints,
 	}
 
 	svc.Start()

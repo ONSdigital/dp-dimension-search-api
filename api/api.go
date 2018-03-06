@@ -77,7 +77,7 @@ func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, sea
 
 	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.getSearch).Methods("GET")
 
-	if hasPrivateEndpoints == true {
+	if hasPrivateEndpoints {
 		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", api.privateAuth.Check(api.createSearchIndex)).Methods("PUT")
 		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", api.privateAuth.Check(api.deleteSearchIndex)).Methods("DELETE")
 	}

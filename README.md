@@ -32,6 +32,7 @@ one of:
 | DATASET_API_URL            | http://localhost:22000               | The host name for the dataset API
 | DATASET_API_AUTH_TOKEN     | FD0108EA-825D-411C-9B1D-41EF7727F465 | The auth token used for authentication to the dataset API
 | ELASTIC_SEARCH_URL         | http://localhost:9200                | The host name for elasticsearch
+| ENABLE_PRIVATE_ENDPOINTS   | false                                | Set true ("1","t","true") when private endpoints should be accessible
 | GRACEFUL_SHUTDOWN_TIMEOUT  | 5s                                   | The graceful shutdown timeout
 | HEALTHCHECK_INTERVAL       | 1m                                   | The time between calling the healthcheck endpoint for check subsystems
 | HEALTHCHECK_TIMEOUT        | 2s                                   | The timeout that the healthcheck allows for checked subsystems
