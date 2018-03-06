@@ -11,7 +11,7 @@ job "dp-search-api" {
       value     = "web"
     }
 
-    task "dp-search-api" {
+    task "dp-search-api-web" {
       driver = "exec"
 
       artifact {
@@ -56,7 +56,7 @@ job "dp-search-api" {
       }
 
       vault {
-        policies = ["dp-search-api"]
+        policies = ["dp-search-api-web"]
       }
     }
   }
@@ -69,7 +69,7 @@ job "dp-search-api" {
       value     = "publishing"
     }
 
-    task "dp-search-api" {
+    task "dp-search-api-publishing" {
       driver = "exec"
 
       artifact {
@@ -114,7 +114,7 @@ job "dp-search-api" {
       }
 
       vault {
-        policies = ["dp-search-api"]
+        policies = ["dp-search-api-publishing"]
       }
     }
   }
