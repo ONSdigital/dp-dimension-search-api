@@ -12,7 +12,7 @@ type Config struct {
 	BindAddr                  string        `envconfig:"BIND_ADDR"                  json:"-"`
 	Brokers                   []string      `envconfig:"KAFKA_ADDR"                 json:"-"`
 	DatasetAPIURL             string        `envconfig:"DATASET_API_URL"`
-	DatasetAPISecretKey       string        `envconfig:"DATASET_API_SECRET_KEY"     json:"-"`
+	DatasetAPISecretKey       string        `envconfig:"DATASET_API_AUTH_TOKEN"     json:"-"`
 	ElasticSearchAPIURL       string        `envconfig:"ELASTIC_SEARCH_URL"         json:"-"`
 	GracefulShutdownTimeout   time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 	HealthCheckInterval       time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
