@@ -35,6 +35,7 @@ type SearchAPI struct {
 	datasetAPISecretKey string
 	defaultMaxResults   int
 	elasticsearch       Elasticsearcher
+	hasPrivateEndpoints bool
 	host                string
 	internalToken       string
 	privateAuth         *auth.Authenticator
@@ -66,6 +67,7 @@ func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, sea
 		datasetAPISecretKey: datasetAPISecretKey,
 		defaultMaxResults:   defaultMaxResults,
 		elasticsearch:       elasticsearch,
+		hasPrivateEndpoints: hasPrivateEndpoints,
 		searchOutputQueue:   searchOutputQueue,
 		host:                host,
 		internalToken:       secretKey,

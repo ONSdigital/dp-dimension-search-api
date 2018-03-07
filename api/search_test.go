@@ -169,6 +169,19 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 	})
 }
 
+func TestAuthenticatedWebUserCannotSeeUnpublished(t *testing.T) {
+	Convey("Given web subnet, when an authenticated GET is made, then the dataset api should not see authentication and returns not found, so we return status 404 (not found)", t, func() {
+		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", secretKey)
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{NotFoundIfAuthBlank: true}, &mocks.Elasticsearch{}, defaultMaxResults, false)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Body.String(), ShouldEqual, "Resource not found\n")
+	})
+}
+
 func TestCreateSearchIndexReturnsOK(t *testing.T) {
 	Convey("Given instance and dimension exist return a status 200 (ok)", t, func() {
 		r := httptest.NewRequest("PUT", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
@@ -307,7 +320,7 @@ func getSearchResults(body *bytes.Buffer) *models.SearchResults {
 }
 
 func TestDeleteEndpointInWebReturnsNotFound(t *testing.T) {
-	Convey("Given a search index exists and credetials are correct, return a status 404 (not found)", t, func() {
+	Convey("Given a search index exists and credentials are correct, return a status 404 (not found)", t, func() {
 		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
@@ -315,6 +328,18 @@ func TestDeleteEndpointInWebReturnsNotFound(t *testing.T) {
 		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, false)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Body.String(), ShouldEqual, "404 page not found\n")
+	})
+
+	Convey("Given a search index exists and credentials are incorrect, return a status 404 (not found)", t, func() {
+		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", "not right")
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, false)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Body.String(), ShouldContainSubstring, "404 page not found")
 	})
 }
 
@@ -327,5 +352,17 @@ func TestCreateSearchIndexEndpointInWebReturnsNotFound(t *testing.T) {
 		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, false)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Body.String(), ShouldContainSubstring, "404 page not found")
+	})
+
+	Convey("Given a request to create search index and no private endpoints when a bad auth header is used, return a status 404 (not found)", t, func() {
+		r := httptest.NewRequest("PUT", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", "not right")
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, false)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Body.String(), ShouldContainSubstring, "404 page not found")
 	})
 }
