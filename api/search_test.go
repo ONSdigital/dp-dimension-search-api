@@ -169,13 +169,56 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 	})
 }
 
-func TestAuthenticatedWebUserCannotSeeUnpublished(t *testing.T) {
-	Convey("Given web subnet, when an authenticated GET is made, then the dataset api should not see authentication and returns not found, so we return status 404 (not found)", t, func() {
+// ensure no authentication is sent to the dataset API from public
+func TestPublicSubnetUsersCannotSeeUnpublished(t *testing.T) {
+	Convey("Given public subnet, when an authenticated GET is made, then the dataset api should not see authentication and returns not found, so we return status 404 (not found)", t, func() {
 		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
 		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{NotFoundIfAuthBlank: true}, &mocks.Elasticsearch{}, defaultMaxResults, false)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Body.String(), ShouldEqual, "Resource not found\n")
+	})
+	Convey("Given public subnet, when an unauthenticated GET is made, then the dataset api should not see authentication and returns not found, so we return status 404 (not found)", t, func() {
+		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", "not right")
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{NotFoundIfAuthBlank: true}, &mocks.Elasticsearch{}, defaultMaxResults, false)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Body.String(), ShouldEqual, "Resource not found\n")
+	})
+}
+
+// ensure authentication is sent to the dataset API appropriately (only when client is authenticated)
+func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
+	Convey("Given private subnet, when an authenticated GET is made, then the dataset api should see authentication and return ok, so we return OK", t, func() {
+		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", secretKey)
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireAuth: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+	Convey("Given private subnet, when a badly-authenticated GET is made, then the dataset api should see no authentication and return not found, so we return status 404 (not found)", t, func() {
+		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", "not right")
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{NotFoundIfAuthBlank: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Body.String(), ShouldEqual, "Resource not found\n")
+	})
+	Convey("Given private subnet, when an unauthenticated GET is made, then the dataset api should see no authentication and return not found, so we return status 404 (not found)", t, func() {
+		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
+		w := httptest.NewRecorder()
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{NotFoundIfAuthBlank: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Body.String(), ShouldEqual, "Resource not found\n")

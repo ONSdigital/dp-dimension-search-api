@@ -13,6 +13,7 @@ type DatasetAPI struct {
 	InternalServerError bool
 	VersionNotFound     bool
 	NotFoundIfAuthBlank bool
+	RequireAuth         bool
 }
 
 var (
@@ -32,6 +33,10 @@ func (api *DatasetAPI) GetVersion(ctx context.Context, datasetID, edition, versi
 
 	if api.NotFoundIfAuthBlank && authToken == "" {
 		return nil, errorNotFound
+	}
+
+	if api.RequireAuth && authToken == "" {
+		return nil, errorInternalServer
 	}
 
 	return &models.Version{}, nil
