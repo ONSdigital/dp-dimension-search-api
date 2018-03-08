@@ -12,8 +12,8 @@ import (
 type DatasetAPI struct {
 	InternalServerError bool
 	VersionNotFound     bool
-	NotFoundIfAuthBlank bool
 	RequireAuth         bool
+	RequireNoAuth       bool
 }
 
 var (
@@ -23,22 +23,26 @@ var (
 
 // GetVersion represents the mocked version that queries the dataset API to get a version resource
 func (api *DatasetAPI) GetVersion(ctx context.Context, datasetID, edition, version, authToken string) (*models.Version, error) {
+	isAuthenticated := len(authToken) > 0
+	isBadAuthExpectation := (api.RequireNoAuth && isAuthenticated) || (api.RequireAuth && !isAuthenticated)
+
 	if api.InternalServerError {
+		if isBadAuthExpectation {
+			return nil, errorNotFound
+		}
 		return nil, errorInternalServer
 	}
 
 	if api.VersionNotFound {
+		if isBadAuthExpectation {
+			return nil, errorInternalServer
+		}
 		return nil, errorNotFound
 	}
 
-	if api.NotFoundIfAuthBlank && authToken == "" {
+	if isBadAuthExpectation {
 		return nil, errorNotFound
 	}
-
-	if api.RequireAuth && authToken == "" {
-		return nil, errorInternalServer
-	}
-
 	return &models.Version{}, nil
 }
 

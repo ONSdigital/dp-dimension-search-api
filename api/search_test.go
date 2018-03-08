@@ -176,17 +176,17 @@ func TestPublicSubnetUsersCannotSeeUnpublished(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{NotFoundIfAuthBlank: true}, &mocks.Elasticsearch{}, defaultMaxResults, false)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{VersionNotFound: true, RequireNoAuth: true}, &mocks.Elasticsearch{}, defaultMaxResults, false)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Body.String(), ShouldEqual, "Resource not found\n")
 	})
-	Convey("Given public subnet, when an unauthenticated GET is made, then the dataset api should not see authentication and returns not found, so we return status 404 (not found)", t, func() {
+	Convey("Given public subnet, when an badly-authenticated GET is made, then the dataset api should not see authentication and returns not found, so we return status 404 (not found)", t, func() {
 		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", "not right")
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{NotFoundIfAuthBlank: true}, &mocks.Elasticsearch{}, defaultMaxResults, false)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{VersionNotFound: true, RequireNoAuth: true}, &mocks.Elasticsearch{}, defaultMaxResults, false)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Body.String(), ShouldEqual, "Resource not found\n")
@@ -204,21 +204,61 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
+	Convey("Given private subnet, when an authenticated GET is made, force the dataset api to return 404 if authenticated, so we return 404", t, func() {
+		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", secretKey)
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireAuth: true, VersionNotFound: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+	})
+	Convey("Given private subnet, when an authenticated GET is made, force the dataset api to return 500 if authenticated, so we return 500", t, func() {
+		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", secretKey)
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireAuth: true, InternalServerError: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusInternalServerError)
+	})
+
 	Convey("Given private subnet, when a badly-authenticated GET is made, then the dataset api should see no authentication and return not found, so we return status 404 (not found)", t, func() {
 		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", "not right")
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{NotFoundIfAuthBlank: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireNoAuth: true, VersionNotFound: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Body.String(), ShouldEqual, "Resource not found\n")
 	})
+	Convey("Given private subnet, when a badly-authenticated GET is made, then the dataset api should see no authentication and returns server error, so we return server error", t, func() {
+		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", "not right")
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireNoAuth: true, InternalServerError: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusInternalServerError)
+		So(w.Body.String(), ShouldContainSubstring, "internal error")
+	})
+	Convey("Given private subnet, when a badly-authenticated GET is made, then the dataset api should see no authentication and returns not found, so we return server error", t, func() {
+		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
+		w := httptest.NewRecorder()
+		r.Header.Add("internal-token", "not right")
+
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireNoAuth: true, VersionNotFound: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api.router.ServeHTTP(w, r)
+		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(w.Body.String(), ShouldEqual, "Resource not found\n")
+	})
+
 	Convey("Given private subnet, when an unauthenticated GET is made, then the dataset api should see no authentication and return not found, so we return status 404 (not found)", t, func() {
 		r := httptest.NewRequest("GET", "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term", nil)
 		w := httptest.NewRecorder()
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{NotFoundIfAuthBlank: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{VersionNotFound: true, RequireNoAuth: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Body.String(), ShouldEqual, "Resource not found\n")
@@ -231,7 +271,7 @@ func TestCreateSearchIndexReturnsOK(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireAuth: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -242,7 +282,7 @@ func TestFailToCreateSearchIndex(t *testing.T) {
 		r := httptest.NewRequest("PUT", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
 		w := httptest.NewRecorder()
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireNoAuth: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Body.String(), ShouldEqual, "Resource not found\n")
@@ -253,7 +293,7 @@ func TestFailToCreateSearchIndex(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", "abcdef")
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireNoAuth: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Body.String(), ShouldEqual, "Resource not found\n")
@@ -264,7 +304,7 @@ func TestFailToCreateSearchIndex(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{ReturnError: true}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{ReturnError: true}, &mocks.DatasetAPI{RequireAuth: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 		So(w.Body.String(), ShouldEqual, "Failed to process the request due to an internal error\n")
@@ -277,7 +317,7 @@ func TestDeleteSearchIndexReturnsOK(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireAuth: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusOK)
 	})
@@ -288,7 +328,7 @@ func TestFailToDeleteSearchIndex(t *testing.T) {
 		r := httptest.NewRequest("DELETE", "http://localhost:23100/search/instances/123/dimensions/aggregate", nil)
 		w := httptest.NewRecorder()
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireNoAuth: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Body.String(), ShouldEqual, "Resource not found\n")
@@ -299,7 +339,7 @@ func TestFailToDeleteSearchIndex(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", "abcdef")
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, true)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireNoAuth: true}, &mocks.Elasticsearch{}, defaultMaxResults, true)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Body.String(), ShouldEqual, "Resource not found\n")
@@ -310,7 +350,7 @@ func TestFailToDeleteSearchIndex(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{InternalServerError: true}, defaultMaxResults, true)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireAuth: true}, &mocks.Elasticsearch{InternalServerError: true}, defaultMaxResults, true)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusInternalServerError)
 		So(w.Body.String(), ShouldEqual, "Failed to process the request due to an internal error\n")
@@ -321,7 +361,7 @@ func TestFailToDeleteSearchIndex(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{IndexNotFound: true}, defaultMaxResults, true)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireAuth: true}, &mocks.Elasticsearch{IndexNotFound: true}, defaultMaxResults, true)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Body.String(), ShouldEqual, "Resource not found\n")
@@ -368,7 +408,7 @@ func TestDeleteEndpointInWebReturnsNotFound(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, false)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireAuth: true}, &mocks.Elasticsearch{}, defaultMaxResults, false)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Body.String(), ShouldEqual, "404 page not found\n")
@@ -379,7 +419,7 @@ func TestDeleteEndpointInWebReturnsNotFound(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", "not right")
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, false)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireNoAuth: true}, &mocks.Elasticsearch{}, defaultMaxResults, false)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Body.String(), ShouldContainSubstring, "404 page not found")
@@ -392,7 +432,7 @@ func TestCreateSearchIndexEndpointInWebReturnsNotFound(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", secretKey)
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, false)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireNoAuth: true}, &mocks.Elasticsearch{}, defaultMaxResults, false)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Body.String(), ShouldContainSubstring, "404 page not found")
@@ -403,7 +443,7 @@ func TestCreateSearchIndexEndpointInWebReturnsNotFound(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.Header.Add("internal-token", "not right")
 
-		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{}, &mocks.Elasticsearch{}, defaultMaxResults, false)
+		api := routes(host, secretKey, datasetAPISecretKey, mux.NewRouter(), &mocks.BuildSearch{}, &mocks.DatasetAPI{RequireNoAuth: true}, &mocks.Elasticsearch{}, defaultMaxResults, false)
 		api.router.ServeHTTP(w, r)
 		So(w.Code, ShouldEqual, http.StatusNotFound)
 		So(w.Body.String(), ShouldContainSubstring, "404 page not found")
