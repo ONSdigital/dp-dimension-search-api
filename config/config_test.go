@@ -25,7 +25,6 @@ func TestSpec(t *testing.T) {
 				So(cfg.DatasetAPISecretKey, ShouldEqual, "FD0108EA-825D-411C-9B1D-41EF7727F465")
 				So(cfg.ElasticSearchAPIURL, ShouldEqual, "http://localhost:9200")
 				So(cfg.GracefulShutdownTimeout, ShouldEqual, 5*time.Second)
-				So(cfg.HasPrivateEndpoints, ShouldEqual, false)
 				So(cfg.HealthCheckInterval, ShouldEqual, 60*time.Second)
 				So(cfg.HealthCheckTimeout, ShouldEqual, 2*time.Second)
 				So(cfg.HierarchyBuiltTopic, ShouldEqual, "hierarchy-built")
