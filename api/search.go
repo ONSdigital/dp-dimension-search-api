@@ -57,8 +57,9 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 
 	var authToken string
 
-	if r.Header.Get(internalTokenHeader) == api.internalToken {
+	if api.hasPrivateEndpoints && r.Header.Get(internalTokenHeader) == api.internalToken {
 		// Authorised to search against an unpublished version
+		// and exposes private endpoints
 		authToken = api.datasetAPISecretKey
 	}
 

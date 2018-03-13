@@ -38,6 +38,7 @@ type Service struct {
 	SecretKey                 string
 	Shutdown                  time.Duration
 	SignElasticsearchRequests bool
+	HasPrivateEndpoints       bool
 }
 
 // Start handles consumption of events
@@ -65,7 +66,8 @@ func (svc *Service) Start() {
 		&svc.OutputQueue,
 		svc.DatasetAPI,
 		svc.Elasticsearch,
-		svc.DefaultMaxResults)
+		svc.DefaultMaxResults,
+		svc.HasPrivateEndpoints)
 
 	// blocks until a fatal error occurs
 	select {

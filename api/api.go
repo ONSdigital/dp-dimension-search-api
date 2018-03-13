@@ -35,6 +35,7 @@ type SearchAPI struct {
 	datasetAPISecretKey string
 	defaultMaxResults   int
 	elasticsearch       Elasticsearcher
+	hasPrivateEndpoints bool
 	host                string
 	internalToken       string
 	privateAuth         *auth.Authenticator
@@ -43,9 +44,9 @@ type SearchAPI struct {
 }
 
 // CreateSearchAPI manages all the routes configured to API
-func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, errorChan chan error, searchOutputQueue OutputQueue, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int) {
+func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, errorChan chan error, searchOutputQueue OutputQueue, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool) {
 	router := mux.NewRouter()
-	routes(host, secretKey, datasetAPISecretKey, router, searchOutputQueue, datasetAPI, elasticsearch, defaultMaxResults)
+	routes(host, secretKey, datasetAPISecretKey, router, searchOutputQueue, datasetAPI, elasticsearch, defaultMaxResults, hasPrivateEndpoints)
 
 	httpServer = server.New(bindAddr, router)
 	// Disable this here to allow service to manage graceful shutdown of the entire app.
@@ -60,12 +61,13 @@ func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, erro
 	}()
 }
 
-func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, searchOutputQueue OutputQueue, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int) *SearchAPI {
+func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, searchOutputQueue OutputQueue, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool) *SearchAPI {
 	api := SearchAPI{
 		datasetAPI:          datasetAPI,
 		datasetAPISecretKey: datasetAPISecretKey,
 		defaultMaxResults:   defaultMaxResults,
 		elasticsearch:       elasticsearch,
+		hasPrivateEndpoints: hasPrivateEndpoints,
 		searchOutputQueue:   searchOutputQueue,
 		host:                host,
 		internalToken:       secretKey,
@@ -76,8 +78,11 @@ func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, sea
 	router.Path("/healthcheck").Methods("GET").HandlerFunc(healthcheck.Do)
 
 	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.getSearch).Methods("GET")
-	api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", api.privateAuth.Check(api.createSearchIndex)).Methods("PUT")
-	api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", api.privateAuth.Check(api.deleteSearchIndex)).Methods("DELETE")
+
+	if hasPrivateEndpoints {
+		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", api.privateAuth.Check(api.createSearchIndex)).Methods("PUT")
+		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", api.privateAuth.Check(api.deleteSearchIndex)).Methods("DELETE")
+	}
 
 	return &api
 }

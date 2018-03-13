@@ -12,9 +12,10 @@ type Config struct {
 	BindAddr                  string        `envconfig:"BIND_ADDR"                  json:"-"`
 	Brokers                   []string      `envconfig:"KAFKA_ADDR"                 json:"-"`
 	DatasetAPIURL             string        `envconfig:"DATASET_API_URL"`
-	DatasetAPISecretKey       string        `envconfig:"DATASET_API_SECRET_KEY"     json:"-"`
+	DatasetAPISecretKey       string        `envconfig:"DATASET_API_AUTH_TOKEN"     json:"-"`
 	ElasticSearchAPIURL       string        `envconfig:"ELASTIC_SEARCH_URL"         json:"-"`
 	GracefulShutdownTimeout   time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
+	HasPrivateEndpoints       bool          `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
 	HealthCheckInterval       time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	HealthCheckTimeout        time.Duration `envconfig:"HEALTHCHECK_TIMEOUT"`
 	HierarchyBuiltTopic       string        `envconfig:"HIERARCHY_BUILT_TOPIC"`
@@ -41,6 +42,7 @@ func Get() (*Config, error) {
 		DatasetAPISecretKey:       "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ElasticSearchAPIURL:       "http://localhost:9200",
 		GracefulShutdownTimeout:   5 * time.Second,
+		HasPrivateEndpoints:       false,
 		HealthCheckInterval:       1 * time.Minute,
 		HealthCheckTimeout:        2 * time.Second,
 		HierarchyBuiltTopic:       "hierarchy-built",
