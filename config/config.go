@@ -9,10 +9,11 @@ import (
 
 // Config is the filing resource handler config
 type Config struct {
+	AuthAPIURL                string        `envconfig:"ZEBEDEE_URL"`
 	BindAddr                  string        `envconfig:"BIND_ADDR"                  json:"-"`
 	Brokers                   []string      `envconfig:"KAFKA_ADDR"                 json:"-"`
 	DatasetAPIURL             string        `envconfig:"DATASET_API_URL"`
-	DatasetAPISecretKey       string        `envconfig:"DATASET_API_AUTH_TOKEN"     json:"-"`
+	DatasetAPIAuthToken       string        `envconfig:"DATASET_API_AUTH_TOKEN"     json:"-"`
 	ElasticSearchAPIURL       string        `envconfig:"ELASTIC_SEARCH_URL"         json:"-"`
 	GracefulShutdownTimeout   time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 	HasPrivateEndpoints       bool          `envconfig:"ENABLE_PRIVATE_ENDPOINTS"`
@@ -23,7 +24,7 @@ type Config struct {
 	MaxRetries                int           `envconfig:"REQUEST_MAX_RETRIES"`
 	MaxSearchResultsOffset    int           `envconfig:"MAX_SEARCH_RESULTS_OFFSET"`
 	SearchAPIURL              string        `envconfig:"SEARCH_API_URL"`
-	SecretKey                 string        `envconfig:"SECRET_KEY"                 json:"-"`
+	ServiceAuthToken          string        `envconfig:"SERVICE_AUTH_TOKEN"         json:"-"`
 	SignElasticsearchRequests bool          `envconfig:"SIGN_ELASTICSEARCH_REQUESTS"`
 }
 
@@ -36,10 +37,11 @@ func Get() (*Config, error) {
 	}
 
 	cfg = &Config{
+		AuthAPIURL:                "http://localhost:8082",
 		BindAddr:                  ":23100",
 		Brokers:                   []string{"localhost:9092"},
 		DatasetAPIURL:             "http://localhost:22000",
-		DatasetAPISecretKey:       "FD0108EA-825D-411C-9B1D-41EF7727F465",
+		DatasetAPIAuthToken:       "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ElasticSearchAPIURL:       "http://localhost:9200",
 		GracefulShutdownTimeout:   5 * time.Second,
 		HasPrivateEndpoints:       false,
@@ -50,7 +52,7 @@ func Get() (*Config, error) {
 		MaxRetries:                3,
 		MaxSearchResultsOffset:    1000,
 		SearchAPIURL:              "http://localhost:23100",
-		SecretKey:                 "SD0108EA-825D-411C-45J3-41EF7727F123",
+		ServiceAuthToken:          "SD0108EA-825D-411C-45J3-41EF7727F123",
 		SignElasticsearchRequests: false,
 	}
 

@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/ONSdigital/dp-search-api/config"
-	"github.com/ONSdigital/dp-search-api/dataset"
 	"github.com/ONSdigital/dp-search-api/elasticsearch"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/dp-search-api/service"
@@ -26,8 +25,8 @@ func main() {
 	// sensitive fields are omitted from config.String().
 	log.Info("config on startup", log.Data{"config": cfg})
 
-	client := rchttp.DefaultClient
-	elasticsearch := elasticsearch.NewElasticSearchAPI(client, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests)
+	elasticClient := rchttp.NewClient()
+	elasticsearch := elasticsearch.NewElasticSearchAPI(elasticClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests)
 	_, status, err := elasticsearch.CallElastic(context.Background(), cfg.ElasticSearchAPIURL, "GET", nil)
 	if err != nil {
 		log.ErrorC("failed to start up, unable to connect to elastic search instance", err, log.Data{"http_status": status})
@@ -40,25 +39,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	datasetAPI := dataset.NewDatasetAPI(client, cfg.DatasetAPIURL)
 	outputQueue := searchoutputqueue.CreateOutputQueue(producer.Output())
 
 	svc := &service.Service{
+		AuthAPIURL:                cfg.AuthAPIURL,
 		BindAddr:                  cfg.BindAddr,
-		DatasetAPI:                datasetAPI,
-		DatasetAPISecretKey:       cfg.DatasetAPISecretKey,
+		DatasetAPIURL:             cfg.DatasetAPIURL,
+		DatasetAPIAuthToken:       cfg.DatasetAPIAuthToken,
 		DefaultMaxResults:         cfg.MaxSearchResultsOffset,
 		Elasticsearch:             elasticsearch,
 		ElasticsearchURL:          cfg.ElasticSearchAPIURL,
 		HasPrivateEndpoints:       cfg.HasPrivateEndpoints,
 		HealthCheckInterval:       cfg.HealthCheckInterval,
 		HealthCheckTimeout:        cfg.HealthCheckTimeout,
-		HTTPClient:                client,
 		MaxRetries:                cfg.MaxRetries,
 		OutputQueue:               outputQueue,
 		SearchAPIURL:              cfg.SearchAPIURL,
 		SearchIndexProducer:       producer,
-		SecretKey:                 cfg.SecretKey,
+		ServiceAuthToken:          cfg.ServiceAuthToken,
 		Shutdown:                  cfg.GracefulShutdownTimeout,
 		SignElasticsearchRequests: cfg.SignElasticsearchRequests,
 	}

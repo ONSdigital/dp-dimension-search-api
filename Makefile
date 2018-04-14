@@ -16,5 +16,6 @@ build:
 debug: build
 	HUMAN_LOG=1 go run -race main.go
 test:
-	go test -cover $(shell go list ./... | grep -v /vendor/)
+	go test -v -cover $(shell go list ./... | grep -v /vendor/)
+
 .PHONY: build debug test

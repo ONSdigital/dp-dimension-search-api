@@ -8,6 +8,7 @@ import (
 
 	"github.com/ONSdigital/dp-search-api/models"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
+	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
 )
@@ -18,18 +19,14 @@ type pageVariables struct {
 }
 
 const (
-	internalTokenHeader = "Internal-Token"
-
 	defaultLimit  = 20
 	defaultOffset = 0
-)
 
-var (
 	internalError = "Failed to process the request due to an internal error"
 	notFoundError = "Resource not found"
-
-	err error
 )
+
+var err error
 
 func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -55,16 +52,15 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("incoming request", logData)
 
-	var authToken string
-
-	if api.hasPrivateEndpoints && r.Header.Get(internalTokenHeader) == api.internalToken {
+	client := api.datasetAPIClientNoAuth
+	if api.hasPrivateEndpoints && common.IsPresent(r.Context()) {
 		// Authorised to search against an unpublished version
 		// and exposes private endpoints
-		authToken = api.datasetAPISecretKey
+		client = api.datasetAPIClient
 	}
 
 	// Get instanceID from datasetAPI
-	versionDoc, err := api.datasetAPI.GetVersion(r.Context(), datasetID, edition, version, authToken)
+	versionDoc, err := client.GetVersion(r.Context(), datasetID, edition, version)
 	if err != nil {
 		setErrorCode(w, err)
 		return

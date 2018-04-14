@@ -42,7 +42,7 @@ one of:
 | MAX_SEARCH_RESULTS_OFFSET  | 1000                                 | The maximum offset for the number of results returned by search query
 | REQUEST_MAX_RETRIES        | 3                                    | The maximum number of attempts for a single http request due to external service failure
 | SEARCH_API_URL             | http://localhost:23100               | The host name for this service, search API
-| SECRET_KEY                 | SD0108EA-825D-411C-45J3-41EF7727F123 | A secret key used for authentication
+| SERVICE_AUTH_TOKEN         | SD0108EA-825D-411C-45J3-41EF7727F123 | The token used to identify this service when authenticating
 
 
 ### Contributing

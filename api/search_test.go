@@ -12,18 +12,14 @@ import (
 
 	"github.com/ONSdigital/dp-search-api/mocks"
 	"github.com/ONSdigital/dp-search-api/models"
+	"github.com/ONSdigital/go-ns/common"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
-	host                = "8080"
-	secretKey           = "coffee"
-	datasetAPISecretKey = "tea"
-	defaultMaxResults   = 20
-	brokers             = []string{"localhost:9092"}
-	topic               = "testing"
-	resourceNotFound    = "Resource not found"
+	defaultMaxResults = 20
+	resourceNotFound  = "esource not found"
 )
 
 type testOpts struct {
@@ -36,12 +32,17 @@ type testOpts struct {
 	dsVersionNotFound     bool
 	esIndexNotFound       bool
 	esInternalServerError bool
-	reqHeaderIntToken     string
+	reqHasAuth            bool
 	searchReturnError     bool
 	privateSubnet         bool
 }
+type testRes struct {
+	w          *httptest.ResponseRecorder
+	dsWithAuth *mocks.DatasetAPI
+	dsNoAuth   *mocks.DatasetAPI
+}
 
-func setupTest(opts testOpts) *httptest.ResponseRecorder {
+func setupTest(opts testOpts) testRes {
 	if opts.method == "" {
 		opts.method = "GET"
 	}
@@ -51,30 +52,51 @@ func setupTest(opts testOpts) *httptest.ResponseRecorder {
 	if opts.maxResults == 0 {
 		opts.maxResults = defaultMaxResults
 	}
+
+	datasetWithAuth := &mocks.DatasetAPI{InternalServerError: opts.dsInternalServerError, VersionNotFound: opts.dsVersionNotFound, RequireNoAuth: opts.dsRequireNoAuth, RequireAuth: opts.dsRequireAuth, SvcAuth: "AuthMe!"}
+	datasetNoAuth := &mocks.DatasetAPI{InternalServerError: opts.dsInternalServerError, VersionNotFound: opts.dsVersionNotFound, RequireNoAuth: opts.dsRequireNoAuth, RequireAuth: opts.dsRequireAuth}
+
 	api := routes(
-		host, secretKey, datasetAPISecretKey, mux.NewRouter(),
+		"host", "http://localhost:8082", mux.NewRouter(),
 		&mocks.BuildSearch{ReturnError: opts.searchReturnError},
-		&mocks.DatasetAPI{InternalServerError: opts.dsInternalServerError, VersionNotFound: opts.dsVersionNotFound, RequireNoAuth: opts.dsRequireNoAuth, RequireAuth: opts.dsRequireAuth},
+		datasetWithAuth, datasetNoAuth,
 		&mocks.Elasticsearch{InternalServerError: opts.esInternalServerError, IndexNotFound: opts.esIndexNotFound},
 		opts.maxResults,
 		opts.privateSubnet,
 	)
-	if opts.reqHeaderIntToken != "" {
-		r.Header.Add("internal-token", opts.reqHeaderIntToken)
+
+	// fake the auth wrapper by adding user,caller to r.Context() before ServeHTTP() is called
+	if opts.reqHasAuth {
+		r = r.WithContext(common.SetUser(r.Context(), "coffee@test"))
+		r = r.WithContext(common.SetCaller(r.Context(), "APIAmWhoAPIAm"))
 	}
+
 	api.router.ServeHTTP(w, r)
 
-	return w
+	return testRes{w: w, dsWithAuth: datasetWithAuth, dsNoAuth: datasetNoAuth}
 }
 
-func TestGetSearchReturnsOK(t *testing.T) {
+func TestGetSearchPublishedWithoutAuthReturnsOK(t *testing.T) {
+	t.Parallel()
+	Convey("Given the search query satisfies the published search index then return OK", t, func() {
+		testres := setupTest(testOpts{url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term"})
+		So(testres.w.Code, ShouldEqual, http.StatusOK)
+		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
+		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
+	})
+}
+
+func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 	t.Parallel()
 	Convey("Given the search query satisfies the search index then return a status 200", t, func() {
-		w := setupTest(testOpts{url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term"})
-		So(w.Code, ShouldEqual, http.StatusOK)
+		testres := setupTest(testOpts{
+			url:        "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			reqHasAuth: true,
+		})
+		So(testres.w.Code, ShouldEqual, http.StatusOK)
 
 		// Check response json
-		searchResults := getSearchResults(w.Body)
+		searchResults := getSearchResults(testres.w.Body)
 
 		So(searchResults.Count, ShouldEqual, 2)
 		So(len(searchResults.Items), ShouldEqual, 2)
@@ -104,17 +126,20 @@ func TestGetSearchReturnsOK(t *testing.T) {
 		So(searchResults.Items[1].Matches.Label[0].End, ShouldEqual, 9)
 		So(searchResults.Items[1].Matches.Label[1].Start, ShouldEqual, 19)
 		So(searchResults.Items[1].Matches.Label[1].End, ShouldEqual, 25)
+		So(searchResults.Items[1].Matches, ShouldResemble, models.Matches{Code: []models.Snippet(nil), Label: []models.Snippet{models.Snippet{Start: 1, End: 9}, models.Snippet{Start: 19, End: 25}}})
+
 	})
 
 	Convey("Given the search query satisfies the search index when limit and offset parameters are set then return a status 200", t, func() {
-		w := setupTest(testOpts{
+		testres := setupTest(testOpts{
 			url:        "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&limit=5&offset=20",
 			maxResults: 40,
+			reqHasAuth: true,
 		})
-		So(w.Code, ShouldEqual, http.StatusOK)
+		So(testres.w.Code, ShouldEqual, http.StatusOK)
 
 		// Check response json
-		searchResults := getSearchResults(w.Body)
+		searchResults := getSearchResults(testres.w.Body)
 
 		So(searchResults.Count, ShouldEqual, 2)
 		So(len(searchResults.Items), ShouldEqual, 2)
@@ -126,280 +151,288 @@ func TestGetSearchReturnsOK(t *testing.T) {
 func TestGetSearchFailureScenarios(t *testing.T) {
 	t.Parallel()
 	Convey("Given search API fails to connect to the dataset API return status 500 (internal service error)", t, func() {
-		w := setupTest(testOpts{
+		testres := setupTest(testOpts{
 			url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			dsInternalServerError: true,
 		})
-		So(w.Code, ShouldEqual, http.StatusInternalServerError)
-		So(w.Body.String(), ShouldEqual, "Failed to process the request due to an internal error\n")
+		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
+		So(testres.w.Body.String(), ShouldEqual, "Failed to process the request due to an internal error\n")
 	})
 
 	Convey("Given the version document was not found via the dataset API return status 404 (not found)", t, func() {
-		w := setupTest(testOpts{
+		testres := setupTest(testOpts{
 			url:               "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			dsVersionNotFound: true,
 		})
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
 	})
 
 	Convey("Given the limit parameter in request is not a number return status 400 (bad request)", t, func() {
-		w := setupTest(testOpts{url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&limit=four"})
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
-		So(w.Body.String(), ShouldEqual, "strconv.Atoi: parsing \"four\": invalid syntax\n")
+		testres := setupTest(testOpts{
+			url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&limit=four",
+		})
+		So(testres.w.Code, ShouldEqual, http.StatusBadRequest)
+		So(testres.w.Body.String(), ShouldEqual, "strconv.Atoi: parsing \"four\": invalid syntax\n")
 	})
 
 	Convey("Given the offset parameter in request is not a number return status 400 (bad request)", t, func() {
-		w := setupTest(testOpts{url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&offset=fifty"})
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
-		So(w.Body.String(), ShouldEqual, "strconv.Atoi: parsing \"fifty\": invalid syntax\n")
+		testres := setupTest(testOpts{
+			url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&offset=fifty",
+		})
+		So(testres.w.Code, ShouldEqual, http.StatusBadRequest)
+		So(testres.w.Body.String(), ShouldEqual, "strconv.Atoi: parsing \"fifty\": invalid syntax\n")
 	})
 
 	Convey("Given the query parameter, q does not exist in request return status 400 (bad request)", t, func() {
-		w := setupTest(testOpts{url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate"})
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
-		So(w.Body.String(), ShouldEqual, "search term empty\n")
+		testres := setupTest(testOpts{
+			url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate",
+		})
+		So(testres.w.Code, ShouldEqual, http.StatusBadRequest)
+		So(testres.w.Body.String(), ShouldEqual, "search term empty\n")
 	})
 
 	Convey("Given the offset parameter exceeds the default maximum results return status 400 (bad request)", t, func() {
-		w := setupTest(testOpts{url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&offset=50"})
-		So(w.Code, ShouldEqual, http.StatusBadRequest)
-		So(w.Body.String(), ShouldEqual, "the maximum offset has been reached, the offset cannot be more than "+strconv.Itoa(defaultMaxResults)+"\n")
+		testres := setupTest(testOpts{
+			url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&offset=50",
+		})
+		So(testres.w.Code, ShouldEqual, http.StatusBadRequest)
+		So(testres.w.Body.String(), ShouldEqual, "the maximum offset has been reached, the offset cannot be more than "+strconv.Itoa(defaultMaxResults)+"\n")
 	})
 
 	Convey("Given search API fails to connect to elastic search cluster return status 500 (internal service error)", t, func() {
-		w := setupTest(testOpts{
+		testres := setupTest(testOpts{
 			url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			esInternalServerError: true,
 		})
-		So(w.Code, ShouldEqual, http.StatusInternalServerError)
-		So(w.Body.String(), ShouldEqual, "Failed to process the request due to an internal error\n")
+		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
+		So(testres.w.Body.String(), ShouldEqual, "Failed to process the request due to an internal error\n")
 	})
 
 	Convey("Given the search index does not exist return status 404 (not found)", t, func() {
-		w := setupTest(testOpts{
+		testres := setupTest(testOpts{
 			url:             "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			esIndexNotFound: true,
 		})
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
 	})
 }
 
 // ensure no authentication is sent to the dataset API from public
 func TestPublicSubnetUsersCannotSeeUnpublished(t *testing.T) {
 	Convey("Given public subnet, when an authenticated GET is made, then the dataset api should not see authentication and returns not found, so we return status 404 (not found)", t, func() {
-		w := setupTest(testOpts{
+		testres := setupTest(testOpts{
 			url:               "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			dsRequireNoAuth:   true,
 			dsVersionNotFound: true,
 		})
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
+		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
 	})
-	Convey("Given public subnet, when an badly-authenticated GET is made, then the dataset api should not see authentication and returns not found, so we return status 404 (not found)", t, func() {
-		w := setupTest(testOpts{
+	Convey("Given public subnet, when an unauthenticated GET is made, then the dataset api should not see authentication and returns not found, so we return status 404 (not found)", t, func() {
+		testres := setupTest(testOpts{
 			url:               "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			dsRequireNoAuth:   true,
 			dsVersionNotFound: true,
-			reqHeaderIntToken: "not right",
 		})
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
+		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
 	})
 }
 
 // ensure authentication is sent to the dataset API appropriately (only when client is authenticated)
 func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 	Convey("Given private subnet, when an authenticated GET is made, then the dataset api should see authentication and return ok, so we return OK", t, func() {
-		w := setupTest(testOpts{
-			url:               "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
-			dsRequireAuth:     true,
-			reqHeaderIntToken: secretKey,
-			privateSubnet:     true,
+		testres := setupTest(testOpts{
+			url:           "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			dsRequireAuth: true,
+			reqHasAuth:    true,
+			privateSubnet: true,
 		})
-		So(w.Body.String(), ShouldStartWith, "{")
-		So(w.Code, ShouldEqual, http.StatusOK)
+		So(testres.w.Body.String(), ShouldStartWith, "{")
+		So(testres.w.Code, ShouldEqual, http.StatusOK)
+		So(testres.dsWithAuth.Calls, ShouldEqual, 1)
+		So(testres.dsNoAuth.Calls, ShouldEqual, 0)
 	})
 	Convey("Given private subnet, when an authenticated GET is made, force the dataset api to return 404 if authenticated, so we return 404", t, func() {
-		w := setupTest(testOpts{
+		testres := setupTest(testOpts{
 			url:               "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			reqHasAuth:        true,
 			dsRequireAuth:     true,
 			dsVersionNotFound: true,
-			reqHeaderIntToken: secretKey,
 			privateSubnet:     true,
 		})
-		So(w.Body.String(), ShouldContainSubstring, resourceNotFound)
-		So(w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
 	})
 	Convey("Given private subnet, when an authenticated GET is made, force the dataset api to return 500 if authenticated, so we return 500", t, func() {
-		w := setupTest(testOpts{
+		testres := setupTest(testOpts{
 			url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			dsInternalServerError: true,
 			dsRequireAuth:         true,
+			reqHasAuth:            true,
 			privateSubnet:         true,
-			reqHeaderIntToken:     secretKey,
 		})
-		So(w.Code, ShouldEqual, http.StatusInternalServerError)
-	})
-
-	Convey("Given private subnet, when a badly-authenticated GET is made, then the dataset api should see no authentication and return not found, so we return status 404 (not found)", t, func() {
-		w := setupTest(testOpts{
-			url:               "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
-			dsVersionNotFound: true,
-			dsRequireNoAuth:   true,
-			privateSubnet:     true,
-			reqHeaderIntToken: "not right",
-		})
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.Body.String(), ShouldContainSubstring, resourceNotFound)
-	})
-	Convey("Given private subnet, when a badly-authenticated GET is made, then the dataset api should see no authentication and returns server error, so we return server error", t, func() {
-		w := setupTest(testOpts{
-			url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
-			dsInternalServerError: true,
-			dsRequireNoAuth:       true,
-			privateSubnet:         true,
-			reqHeaderIntToken:     "not right",
-		})
-		So(w.Code, ShouldEqual, http.StatusInternalServerError)
-		So(w.Body.String(), ShouldContainSubstring, "internal error")
-	})
-	Convey("Given private subnet, when a badly-authenticated GET is made, then the dataset api should see no authentication and returns not found, so we return server error", t, func() {
-		w := setupTest(testOpts{
-			url:               "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
-			dsRequireNoAuth:   true,
-			dsVersionNotFound: true,
-			privateSubnet:     true,
-			reqHeaderIntToken: "not right",
-		})
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
 	})
 
 	Convey("Given private subnet, when an unauthenticated GET is made, then the dataset api should see no authentication and return not found, so we return status 404 (not found)", t, func() {
-		w := setupTest(testOpts{
+		testres := setupTest(testOpts{
+			url:               "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			dsVersionNotFound: true,
+			dsRequireNoAuth:   true,
+			privateSubnet:     true,
+		})
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
+		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
+
+		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
+		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
+	})
+
+	Convey("Given private subnet, when a badly-authenticated GET is made, then the dataset api should see no authentication and returns not found, so we return server error", t, func() {
+		testres := setupTest(testOpts{
 			url:               "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			dsRequireNoAuth:   true,
 			dsVersionNotFound: true,
 			privateSubnet:     true,
 		})
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
+
+		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
+		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
+	})
+
+	Convey("Given private subnet, when an unauthenticated GET is made, then the dataset api should see no authentication and return not found, so we return status 404 (not found)", t, func() {
+		testres := setupTest(testOpts{
+			url:               "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			dsRequireNoAuth:   true,
+			dsVersionNotFound: true,
+			privateSubnet:     true,
+		})
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
 	})
 }
 
 func TestCreateSearchIndexReturnsOK(t *testing.T) {
 	Convey("Given instance and dimension exist return a status 200 (ok)", t, func() {
-		w := setupTest(testOpts{
-			method:            "PUT",
-			url:               "http://localhost:23100/search/instances/123/dimensions/aggregate",
-			dsRequireAuth:     true,
-			privateSubnet:     true,
-			reqHeaderIntToken: secretKey,
+		testres := setupTest(testOpts{
+			method:        "PUT",
+			url:           "http://localhost:23100/search/instances/123/dimensions/aggregate",
+			dsRequireAuth: true,
+			reqHasAuth:    true,
+			privateSubnet: true,
 		})
-		So(w.Code, ShouldEqual, http.StatusOK)
+		So(testres.w.Code, ShouldEqual, http.StatusOK)
 	})
 }
 
 func TestFailToCreateSearchIndex(t *testing.T) {
 	Convey("Given a request to create search index but no auth header is set return a status 404 (not found)", t, func() {
-		w := setupTest(testOpts{
+		testres := setupTest(testOpts{
 			method:          "PUT",
 			url:             "http://localhost:23100/search/instances/123/dimensions/aggregate",
 			dsRequireNoAuth: true,
 			privateSubnet:   true,
 		})
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
 	})
 
 	Convey("Given a request to create search index but the auth header is wrong return a status 404 (not found)", t, func() {
-		w := setupTest(testOpts{
-			method:            "PUT",
-			url:               "http://localhost:23100/search/instances/123/dimensions/aggregate",
-			dsRequireNoAuth:   true,
-			reqHeaderIntToken: "abcdef",
-			privateSubnet:     true,
+		testres := setupTest(testOpts{
+			method:          "PUT",
+			url:             "http://localhost:23100/search/instances/123/dimensions/aggregate",
+			dsRequireNoAuth: true,
+			privateSubnet:   true,
 		})
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
 	})
 
 	Convey("Given a request to create search index but unable to connect to kafka broker return a status 500 (internal service error)", t, func() {
-		w := setupTest(testOpts{
+		testres := setupTest(testOpts{
 			method:            "PUT",
 			url:               "http://localhost:23100/search/instances/123/dimensions/aggregate",
 			dsRequireAuth:     true,
 			searchReturnError: true,
+			reqHasAuth:        true,
 			privateSubnet:     true,
-			reqHeaderIntToken: secretKey,
 		})
-		So(w.Code, ShouldEqual, http.StatusInternalServerError)
-		So(w.Body.String(), ShouldEqual, "Failed to process the request due to an internal error\n")
+		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
+		So(testres.w.Body.String(), ShouldEqual, "Failed to process the request due to an internal error\n")
 	})
 }
 
 func TestDeleteSearchIndexReturnsOK(t *testing.T) {
 	Convey("Given a search index exists return a status 200 (ok)", t, func() {
-		w := setupTest(testOpts{
-			method:            "DELETE",
-			url:               "http://localhost:23100/search/instances/123/dimensions/aggregate",
-			dsRequireAuth:     true,
-			privateSubnet:     true,
-			reqHeaderIntToken: secretKey,
+		testres := setupTest(testOpts{
+			method:        "DELETE",
+			url:           "http://localhost:23100/search/instances/123/dimensions/aggregate",
+			dsRequireAuth: true,
+			reqHasAuth:    true,
+			privateSubnet: true,
 		})
-		So(w.Code, ShouldEqual, http.StatusOK)
+		So(testres.w.Code, ShouldEqual, http.StatusOK)
 	})
 }
 
 func TestFailToDeleteSearchIndex(t *testing.T) {
 	Convey("Given a search index exists but no auth header set return a status 404 (not found)", t, func() {
-		w := setupTest(testOpts{
+		testres := setupTest(testOpts{
 			method:          "DELETE",
 			url:             "http://localhost:23100/search/instances/123/dimensions/aggregate",
 			dsRequireNoAuth: true,
 			privateSubnet:   true,
 		})
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
 	})
 
 	Convey("Given a search index exists but auth header is wrong return a status 404 (not found)", t, func() {
-		w := setupTest(testOpts{
-			method:            "DELETE",
-			url:               "http://localhost:23100/search/instances/123/dimensions/aggregate",
-			reqHeaderIntToken: "not right",
-			dsRequireNoAuth:   true,
-			privateSubnet:     true,
+		testres := setupTest(testOpts{
+			method:        "DELETE",
+			url:           "http://localhost:23100/search/instances/123/dimensions/aggregate",
+			dsRequireAuth: true,
+			privateSubnet: true,
 		})
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
 	})
 
 	Convey("Given a search index exists but unable to connect to elasticsearch cluster return a status 500 (internal service error)", t, func() {
-		w := setupTest(testOpts{
+		testres := setupTest(testOpts{
 			method:                "DELETE",
 			url:                   "http://localhost:23100/search/instances/123/dimensions/aggregate",
 			dsRequireAuth:         true,
 			esInternalServerError: true,
 			privateSubnet:         true,
-			reqHeaderIntToken:     secretKey,
+			reqHasAuth:            true,
 		})
-		So(w.Code, ShouldEqual, http.StatusInternalServerError)
-		So(w.Body.String(), ShouldEqual, "Failed to process the request due to an internal error\n")
+		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
+		So(testres.w.Body.String(), ShouldEqual, "Failed to process the request due to an internal error\n")
 	})
 
 	Convey("Given a search index does not exists return a status 404 (not found)", t, func() {
-		w := setupTest(testOpts{
+		testres := setupTest(testOpts{
 			method:          "DELETE",
 			url:             "http://localhost:23100/search/instances/123/dimensions/aggregate",
 			dsRequireAuth:   true,
 			esIndexNotFound: true,
+			reqHasAuth:      true,
 			privateSubnet:   true,
 		})
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
 	})
 }
 
@@ -425,47 +458,47 @@ func TestCheckhighlights(t *testing.T) {
 
 func TestDeleteEndpointInWebReturnsNotFound(t *testing.T) {
 	Convey("Given a search index exists and credentials are correct, return a status 404 (not found)", t, func() {
-		w := setupTest(testOpts{
+		testres := setupTest(testOpts{
 			method:        "DELETE",
 			url:           "http://localhost:23100/search/instances/123/dimensions/aggregate",
 			dsRequireAuth: true,
+			reqHasAuth:    true,
 		})
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.Body.String(), ShouldEqual, "404 page not found\n")
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Body.String(), ShouldEqual, "404 page not found\n")
 	})
 
 	Convey("Given a search index exists and credentials are incorrect, return a status 404 (not found)", t, func() {
-		w := setupTest(testOpts{
-			method:            "DELETE",
-			url:               "http://localhost:23100/search/instances/123/dimensions/aggregate",
-			dsRequireNoAuth:   true,
-			reqHeaderIntToken: "not right",
+		testres := setupTest(testOpts{
+			method:          "DELETE",
+			url:             "http://localhost:23100/search/instances/123/dimensions/aggregate",
+			dsRequireNoAuth: true,
 		})
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.Body.String(), ShouldContainSubstring, "404 page not found")
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Body.String(), ShouldContainSubstring, "404 page not found")
 	})
 }
 
 func TestCreateSearchIndexEndpointInWebReturnsNotFound(t *testing.T) {
 	Convey("Given instance and dimension exist and has valid auth return a status 404 (not found)", t, func() {
-		w := setupTest(testOpts{
+		testres := setupTest(testOpts{
+			method:          "PUT",
+			url:             "http://localhost:23100/search/instances/123/dimensions/aggregate",
+			dsRequireNoAuth: true,
+			reqHasAuth:      true,
+		})
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Body.String(), ShouldContainSubstring, "404 page not found")
+	})
+
+	Convey("Given a request to create search index and no private endpoints when a bad auth header is used, return a status 404 (not found)", t, func() {
+		testres := setupTest(testOpts{
 			method:          "PUT",
 			url:             "http://localhost:23100/search/instances/123/dimensions/aggregate",
 			dsRequireNoAuth: true,
 		})
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.Body.String(), ShouldContainSubstring, "404 page not found")
-	})
-
-	Convey("Given a request to create search index and no private endpoints when a bad auth header is used, return a status 404 (not found)", t, func() {
-		w := setupTest(testOpts{
-			method:            "PUT",
-			url:               "http://localhost:23100/search/instances/123/dimensions/aggregate",
-			dsRequireNoAuth:   true,
-			reqHeaderIntToken: "not right",
-		})
-		So(w.Code, ShouldEqual, http.StatusNotFound)
-		So(w.Body.String(), ShouldContainSubstring, "404 page not found")
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.w.Body.String(), ShouldContainSubstring, "404 page not found")
 	})
 }
 
