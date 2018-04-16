@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -26,7 +28,10 @@ const (
 	notFoundError = "Resource not found"
 )
 
-var err error
+var (
+	err        error
+	reNotFound = regexp.MustCompile(`\bbody: (\w+ not found)[\n$]`)
+)
 
 func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -260,15 +265,18 @@ func setJSONContentType(w http.ResponseWriter) {
 }
 
 func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
+	if matches := reNotFound.FindStringSubmatch(err.Error()); len(matches) > 0 {
+		err = errors.New(matches[1])
+	}
+
 	switch err.Error() {
-	case "Not found":
-		http.Error(w, notFoundError, http.StatusNotFound)
-	case "Version not found":
-		http.Error(w, notFoundError, http.StatusNotFound)
-	case "Index not found":
+	case "Not found",
+		"Version not found",
+		"Edition not found",
+		"Index not found",
+		"Dataset not found":
 		http.Error(w, notFoundError, http.StatusNotFound)
 	default:
 		http.Error(w, internalError, http.StatusInternalServerError)
-		return
 	}
 }
