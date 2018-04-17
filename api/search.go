@@ -58,7 +58,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	log.Info("incoming request", logData)
 
 	client := api.datasetAPIClientNoAuth
-	if api.hasPrivateEndpoints && common.IsPresent(r.Context()) {
+	if api.hasPrivateEndpoints && common.IsCallerPresent(r.Context()) {
 		// Authorised to search against an unpublished version
 		// and exposes private endpoints
 		client = api.datasetAPIClient
