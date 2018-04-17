@@ -49,8 +49,8 @@ func (svc *Service) Start() {
 
 	apiErrors := make(chan error, 1)
 
-	datasetAPINoAuth := dataset.NewAPIClient(svc.DatasetAPIURL, "", "", "")
-	datasetAPI := dataset.NewAPIClient(svc.DatasetAPIURL, svc.DatasetAPIAuthToken, "", "")
+	datasetAPINoAuth := dataset.NewAPIClient(svc.DatasetAPIURL, "", "")
+	datasetAPI := dataset.NewAPIClient(svc.DatasetAPIURL, svc.DatasetAPIAuthToken, "")
 
 	healthTicker := healthcheck.NewTicker(
 		svc.HealthCheckInterval,
