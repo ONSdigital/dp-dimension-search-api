@@ -23,7 +23,6 @@ import (
 type Service struct {
 	AuthAPIURL                string
 	BindAddr                  string
-	DatasetAPIAuthToken       string
 	DatasetAPIURL             string
 	DefaultMaxResults         int
 	Elasticsearch             api.Elasticsearcher
@@ -50,7 +49,7 @@ func (svc *Service) Start() {
 	apiErrors := make(chan error, 1)
 
 	datasetAPINoAuth := dataset.NewAPIClient(svc.DatasetAPIURL, "", "")
-	datasetAPI := dataset.NewAPIClient(svc.DatasetAPIURL, svc.DatasetAPIAuthToken, "")
+	datasetAPI := dataset.NewAPIClient(svc.DatasetAPIURL, svc.ServiceAuthToken, "")
 
 	healthTicker := healthcheck.NewTicker(
 		svc.HealthCheckInterval,

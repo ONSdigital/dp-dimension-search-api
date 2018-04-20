@@ -45,7 +45,6 @@ func main() {
 		AuthAPIURL:                cfg.AuthAPIURL,
 		BindAddr:                  cfg.BindAddr,
 		DatasetAPIURL:             cfg.DatasetAPIURL,
-		DatasetAPIAuthToken:       cfg.DatasetAPIAuthToken,
 		DefaultMaxResults:         cfg.MaxSearchResultsOffset,
 		Elasticsearch:             elasticsearch,
 		ElasticsearchURL:          cfg.ElasticSearchAPIURL,

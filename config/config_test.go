@@ -23,7 +23,6 @@ func TestSpec(t *testing.T) {
 				So(cfg.BindAddr, ShouldEqual, ":23100")
 				So(cfg.Brokers, ShouldResemble, []string{"localhost:9092"})
 				So(cfg.DatasetAPIURL, ShouldEqual, "http://localhost:22000")
-				So(cfg.DatasetAPIAuthToken, ShouldEqual, "FD0108EA-825D-411C-9B1D-41EF7727F465")
 				So(cfg.ElasticSearchAPIURL, ShouldEqual, "http://localhost:9200")
 				So(cfg.GracefulShutdownTimeout, ShouldEqual, 5*time.Second)
 				So(cfg.HealthCheckInterval, ShouldEqual, 60*time.Second)
