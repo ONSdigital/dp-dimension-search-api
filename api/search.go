@@ -67,7 +67,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	// Get instanceID from datasetAPI
 	versionDoc, err := client.GetVersion(r.Context(), datasetID, edition, version)
 	if err != nil {
-		setErrorCode(w, err)
+		setErrorCode(w, err, "failed to get version of a dataset from the dataset API")
 		return
 	}
 
@@ -112,7 +112,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 
 	response, _, err := api.elasticsearch.QuerySearchIndex(r.Context(), instanceID, dimension, term, page.Limit, page.Offset)
 	if err != nil {
-		setErrorCode(w, err)
+		setErrorCode(w, err, "failed to query elastic search index")
 		return
 	}
 
@@ -227,8 +227,7 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := api.searchOutputQueue.Queue(output); err != nil {
-		log.ErrorC("failed to create message to drive index creation", err, logData)
-		setErrorCode(w, err)
+		setErrorCode(w, err, "failed to create message to drive index creation")
 		return
 	}
 
@@ -249,8 +248,7 @@ func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) 
 	status, err := api.elasticsearch.DeleteSearchIndex(r.Context(), instanceID, dimension)
 	logData["status"] = status
 	if err != nil {
-		log.ErrorC("failed to delete index", err, logData)
-		setErrorCode(w, err)
+		setErrorCode(w, err, "failed to delete index")
 		return
 	}
 
@@ -264,10 +262,17 @@ func setJSONContentType(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
-func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
+func setErrorCode(w http.ResponseWriter, err error, errorContext string) {
+
+	if strings.HasPrefix(err.Error(), "invalid response: 401") {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+	}
+
 	if matches := reNotFound.FindStringSubmatch(err.Error()); len(matches) > 0 {
 		err = errors.New(matches[1])
 	}
+
+	log.ErrorC(errorContext, err, nil)
 
 	switch err.Error() {
 	case "Not found",
