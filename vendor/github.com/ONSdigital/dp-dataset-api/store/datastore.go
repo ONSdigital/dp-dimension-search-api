@@ -26,16 +26,16 @@ type Storer interface {
 	GetDatasets() ([]models.DatasetUpdate, error)
 	GetDimensionNodesFromInstance(ID string) (*models.DimensionNodeResults, error)
 	GetDimensions(datasetID, versionID string) ([]bson.M, error)
-	GetDimensionOptions(datasetID, editionID, versionID, dimension string) (*models.DimensionOptionResults, error)
-	GetEdition(ID, editionID, state string) (*models.Edition, error)
-	GetEditions(ID, state string) (*models.EditionResults, error)
+	GetDimensionOptions(version *models.Version, dimension string) (*models.DimensionOptionResults, error)
+	GetEdition(ID, editionID, state string) (*models.EditionUpdate, error)
+	GetEditions(ID, state string) (*models.EditionUpdateResults, error)
 	GetInstances(filters []string) (*models.InstanceResults, error)
 	GetInstance(ID string) (*models.Instance, error)
 	GetNextVersion(datasetID, editionID string) (int, error)
 	GetUniqueDimensionValues(ID, dimension string) (*models.DimensionValues, error)
 	GetVersion(datasetID, editionID, version, state string) (*models.Version, error)
 	GetVersions(datasetID, editionID, state string) (*models.VersionResults, error)
-	UpdateDataset(ID string, dataset *models.Dataset) error
+	UpdateDataset(ID string, dataset *models.Dataset, currentState string) error
 	UpdateDatasetWithAssociation(ID, state string, version *models.Version) error
 	UpdateDimensionNodeID(dimension *models.DimensionOption) error
 	UpdateEdition(datasetID, edition string, latestVersion *models.Version) error
@@ -47,7 +47,8 @@ type Storer interface {
 	UpdateVersion(ID string, version *models.Version) error
 	UpsertContact(ID string, update interface{}) error
 	UpsertDataset(ID string, datasetDoc *models.DatasetUpdate) error
-	UpsertEdition(datasetID, edition string, editionDoc *models.Edition) error
+	UpsertEdition(datasetID, edition string, editionDoc *models.EditionUpdate) error
 	UpsertVersion(ID string, versionDoc *models.Version) error
 	Ping(ctx context.Context) (time.Time, error)
+	DeleteDataset(ID string) error
 }

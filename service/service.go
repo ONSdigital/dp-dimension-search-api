@@ -11,31 +11,30 @@ import (
 
 	"github.com/ONSdigital/dp-search-api/api"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
+	"github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/elasticsearch"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
-	"github.com/ONSdigital/go-ns/rchttp"
 	"github.com/pkg/errors"
 )
 
-// Service represents the necessary config for dp-dimension-extractor
+// Service represents the necessary config for dp-search-api
 type Service struct {
+	AuthAPIURL                string
 	BindAddr                  string
-	DatasetAPI                api.DatasetAPIer
-	DatasetAPISecretKey       string
+	DatasetAPIURL             string
 	DefaultMaxResults         int
 	Elasticsearch             api.Elasticsearcher
 	ElasticsearchURL          string
 	EnvMax                    int
 	HealthCheckInterval       time.Duration
 	HealthCheckTimeout        time.Duration
-	HTTPClient                *rchttp.Client
 	MaxRetries                int
 	OutputQueue               searchoutputqueue.Output
 	SearchAPIURL              string
 	SearchIndexProducer       kafka.Producer
-	SecretKey                 string
+	ServiceAuthToken          string
 	Shutdown                  time.Duration
 	SignElasticsearchRequests bool
 	HasPrivateEndpoints       bool
@@ -49,25 +48,28 @@ func (svc *Service) Start() {
 
 	apiErrors := make(chan error, 1)
 
-	svc.HTTPClient = rchttp.DefaultClient
+	datasetAPINoAuth := dataset.NewAPIClient(svc.DatasetAPIURL, "", "")
+	datasetAPI := dataset.NewAPIClient(svc.DatasetAPIURL, svc.ServiceAuthToken, "")
 
 	healthTicker := healthcheck.NewTicker(
 		svc.HealthCheckInterval,
-		svc.DatasetAPI.GetHealthCheckClient(),
+		datasetAPINoAuth,
 		elasticsearch.NewHealthCheckClient(svc.ElasticsearchURL, svc.SignElasticsearchRequests),
 	)
 
 	api.CreateSearchAPI(
 		svc.SearchAPIURL,
 		svc.BindAddr,
-		svc.SecretKey,
-		svc.DatasetAPISecretKey,
+		svc.AuthAPIURL,
 		apiErrors,
 		&svc.OutputQueue,
-		svc.DatasetAPI,
+		datasetAPI,
+		datasetAPINoAuth,
 		svc.Elasticsearch,
 		svc.DefaultMaxResults,
-		svc.HasPrivateEndpoints)
+		svc.HasPrivateEndpoints,
+		svc.ServiceAuthToken,
+	)
 
 	// blocks until a fatal error occurs
 	select {

@@ -36,8 +36,8 @@ type InstanceImportTasks struct {
 
 // ImportObservationsTask represents the task of importing instance observation data into the database.
 type ImportObservationsTask struct {
-	State                string `json:"state,omitempty"`
-	InsertedObservations int    `json:"total_inserted_observations"`
+	State                string `bson:"state,omitempty"             json:"state,omitempty"`
+	InsertedObservations int64  `bson:"total_inserted_observations" json:"total_inserted_observations"`
 }
 
 // BuildHierarchyTask represents a task of importing a single hierarchy.
@@ -59,6 +59,7 @@ type CodeList struct {
 	HRef        string `json:"href"`
 	ID          string `json:"id"`
 	Name        string `json:"name"`
+	Label       string `json:"label"`
 }
 
 // InstanceLinks holds all links for an instance

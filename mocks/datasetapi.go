@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ONSdigital/dp-dataset-api/models"
 	datasetclient "github.com/ONSdigital/go-ns/clients/dataset"
 )
 
@@ -14,6 +13,8 @@ type DatasetAPI struct {
 	VersionNotFound     bool
 	RequireAuth         bool
 	RequireNoAuth       bool
+	SvcAuth             string
+	Calls               int
 }
 
 var (
@@ -22,31 +23,33 @@ var (
 )
 
 // GetVersion represents the mocked version that queries the dataset API to get a version resource
-func (api *DatasetAPI) GetVersion(ctx context.Context, datasetID, edition, version, authToken string) (*models.Version, error) {
-	isAuthenticated := len(authToken) > 0
+func (api *DatasetAPI) GetVersion(ctx context.Context, datasetID, edition, version string) (ver datasetclient.Version, err error) {
+	isAuthenticated := len(api.SvcAuth) > 0
 	isBadAuthExpectation := (api.RequireNoAuth && isAuthenticated) || (api.RequireAuth && !isAuthenticated)
+	api.Calls++
 
 	if api.InternalServerError {
 		if isBadAuthExpectation {
-			return nil, errorNotFound
+			return ver, errorNotFound
 		}
-		return nil, errorInternalServer
+		return ver, errorInternalServer
 	}
 
 	if api.VersionNotFound {
 		if isBadAuthExpectation {
-			return nil, errorInternalServer
+			return ver, errorInternalServer
 		}
-		return nil, errorNotFound
+		return ver, errorNotFound
 	}
 
 	if isBadAuthExpectation {
-		return nil, errorNotFound
+		return ver, errorNotFound
 	}
-	return &models.Version{}, nil
+
+	return
 }
 
-// GetHealthCheckClient represents the mocked version of the healthcheck client
-func (api *DatasetAPI) GetHealthCheckClient() *datasetclient.Client {
-	return &datasetclient.Client{}
+// Healthcheck represents the mocked version of the healthcheck
+func (api *DatasetAPI) Healthcheck() (string, error) {
+	return "healthcheckID", nil
 }

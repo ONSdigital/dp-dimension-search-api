@@ -29,10 +29,10 @@ const unhealthy = "red"
 
 // HealthCheckClient provides a healthcheck.Client implementation for health checking elasticsearch.
 type HealthCheckClient struct {
-	cli         *rhttp.Client
-	path        string
-	serviceName string
-	signRequests  bool
+	cli          *rhttp.Client
+	path         string
+	serviceName  string
+	signRequests bool
 }
 
 // ClusterHealth represents the response from the elasticsearch cluster health check
@@ -44,10 +44,10 @@ type ClusterHealth struct {
 func NewHealthCheckClient(url string, signRequests bool) *HealthCheckClient {
 
 	return &HealthCheckClient{
-		cli:         rhttp.DefaultClient,
-		path:        url + "/_cluster/health",
-		serviceName: "elasticsearch",
-		signRequests:  signRequests,
+		cli:          rhttp.DefaultClient,
+		path:         url + "/_cluster/health",
+		serviceName:  "elasticsearch",
+		signRequests: signRequests,
 	}
 }
 

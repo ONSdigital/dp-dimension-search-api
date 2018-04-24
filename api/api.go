@@ -4,12 +4,14 @@ import (
 	"context"
 
 	"github.com/ONSdigital/dp-dataset-api/store"
-	"github.com/ONSdigital/dp-search-api/auth"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
+	clientsidentity "github.com/ONSdigital/go-ns/clients/identity"
 	"github.com/ONSdigital/go-ns/healthcheck"
+	"github.com/ONSdigital/go-ns/identity"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
+	"github.com/justinas/alice"
 )
 
 var httpServer *server.Server
@@ -31,24 +33,32 @@ type OutputQueue interface {
 
 // SearchAPI manages searches across indices
 type SearchAPI struct {
-	datasetAPI          DatasetAPIer
-	datasetAPISecretKey string
-	defaultMaxResults   int
-	elasticsearch       Elasticsearcher
-	hasPrivateEndpoints bool
-	host                string
-	internalToken       string
-	privateAuth         *auth.Authenticator
-	router              *mux.Router
-	searchOutputQueue   OutputQueue
+	datasetAPIClient       DatasetAPIer
+	datasetAPIClientNoAuth DatasetAPIer
+	defaultMaxResults      int
+	elasticsearch          Elasticsearcher
+	hasPrivateEndpoints    bool
+	host                   string
+	internalToken          string
+	router                 *mux.Router
+	searchOutputQueue      OutputQueue
 }
 
 // CreateSearchAPI manages all the routes configured to API
-func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, errorChan chan error, searchOutputQueue OutputQueue, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool) {
+func CreateSearchAPI(
+	host, bindAddr, authAPIURL string, errorChan chan error, searchOutputQueue OutputQueue,
+	datasetAPIClient, datasetAPIClientNoAuth DatasetAPIer,
+	elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool, serviceAuthToken string,
+) {
 	router := mux.NewRouter()
-	routes(host, secretKey, datasetAPISecretKey, router, searchOutputQueue, datasetAPI, elasticsearch, defaultMaxResults, hasPrivateEndpoints)
+	routes(host, authAPIURL, router, searchOutputQueue, datasetAPIClient, datasetAPIClientNoAuth, elasticsearch, defaultMaxResults, hasPrivateEndpoints)
 
-	httpServer = server.New(bindAddr, router)
+	authClient := clientsidentity.NewAPIClient(nil, authAPIURL)
+
+	identityHandler := identity.HandlerForHTTPClient(true, authClient)
+	alice := alice.New(identityHandler).Then(router)
+
+	httpServer = server.New(bindAddr, alice)
 	// Disable this here to allow service to manage graceful shutdown of the entire app.
 	httpServer.HandleOSSignals = false
 
@@ -61,18 +71,17 @@ func CreateSearchAPI(host, bindAddr, secretKey, datasetAPISecretKey string, erro
 	}()
 }
 
-func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, searchOutputQueue OutputQueue, datasetAPI DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool) *SearchAPI {
+func routes(host, authAPIURL string, router *mux.Router, searchOutputQueue OutputQueue, datasetAPIClient, datasetAPIClientNoAuth DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool) *SearchAPI {
+
 	api := SearchAPI{
-		datasetAPI:          datasetAPI,
-		datasetAPISecretKey: datasetAPISecretKey,
-		defaultMaxResults:   defaultMaxResults,
-		elasticsearch:       elasticsearch,
-		hasPrivateEndpoints: hasPrivateEndpoints,
-		searchOutputQueue:   searchOutputQueue,
-		host:                host,
-		internalToken:       secretKey,
-		privateAuth:         &auth.Authenticator{SecretKey: secretKey, HeaderName: "internal-token"},
-		router:              router,
+		datasetAPIClient:       datasetAPIClient,
+		datasetAPIClientNoAuth: datasetAPIClientNoAuth,
+		defaultMaxResults:      defaultMaxResults,
+		elasticsearch:          elasticsearch,
+		hasPrivateEndpoints:    hasPrivateEndpoints,
+		searchOutputQueue:      searchOutputQueue,
+		host:                   host,
+		router:                 router,
 	}
 
 	router.Path("/healthcheck").Methods("GET").HandlerFunc(healthcheck.Do)
@@ -80,8 +89,8 @@ func routes(host, secretKey, datasetAPISecretKey string, router *mux.Router, sea
 	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.getSearch).Methods("GET")
 
 	if hasPrivateEndpoints {
-		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", api.privateAuth.Check(api.createSearchIndex)).Methods("PUT")
-		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", api.privateAuth.Check(api.deleteSearchIndex)).Methods("DELETE")
+		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", identity.Check(api.createSearchIndex)).Methods("PUT")
+		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", identity.Check(api.deleteSearchIndex)).Methods("DELETE")
 	}
 
 	return &api

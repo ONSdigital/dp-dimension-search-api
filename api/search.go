@@ -2,12 +2,15 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/ONSdigital/dp-search-api/models"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
+	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
 )
@@ -18,17 +21,16 @@ type pageVariables struct {
 }
 
 const (
-	internalTokenHeader = "Internal-Token"
-
 	defaultLimit  = 20
 	defaultOffset = 0
+
+	internalError = "Failed to process the request due to an internal error"
+	notFoundError = "Resource not found"
 )
 
 var (
-	internalError = "Failed to process the request due to an internal error"
-	notFoundError = "Resource not found"
-
-	err error
+	err        error
+	reNotFound = regexp.MustCompile(`\bbody: (\w+ not found)[\n$]`)
 )
 
 func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
@@ -55,18 +57,17 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("incoming request", logData)
 
-	var authToken string
-
-	if api.hasPrivateEndpoints && r.Header.Get(internalTokenHeader) == api.internalToken {
+	client := api.datasetAPIClientNoAuth
+	if api.hasPrivateEndpoints && common.IsCallerPresent(r.Context()) {
 		// Authorised to search against an unpublished version
 		// and exposes private endpoints
-		authToken = api.datasetAPISecretKey
+		client = api.datasetAPIClient
 	}
 
 	// Get instanceID from datasetAPI
-	versionDoc, err := api.datasetAPI.GetVersion(r.Context(), datasetID, edition, version, authToken)
+	versionDoc, err := client.GetVersion(r.Context(), datasetID, edition, version)
 	if err != nil {
-		setErrorCode(w, err)
+		setErrorCode(w, err, "failed to get version of a dataset from the dataset API")
 		return
 	}
 
@@ -111,7 +112,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 
 	response, _, err := api.elasticsearch.QuerySearchIndex(r.Context(), instanceID, dimension, term, page.Limit, page.Offset)
 	if err != nil {
-		setErrorCode(w, err)
+		setErrorCode(w, err, "failed to query elastic search index")
 		return
 	}
 
@@ -226,8 +227,7 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := api.searchOutputQueue.Queue(output); err != nil {
-		log.ErrorC("failed to create message to drive index creation", err, logData)
-		setErrorCode(w, err)
+		setErrorCode(w, err, "failed to create message to drive index creation")
 		return
 	}
 
@@ -248,8 +248,7 @@ func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) 
 	status, err := api.elasticsearch.DeleteSearchIndex(r.Context(), instanceID, dimension)
 	logData["status"] = status
 	if err != nil {
-		log.ErrorC("failed to delete index", err, logData)
-		setErrorCode(w, err)
+		setErrorCode(w, err, "failed to delete index")
 		return
 	}
 
@@ -263,16 +262,26 @@ func setJSONContentType(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
-func setErrorCode(w http.ResponseWriter, err error, typ ...string) {
+func setErrorCode(w http.ResponseWriter, err error, errorContext string) {
+
+	if strings.HasPrefix(err.Error(), "invalid response: 401") {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+	}
+
+	if matches := reNotFound.FindStringSubmatch(err.Error()); len(matches) > 0 {
+		err = errors.New(matches[1])
+	}
+
+	log.ErrorC(errorContext, err, nil)
+
 	switch err.Error() {
-	case "Not found":
-		http.Error(w, notFoundError, http.StatusNotFound)
-	case "Version not found":
-		http.Error(w, notFoundError, http.StatusNotFound)
-	case "Index not found":
+	case "Not found",
+		"Version not found",
+		"Edition not found",
+		"Index not found",
+		"Dataset not found":
 		http.Error(w, notFoundError, http.StatusNotFound)
 	default:
 		http.Error(w, internalError, http.StatusInternalServerError)
-		return
 	}
 }
