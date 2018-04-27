@@ -55,7 +55,7 @@ func CreateSearchAPI(
 
 	authClient := clientsidentity.NewAPIClient(nil, authAPIURL)
 
-	identityHandler := identity.HandlerForHTTPClient(true, authClient)
+	identityHandler := identity.HandlerForHTTPClient(authClient)
 	alice := alice.New(identityHandler).Then(router)
 
 	httpServer = server.New(bindAddr, alice)
