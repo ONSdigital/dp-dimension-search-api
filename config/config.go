@@ -50,7 +50,7 @@ func Get() (*Config, error) {
 		MaxRetries:                3,
 		MaxSearchResultsOffset:    1000,
 		SearchAPIURL:              "http://localhost:23100",
-		ServiceAuthToken:          "SD0108EA-825D-411C-45J3-41EF7727F123",
+		ServiceAuthToken:          "a507f722-f25a-4889-9653-23a2655b925c",
 		SignElasticsearchRequests: false,
 	}
 
