@@ -20,6 +20,7 @@ import (
 var (
 	defaultMaxResults = 20
 	resourceNotFound  = "esource not found"
+	unauthenticatedReq = "unauthenticated request"
 )
 
 type testOpts struct {
@@ -57,7 +58,7 @@ func setupTest(opts testOpts) testRes {
 	datasetNoAuth := &mocks.DatasetAPI{InternalServerError: opts.dsInternalServerError, VersionNotFound: opts.dsVersionNotFound, RequireNoAuth: opts.dsRequireNoAuth, RequireAuth: opts.dsRequireAuth}
 
 	api := routes(
-		"host", "http://localhost:8082", mux.NewRouter(),
+		"host", mux.NewRouter(),
 		&mocks.BuildSearch{ReturnError: opts.searchReturnError},
 		datasetWithAuth, datasetNoAuth,
 		&mocks.Elasticsearch{InternalServerError: opts.esInternalServerError, IndexNotFound: opts.esIndexNotFound},
@@ -337,26 +338,26 @@ func TestCreateSearchIndexReturnsOK(t *testing.T) {
 }
 
 func TestFailToCreateSearchIndex(t *testing.T) {
-	Convey("Given a request to create search index but no auth header is set return a status 404 (not found)", t, func() {
+	Convey("Given a request to create search index but no auth header is set return a status 401 (unauthorized)", t, func() {
 		testres := setupTest(testOpts{
 			method:          "PUT",
 			url:             "http://localhost:23100/search/instances/123/dimensions/aggregate",
 			dsRequireNoAuth: true,
 			privateSubnet:   true,
 		})
-		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
-		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.w.Code, ShouldEqual, http.StatusUnauthorized)
+		So(testres.w.Body.String(), ShouldContainSubstring, unauthenticatedReq)
 	})
 
-	Convey("Given a request to create search index but the auth header is wrong return a status 404 (not found)", t, func() {
+	Convey("Given a request to create search index but the auth header is wrong return a status 401 (unauthorized)", t, func() {
 		testres := setupTest(testOpts{
 			method:          "PUT",
 			url:             "http://localhost:23100/search/instances/123/dimensions/aggregate",
 			dsRequireNoAuth: true,
 			privateSubnet:   true,
 		})
-		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
-		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.w.Code, ShouldEqual, http.StatusUnauthorized)
+		So(testres.w.Body.String(), ShouldContainSubstring, unauthenticatedReq)
 	})
 
 	Convey("Given a request to create search index but unable to connect to kafka broker return a status 500 (internal service error)", t, func() {
@@ -387,26 +388,26 @@ func TestDeleteSearchIndexReturnsOK(t *testing.T) {
 }
 
 func TestFailToDeleteSearchIndex(t *testing.T) {
-	Convey("Given a search index exists but no auth header set return a status 404 (not found)", t, func() {
+	Convey("Given a search index exists but no auth header set return a status 401 (unauthorized)", t, func() {
 		testres := setupTest(testOpts{
 			method:          "DELETE",
 			url:             "http://localhost:23100/search/instances/123/dimensions/aggregate",
 			dsRequireNoAuth: true,
 			privateSubnet:   true,
 		})
-		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
-		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.w.Code, ShouldEqual, http.StatusUnauthorized)
+		So(testres.w.Body.String(), ShouldContainSubstring, unauthenticatedReq)
 	})
 
-	Convey("Given a search index exists but auth header is wrong return a status 404 (not found)", t, func() {
+	Convey("Given a search index exists but auth header is wrong return a status 401 (unauthorized)", t, func() {
 		testres := setupTest(testOpts{
 			method:        "DELETE",
 			url:           "http://localhost:23100/search/instances/123/dimensions/aggregate",
 			dsRequireAuth: true,
 			privateSubnet: true,
 		})
-		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
-		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		So(testres.w.Code, ShouldEqual, http.StatusUnauthorized)
+		So(testres.w.Body.String(), ShouldContainSubstring, unauthenticatedReq)
 	})
 
 	Convey("Given a search index exists but unable to connect to elasticsearch cluster return a status 500 (internal service error)", t, func() {

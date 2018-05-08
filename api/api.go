@@ -5,7 +5,6 @@ import (
 
 	"github.com/ONSdigital/dp-dataset-api/store"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
-	clientsidentity "github.com/ONSdigital/go-ns/clients/identity"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/identity"
 	"github.com/ONSdigital/go-ns/log"
@@ -48,17 +47,24 @@ type SearchAPI struct {
 func CreateSearchAPI(
 	host, bindAddr, authAPIURL string, errorChan chan error, searchOutputQueue OutputQueue,
 	datasetAPIClient, datasetAPIClientNoAuth DatasetAPIer,
-	elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool, serviceAuthToken string,
+	elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool,
 ) {
 	router := mux.NewRouter()
-	routes(host, authAPIURL, router, searchOutputQueue, datasetAPIClient, datasetAPIClientNoAuth, elasticsearch, defaultMaxResults, hasPrivateEndpoints)
+	routes(host, router, searchOutputQueue, datasetAPIClient, datasetAPIClientNoAuth, elasticsearch, defaultMaxResults, hasPrivateEndpoints)
 
-	authClient := clientsidentity.NewAPIClient(nil, authAPIURL)
+	healthcheckHandler := healthcheck.NewMiddleware(healthcheck.Do)
+	middlewareChain := alice.New(healthcheckHandler)
 
-	identityHandler := identity.HandlerForHTTPClient(true, authClient)
-	alice := alice.New(identityHandler).Then(router)
+	if hasPrivateEndpoints {
 
+		log.Debug("private endpoints are enabled. using identity middleware", nil)
+		identityHandler := identity.Handler(authAPIURL)
+		middlewareChain = middlewareChain.Append(identityHandler)
+	}
+
+	alice := middlewareChain.Then(router)
 	httpServer = server.New(bindAddr, alice)
+
 	// Disable this here to allow service to manage graceful shutdown of the entire app.
 	httpServer.HandleOSSignals = false
 
@@ -71,7 +77,7 @@ func CreateSearchAPI(
 	}()
 }
 
-func routes(host, authAPIURL string, router *mux.Router, searchOutputQueue OutputQueue, datasetAPIClient, datasetAPIClientNoAuth DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool) *SearchAPI {
+func routes(host string, router *mux.Router, searchOutputQueue OutputQueue, datasetAPIClient, datasetAPIClientNoAuth DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool) *SearchAPI {
 
 	api := SearchAPI{
 		datasetAPIClient:       datasetAPIClient,
@@ -83,8 +89,6 @@ func routes(host, authAPIURL string, router *mux.Router, searchOutputQueue Outpu
 		host:                   host,
 		router:                 router,
 	}
-
-	router.Path("/healthcheck").Methods("GET").HandlerFunc(healthcheck.Do)
 
 	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.getSearch).Methods("GET")
 

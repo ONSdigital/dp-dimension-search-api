@@ -32,7 +32,7 @@ func TestSpec(t *testing.T) {
 				So(cfg.MaxRetries, ShouldEqual, 3)
 				So(cfg.MaxSearchResultsOffset, ShouldEqual, 1000)
 				So(cfg.SearchAPIURL, ShouldEqual, "http://localhost:23100")
-				So(cfg.ServiceAuthToken, ShouldEqual, "SD0108EA-825D-411C-45J3-41EF7727F123")
+				So(cfg.ServiceAuthToken, ShouldEqual, "a507f722-f25a-4889-9653-23a2655b925c")
 			})
 		})
 	})
