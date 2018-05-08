@@ -76,10 +76,10 @@
 			"revisionTime": "2018-04-27T10:26:09Z"
 		},
 		{
-			"checksumSHA1": "cHl3HbnetYIEex+2E6N8juQlJ0Y=",
+			"checksumSHA1": "p1fQ6Gqk1X/bTmhSqOnLDPOSD10=",
 			"path": "github.com/ONSdigital/go-ns/healthcheck",
-			"revision": "ebd2b7dbf8eb96f24f975bb1a8a018882bfb118c",
-			"revisionTime": "2018-04-27T10:26:09Z"
+			"revision": "636e76cb556f959fb7fbb6b18d22826e3a618aa3",
+			"revisionTime": "2018-05-01T11:39:30Z"
 		},
 		{
 			"checksumSHA1": "tbpmGqkqN79SspYfFUgob5rxKik=",

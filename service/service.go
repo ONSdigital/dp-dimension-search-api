@@ -68,7 +68,6 @@ func (svc *Service) Start() {
 		svc.Elasticsearch,
 		svc.DefaultMaxResults,
 		svc.HasPrivateEndpoints,
-		svc.ServiceAuthToken,
 	)
 
 	// blocks until a fatal error occurs

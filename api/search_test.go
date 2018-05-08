@@ -58,7 +58,7 @@ func setupTest(opts testOpts) testRes {
 	datasetNoAuth := &mocks.DatasetAPI{InternalServerError: opts.dsInternalServerError, VersionNotFound: opts.dsVersionNotFound, RequireNoAuth: opts.dsRequireNoAuth, RequireAuth: opts.dsRequireAuth}
 
 	api := routes(
-		"host", "http://localhost:8082", mux.NewRouter(),
+		"host", mux.NewRouter(),
 		&mocks.BuildSearch{ReturnError: opts.searchReturnError},
 		datasetWithAuth, datasetNoAuth,
 		&mocks.Elasticsearch{InternalServerError: opts.esInternalServerError, IndexNotFound: opts.esIndexNotFound},
