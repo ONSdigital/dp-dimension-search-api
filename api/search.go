@@ -23,6 +23,9 @@ type pageVariables struct {
 const (
 	defaultLimit  = 20
 	defaultOffset = 0
+
+	internalError = "Failed to process the request due to an internal error"
+	notFoundError = "Resource not found"
 )
 
 var (
