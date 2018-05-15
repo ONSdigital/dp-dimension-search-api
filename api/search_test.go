@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -12,14 +13,15 @@ import (
 
 	"github.com/ONSdigital/dp-search-api/mocks"
 	"github.com/ONSdigital/dp-search-api/models"
+	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
-	defaultMaxResults = 20
-	resourceNotFound  = "esource not found"
+	defaultMaxResults  = 20
+	resourceNotFound   = "esource not found"
 	unauthenticatedReq = "unauthenticated request"
 )
 
@@ -36,6 +38,7 @@ type testOpts struct {
 	reqHasAuth            bool
 	searchReturnError     bool
 	privateSubnet         bool
+	auditor  			  *audit.AuditorServiceMock
 }
 type testRes struct {
 	w          *httptest.ResponseRecorder
@@ -64,6 +67,7 @@ func setupTest(opts testOpts) testRes {
 		&mocks.Elasticsearch{InternalServerError: opts.esInternalServerError, IndexNotFound: opts.esIndexNotFound},
 		opts.maxResults,
 		opts.privateSubnet,
+		opts.auditor,
 	)
 
 	// fake the auth wrapper by adding user,caller to r.Context() before ServeHTTP() is called
@@ -89,10 +93,14 @@ func TestGetSearchPublishedWithoutAuthReturnsOK(t *testing.T) {
 
 func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 	t.Parallel()
+
+	mockAuditor := getMockAuditor()
+
 	Convey("Given the search query satisfies the search index then return a status 200", t, func() {
 		testres := setupTest(testOpts{
 			url:        "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			reqHasAuth: true,
+			auditor: mockAuditor,
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusOK)
 
@@ -128,6 +136,12 @@ func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 		So(searchResults.Items[1].Matches.Label[1].Start, ShouldEqual, 19)
 		So(searchResults.Items[1].Matches.Label[1].End, ShouldEqual, 25)
 		So(searchResults.Items[1].Matches, ShouldResemble, models.Matches{Code: []models.Snippet(nil), Label: []models.Snippet{models.Snippet{Start: 1, End: 9}, models.Snippet{Start: 19, End: 25}}})
+
+		// Check audit
+		recCalls := mockAuditor.RecordCalls()
+		So(len(recCalls), ShouldEqual, 2)
+		verifyAuditRecordCalls(recCalls[0], getSearchAction, actionAttempted, nil)
+		verifyAuditRecordCalls(recCalls[1], getSearchAction, actionSuccessful, nil)
 
 	})
 
@@ -515,4 +529,24 @@ func getSearchResults(body *bytes.Buffer) *models.SearchResults {
 	}
 
 	return searchResults
+}
+
+func getMockAuditor() *audit.AuditorServiceMock {
+	return &audit.AuditorServiceMock{
+		RecordFunc: func(ctx context.Context, action string, result string, params common.Params) error {
+			return nil
+		},
+	}
+}
+
+func verifyAuditRecordCalls(c struct {
+	Ctx    context.Context
+	Action string
+	Result string
+	Params common.Params
+}, expectedAction string, expectedResult string, expectedParams common.Params) {
+	So(c.Action, ShouldEqual, expectedAction)
+	So(c.Result, ShouldEqual, expectedResult)
+	So(c.Params, ShouldResemble, expectedParams)
+}
 }

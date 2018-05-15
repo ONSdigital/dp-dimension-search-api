@@ -23,9 +23,6 @@ type pageVariables struct {
 const (
 	defaultLimit  = 20
 	defaultOffset = 0
-
-	internalError = "Failed to process the request due to an internal error"
-	notFoundError = "Resource not found"
 )
 
 var (
@@ -34,6 +31,11 @@ var (
 )
 
 func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
+	if err := api.auditor.Record(r.Context(), "getSearch", "attempted", nil); err != nil {
+		handleAuditingFailure(w, err, nil)
+		return
+	}
+
 	vars := mux.Vars(r)
 
 	datasetID := vars["id"]
@@ -67,6 +69,11 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	// Get instanceID from datasetAPI
 	versionDoc, err := client.GetVersion(r.Context(), datasetID, edition, version)
 	if err != nil {
+		log.Error(err, nil)
+		if err := api.auditor.Record(r.Context(), "getSearch", "unsuccessful", nil); err != nil {
+			handleAuditingFailure(w, err, nil)
+			return
+		}
 		setErrorCode(w, err, "failed to get version of a dataset from the dataset API")
 		return
 	}
@@ -138,6 +145,11 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.ErrorC("failed to marshal dataset resource into bytes", err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := api.auditor.Record(r.Context(), "getSearch", "successful", nil); err != nil {
+		handleAuditingFailure(w, err, logData)
 		return
 	}
 
@@ -284,4 +296,9 @@ func setErrorCode(w http.ResponseWriter, err error, errorContext string) {
 	default:
 		http.Error(w, internalError, http.StatusInternalServerError)
 	}
+}
+
+func handleAuditingFailure(w http.ResponseWriter, err error, logData log.Data) {
+	log.ErrorC("error while attempting to record audit event, failing request", err, logData)
+	http.Error(w, "internal server error", http.StatusInternalServerError)
 }

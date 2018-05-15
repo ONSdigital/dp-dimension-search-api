@@ -9,6 +9,7 @@ import (
 
 // Config is the filing resource handler config
 type Config struct {
+	AuditEventsTopic          string        `envconfig:"AUDIT_EVENTS_TOPIC"`
 	AuthAPIURL                string        `envconfig:"ZEBEDEE_URL"`
 	BindAddr                  string        `envconfig:"BIND_ADDR"                  json:"-"`
 	Brokers                   []string      `envconfig:"KAFKA_ADDR"                 json:"-"`
@@ -19,6 +20,7 @@ type Config struct {
 	HealthCheckInterval       time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	HealthCheckTimeout        time.Duration `envconfig:"HEALTHCHECK_TIMEOUT"`
 	HierarchyBuiltTopic       string        `envconfig:"HIERARCHY_BUILT_TOPIC"`
+	KafkaAddr                 []string      `envconfig:"KAFKA_ADDR"                       json:"-"`
 	KafkaMaxBytes             int           `envconfig:"KAFKA_MAX_BYTES"`
 	MaxRetries                int           `envconfig:"REQUEST_MAX_RETRIES"`
 	MaxSearchResultsOffset    int           `envconfig:"MAX_SEARCH_RESULTS_OFFSET"`
@@ -36,6 +38,7 @@ func Get() (*Config, error) {
 	}
 
 	cfg = &Config{
+		AuditEventsTopic:          "audit-events",
 		AuthAPIURL:                "http://localhost:8082",
 		BindAddr:                  ":23100",
 		Brokers:                   []string{"localhost:9092"},
@@ -47,6 +50,7 @@ func Get() (*Config, error) {
 		HealthCheckTimeout:        2 * time.Second,
 		HierarchyBuiltTopic:       "hierarchy-built",
 		KafkaMaxBytes:             2000000,
+		KafkaAddr:                 []string{"localhost:9092"},
 		MaxRetries:                3,
 		MaxSearchResultsOffset:    1000,
 		SearchAPIURL:              "http://localhost:23100",

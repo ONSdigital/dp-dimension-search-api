@@ -5,6 +5,7 @@ import (
 
 	"github.com/ONSdigital/dp-dataset-api/store"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
+	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/identity"
 	"github.com/ONSdigital/go-ns/log"
@@ -32,6 +33,7 @@ type OutputQueue interface {
 
 // SearchAPI manages searches across indices
 type SearchAPI struct {
+	auditor                audit.AuditorService
 	datasetAPIClient       DatasetAPIer
 	datasetAPIClientNoAuth DatasetAPIer
 	defaultMaxResults      int
@@ -47,10 +49,9 @@ type SearchAPI struct {
 func CreateSearchAPI(
 	host, bindAddr, authAPIURL string, errorChan chan error, searchOutputQueue OutputQueue,
 	datasetAPIClient, datasetAPIClientNoAuth DatasetAPIer,
-	elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool,
-) {
+	elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool, auditor audit.AuditorService) {
 	router := mux.NewRouter()
-	routes(host, router, searchOutputQueue, datasetAPIClient, datasetAPIClientNoAuth, elasticsearch, defaultMaxResults, hasPrivateEndpoints)
+	routes(host, router, searchOutputQueue, datasetAPIClient, datasetAPIClientNoAuth, elasticsearch, defaultMaxResults, hasPrivateEndpoints, auditor)
 
 	healthcheckHandler := healthcheck.NewMiddleware(healthcheck.Do)
 	middlewareChain := alice.New(healthcheckHandler)
@@ -77,7 +78,7 @@ func CreateSearchAPI(
 	}()
 }
 
-func routes(host string, router *mux.Router, searchOutputQueue OutputQueue, datasetAPIClient, datasetAPIClientNoAuth DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool) *SearchAPI {
+func routes(host string, router *mux.Router, searchOutputQueue OutputQueue, datasetAPIClient, datasetAPIClientNoAuth DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool, auditor audit.AuditorService) *SearchAPI {
 
 	api := SearchAPI{
 		datasetAPIClient:       datasetAPIClient,
