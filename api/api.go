@@ -81,6 +81,7 @@ func CreateSearchAPI(
 func routes(host string, router *mux.Router, searchOutputQueue OutputQueue, datasetAPIClient, datasetAPIClientNoAuth DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool, auditor audit.AuditorService) *SearchAPI {
 
 	api := SearchAPI{
+		auditor:                auditor,
 		datasetAPIClient:       datasetAPIClient,
 		datasetAPIClientNoAuth: datasetAPIClientNoAuth,
 		defaultMaxResults:      defaultMaxResults,

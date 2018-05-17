@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 
-
 	"github.com/ONSdigital/dp-search-api/config"
 	"github.com/ONSdigital/dp-search-api/elasticsearch"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
@@ -56,8 +55,11 @@ func main() {
 
 		auditor = audit.New(auditProducer, "dp-search-api")
 	} else {
-		log.Info("private endpoints disabled, auditing will not be enabled", nil)
-		auditor = &audit.NopAuditor{}
+
+		auditor = audit.New(auditProducer, "dp-search-api")
+
+		//log.Info("private endpoints disabled, auditing will not be enabled", nil)
+		//auditor = &audit.NopAuditor{}
 	}
 
 	outputQueue := searchoutputqueue.CreateOutputQueue(producer.Output())

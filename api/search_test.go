@@ -25,6 +25,14 @@ var (
 	unauthenticatedReq = "unauthenticated request"
 )
 
+const (
+	auditTask    = "getSearch"
+	auditAttempt = "attempted"
+	auditSuccess = "successful"
+	auditFailure = "unsuccessful"
+	auditError   = "error while attempting to record audit event, failing request"
+)
+
 type testOpts struct {
 	method                string
 	url                   string
@@ -38,12 +46,12 @@ type testOpts struct {
 	reqHasAuth            bool
 	searchReturnError     bool
 	privateSubnet         bool
-	auditor  			  *audit.AuditorServiceMock
 }
 type testRes struct {
 	w          *httptest.ResponseRecorder
 	dsWithAuth *mocks.DatasetAPI
 	dsNoAuth   *mocks.DatasetAPI
+	audit      *audit.AuditorServiceMock
 }
 
 func setupTest(opts testOpts) testRes {
@@ -60,6 +68,8 @@ func setupTest(opts testOpts) testRes {
 	datasetWithAuth := &mocks.DatasetAPI{InternalServerError: opts.dsInternalServerError, VersionNotFound: opts.dsVersionNotFound, RequireNoAuth: opts.dsRequireNoAuth, RequireAuth: opts.dsRequireAuth, SvcAuth: "AuthMe!"}
 	datasetNoAuth := &mocks.DatasetAPI{InternalServerError: opts.dsInternalServerError, VersionNotFound: opts.dsVersionNotFound, RequireNoAuth: opts.dsRequireNoAuth, RequireAuth: opts.dsRequireAuth}
 
+	mockAuditor := getMockAuditor()
+
 	api := routes(
 		"host", mux.NewRouter(),
 		&mocks.BuildSearch{ReturnError: opts.searchReturnError},
@@ -67,7 +77,7 @@ func setupTest(opts testOpts) testRes {
 		&mocks.Elasticsearch{InternalServerError: opts.esInternalServerError, IndexNotFound: opts.esIndexNotFound},
 		opts.maxResults,
 		opts.privateSubnet,
-		opts.auditor,
+		mockAuditor,
 	)
 
 	// fake the auth wrapper by adding user,caller to r.Context() before ServeHTTP() is called
@@ -78,7 +88,7 @@ func setupTest(opts testOpts) testRes {
 
 	api.router.ServeHTTP(w, r)
 
-	return testRes{w: w, dsWithAuth: datasetWithAuth, dsNoAuth: datasetNoAuth}
+	return testRes{w: w, dsWithAuth: datasetWithAuth, dsNoAuth: datasetNoAuth, audit: mockAuditor}
 }
 
 func TestGetSearchPublishedWithoutAuthReturnsOK(t *testing.T) {
@@ -94,13 +104,10 @@ func TestGetSearchPublishedWithoutAuthReturnsOK(t *testing.T) {
 func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 	t.Parallel()
 
-	mockAuditor := getMockAuditor()
-
 	Convey("Given the search query satisfies the search index then return a status 200", t, func() {
 		testres := setupTest(testOpts{
 			url:        "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			reqHasAuth: true,
-			auditor: mockAuditor,
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusOK)
 
@@ -136,12 +143,7 @@ func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 		So(searchResults.Items[1].Matches.Label[1].Start, ShouldEqual, 19)
 		So(searchResults.Items[1].Matches.Label[1].End, ShouldEqual, 25)
 		So(searchResults.Items[1].Matches, ShouldResemble, models.Matches{Code: []models.Snippet(nil), Label: []models.Snippet{models.Snippet{Start: 1, End: 9}, models.Snippet{Start: 19, End: 25}}})
-
-		// Check audit
-		recCalls := mockAuditor.RecordCalls()
-		So(len(recCalls), ShouldEqual, 2)
-		verifyAuditRecordCalls(recCalls[0], getSearchAction, actionAttempted, nil)
-		verifyAuditRecordCalls(recCalls[1], getSearchAction, actionSuccessful, nil)
+		expectedAuditOutcome(testres, auditSuccess)
 
 	})
 
@@ -160,6 +162,7 @@ func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 		So(len(searchResults.Items), ShouldEqual, 2)
 		So(searchResults.Limit, ShouldEqual, 5)
 		So(searchResults.Offset, ShouldEqual, 20)
+		expectedAuditOutcome(testres, auditSuccess)
 	})
 }
 
@@ -172,6 +175,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
 		So(testres.w.Body.String(), ShouldEqual, "Failed to process the request due to an internal error\n")
+		expectedAuditOutcome(testres, auditFailure)
 	})
 
 	Convey("Given the version document was not found via the dataset API return status 404 (not found)", t, func() {
@@ -182,6 +186,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
 		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
 		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
+		expectedAuditOutcome(testres, auditFailure)
 	})
 
 	Convey("Given the limit parameter in request is not a number return status 400 (bad request)", t, func() {
@@ -190,6 +195,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusBadRequest)
 		So(testres.w.Body.String(), ShouldEqual, "strconv.Atoi: parsing \"four\": invalid syntax\n")
+		expectedAuditOutcome(testres, auditAttempt)
 	})
 
 	Convey("Given the offset parameter in request is not a number return status 400 (bad request)", t, func() {
@@ -198,6 +204,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusBadRequest)
 		So(testres.w.Body.String(), ShouldEqual, "strconv.Atoi: parsing \"fifty\": invalid syntax\n")
+		expectedAuditOutcome(testres, auditAttempt)
 	})
 
 	Convey("Given the query parameter, q does not exist in request return status 400 (bad request)", t, func() {
@@ -206,6 +213,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusBadRequest)
 		So(testres.w.Body.String(), ShouldEqual, "search term empty\n")
+		expectedAuditOutcome(testres, auditAttempt)
 	})
 
 	Convey("Given the offset parameter exceeds the default maximum results return status 400 (bad request)", t, func() {
@@ -214,6 +222,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusBadRequest)
 		So(testres.w.Body.String(), ShouldEqual, "the maximum offset has been reached, the offset cannot be more than "+strconv.Itoa(defaultMaxResults)+"\n")
+		expectedAuditOutcome(testres, auditAttempt)
 	})
 
 	Convey("Given search API fails to connect to elastic search cluster return status 500 (internal service error)", t, func() {
@@ -223,6 +232,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
 		So(testres.w.Body.String(), ShouldEqual, "Failed to process the request due to an internal error\n")
+		expectedAuditOutcome(testres, auditAttempt)
 	})
 
 	Convey("Given the search index does not exist return status 404 (not found)", t, func() {
@@ -232,6 +242,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
 		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		expectedAuditOutcome(testres, auditAttempt)
 	})
 }
 
@@ -247,6 +258,7 @@ func TestPublicSubnetUsersCannotSeeUnpublished(t *testing.T) {
 		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
 		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
 		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
+		expectedAuditOutcome(testres, auditFailure)
 	})
 	Convey("Given public subnet, when an unauthenticated GET is made, then the dataset api should not see authentication and returns not found, so we return status 404 (not found)", t, func() {
 		testres := setupTest(testOpts{
@@ -258,6 +270,7 @@ func TestPublicSubnetUsersCannotSeeUnpublished(t *testing.T) {
 		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
 		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
 		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
+		expectedAuditOutcome(testres, auditFailure)
 	})
 }
 
@@ -274,6 +287,7 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 		So(testres.w.Code, ShouldEqual, http.StatusOK)
 		So(testres.dsWithAuth.Calls, ShouldEqual, 1)
 		So(testres.dsNoAuth.Calls, ShouldEqual, 0)
+		expectedAuditOutcome(testres, auditSuccess)
 	})
 	Convey("Given private subnet, when an authenticated GET is made, force the dataset api to return 404 if authenticated, so we return 404", t, func() {
 		testres := setupTest(testOpts{
@@ -285,6 +299,7 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
 		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		expectedAuditOutcome(testres, auditFailure)
 	})
 	Convey("Given private subnet, when an authenticated GET is made, force the dataset api to return 500 if authenticated, so we return 500", t, func() {
 		testres := setupTest(testOpts{
@@ -295,6 +310,7 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 			privateSubnet:         true,
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
+		expectedAuditOutcome(testres, auditFailure)
 	})
 
 	Convey("Given private subnet, when an unauthenticated GET is made, then the dataset api should see no authentication and return not found, so we return status 404 (not found)", t, func() {
@@ -310,6 +326,7 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 
 		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
 		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
+		expectedAuditOutcome(testres, auditFailure)
 	})
 
 	Convey("Given private subnet, when a badly-authenticated GET is made, then the dataset api should see no authentication and returns not found, so we return server error", t, func() {
@@ -324,6 +341,7 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 
 		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
 		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
+		expectedAuditOutcome(testres, auditFailure)
 	})
 
 	Convey("Given private subnet, when an unauthenticated GET is made, then the dataset api should see no authentication and return not found, so we return status 404 (not found)", t, func() {
@@ -335,6 +353,7 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
 		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
+		expectedAuditOutcome(testres, auditFailure)
 	})
 }
 
@@ -549,4 +568,22 @@ func verifyAuditRecordCalls(c struct {
 	So(c.Result, ShouldEqual, expectedResult)
 	So(c.Params, ShouldResemble, expectedParams)
 }
+
+func expectedAuditOutcome(testres testRes, expectation string) {
+	recCalls := testres.audit.RecordCalls()
+	expectedParams := common.Params{"dataset_id": "123", "dimension": "aggregate", "edition": "2017", "version": "1"}
+
+	switch expectation {
+	case auditAttempt:
+		So(len(recCalls), ShouldEqual, 1)
+		verifyAuditRecordCalls(recCalls[0], auditTask, auditAttempt, expectedParams)
+	case auditSuccess:
+		So(len(recCalls), ShouldEqual, 2)
+		verifyAuditRecordCalls(recCalls[0], auditTask, auditAttempt, expectedParams)
+		verifyAuditRecordCalls(recCalls[1], auditTask, auditSuccess, expectedParams)
+	case auditFailure:
+		So(len(recCalls), ShouldEqual, 2)
+		verifyAuditRecordCalls(recCalls[0], auditTask, auditAttempt, expectedParams)
+		verifyAuditRecordCalls(recCalls[1], auditTask, auditFailure, expectedParams)
+	}
 }

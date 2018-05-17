@@ -34,10 +34,6 @@ var (
 )
 
 func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
-	if err := api.auditor.Record(r.Context(), "getSearch", "attempted", nil); err != nil {
-		handleAuditingFailure(w, err, nil)
-		return
-	}
 
 	vars := mux.Vars(r)
 
@@ -45,6 +41,14 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	edition := vars["edition"]
 	version := vars["version"]
 	dimension := vars["name"]
+
+	auditParams := common.Params{"dataset_id": datasetID, "edition": edition, "version": version, "dimension": dimension}
+
+	if err := api.auditor.Record(r.Context(), "getSearch", "attempted", auditParams); err != nil {
+		handleAuditingFailure(w, err, nil)
+		return
+	}
+	log.Debug("here we go:", nil)
 
 	term := r.FormValue("q")
 	requestedLimit := r.FormValue("limit")
@@ -73,7 +77,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	versionDoc, err := client.GetVersion(r.Context(), datasetID, edition, version)
 	if err != nil {
 		log.Error(err, nil)
-		if err := api.auditor.Record(r.Context(), "getSearch", "unsuccessful", nil); err != nil {
+		if err := api.auditor.Record(r.Context(), "getSearch", "unsuccessful", auditParams); err != nil {
 			handleAuditingFailure(w, err, nil)
 			return
 		}
@@ -151,7 +155,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := api.auditor.Record(r.Context(), "getSearch", "successful", nil); err != nil {
+	if err := api.auditor.Record(r.Context(), "getSearch", "successful", auditParams); err != nil {
 		handleAuditingFailure(w, err, logData)
 		return
 	}
