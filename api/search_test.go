@@ -589,7 +589,7 @@ func expectedAuditOutcome(action, expectation string, testres testRes) {
 		expectedParams = common.Params{"dimension": "aggregate", "instance_id": "123"}
 	}
 
-	// Test the releveant scenario
+	// Test the relevant scenario
 	switch expectation {
 	case scenario_attemptOnly:
 		So(len(recCalls), ShouldEqual, 1)
