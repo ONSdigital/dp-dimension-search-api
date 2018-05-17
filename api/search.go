@@ -42,13 +42,6 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	version := vars["version"]
 	dimension := vars["name"]
 
-	auditParams := common.Params{"dataset_id": datasetID, "edition": edition, "version": version, "dimension": dimension}
-
-	if err := api.auditor.Record(r.Context(), "getSearch", "attempted", auditParams); err != nil {
-		handleAuditingFailure(w, err, nil)
-		return
-	}
-
 	term := r.FormValue("q")
 	requestedLimit := r.FormValue("limit")
 	requestedOffset := r.FormValue("offset")
@@ -64,6 +57,13 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Info("incoming request", logData)
+
+	auditParams := common.Params{"dataset_id": datasetID, "edition": edition, "version": version, "dimension": dimension}
+
+	if err := api.auditor.Record(r.Context(), "getSearch", "attempted", auditParams); err != nil {
+		handleAuditingFailure(w, err, logData)
+		return
+	}
 
 	client := api.datasetAPIClientNoAuth
 	if api.hasPrivateEndpoints && common.IsCallerPresent(r.Context()) {
@@ -252,7 +252,7 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 
 	if err := api.searchOutputQueue.Queue(output); err != nil {
 		if err := api.auditor.Record(r.Context(), "createSearchIndex", "unsuccessful", auditParams); err != nil {
-			handleAuditingFailure(w, err, log.Data{"action": "createSearchIndex", "logData": logData})
+			handleAuditingFailure(w, err, logData)
 			return
 		}
 		setErrorCode(w, err, "failed to create message to drive index creation")
@@ -260,7 +260,7 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := api.auditor.Record(r.Context(), "createSearchIndex", "successful", auditParams); err != nil {
-		handleAuditingFailure(w, err, log.Data{"action": "createSearchIndex", "logData": logData})
+		handleAuditingFailure(w, err, logData)
 		return
 	}
 
@@ -280,7 +280,7 @@ func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) 
 	auditParams := common.Params{"instance_id": instanceID, "dimension": dimension}
 
 	if err := api.auditor.Record(r.Context(), "deleteSearchIndex", "attempted", auditParams); err != nil {
-		handleAuditingFailure(w, err, log.Data{"action": "deleteSearchIndex", "logData": logData})
+		handleAuditingFailure(w, err, logData)
 		return
 	}
 
@@ -288,7 +288,7 @@ func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) 
 	logData["status"] = status
 	if err != nil {
 		if err := api.auditor.Record(r.Context(), "deleteSearchIndex", "unsuccessful", auditParams); err != nil {
-			handleAuditingFailure(w, err, log.Data{"action": "deleteSearchIndex", "logData": logData})
+			handleAuditingFailure(w, err, logData)
 			return
 		}
 		setErrorCode(w, err, "failed to delete index")
@@ -296,7 +296,7 @@ func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := api.auditor.Record(r.Context(), "deleteSearchIndex", "successful", auditParams); err != nil {
-		handleAuditingFailure(w, err, log.Data{"action": "deleteSearchIndex", "logData": logData})
+		handleAuditingFailure(w, err, logData)
 		return
 	}
 
