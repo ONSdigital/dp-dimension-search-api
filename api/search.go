@@ -77,7 +77,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error(err, nil)
 		if err := api.auditor.Record(r.Context(), "getSearch", "unsuccessful", auditParams); err != nil {
-			handleAuditingFailure(w, err, log.Data{"action": "getSearch", "logData": logData})
+			handleAuditingFailure(w, err, logData)
 			return
 		}
 		setErrorCode(w, err, "failed to get version of a dataset from the dataset API")
