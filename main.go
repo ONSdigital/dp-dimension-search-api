@@ -55,11 +55,8 @@ func main() {
 
 		auditor = audit.New(auditProducer, "dp-search-api")
 	} else {
-
-		auditor = audit.New(auditProducer, "dp-search-api")
-
-		//log.Info("private endpoints disabled, auditing will not be enabled", nil)
-		//auditor = &audit.NopAuditor{}
+		log.Info("private endpoints disabled, auditing will not be enabled", nil)
+		auditor = &audit.NopAuditor{}
 	}
 
 	outputQueue := searchoutputqueue.CreateOutputQueue(producer.Output())

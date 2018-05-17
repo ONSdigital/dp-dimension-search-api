@@ -48,7 +48,6 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		handleAuditingFailure(w, err, nil)
 		return
 	}
-	log.Debug("here we go:", nil)
 
 	term := r.FormValue("q")
 	requestedLimit := r.FormValue("limit")
@@ -78,7 +77,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error(err, nil)
 		if err := api.auditor.Record(r.Context(), "getSearch", "unsuccessful", auditParams); err != nil {
-			handleAuditingFailure(w, err, nil)
+			handleAuditingFailure(w, err, log.Data{"action": "getSearch", "logData": logData})
 			return
 		}
 		setErrorCode(w, err, "failed to get version of a dataset from the dataset API")
@@ -239,6 +238,12 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 	dimension := vars["dimension"]
 
 	logData := log.Data{"instance_id": instanceID, "dimension": dimension}
+	auditParams := common.Params{"instance_id": instanceID, "dimension": dimension}
+
+	if err := api.auditor.Record(r.Context(), "createSearchIndex", "attempted", auditParams); err != nil {
+		handleAuditingFailure(w, err, logData)
+		return
+	}
 
 	output := &searchoutputqueue.Search{
 		Dimension:  dimension,
@@ -246,7 +251,16 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := api.searchOutputQueue.Queue(output); err != nil {
+		if err := api.auditor.Record(r.Context(), "createSearchIndex", "unsuccessful", auditParams); err != nil {
+			handleAuditingFailure(w, err, log.Data{"action": "createSearchIndex", "logData": logData})
+			return
+		}
 		setErrorCode(w, err, "failed to create message to drive index creation")
+		return
+	}
+
+	if err := api.auditor.Record(r.Context(), "createSearchIndex", "successful", auditParams); err != nil {
+		handleAuditingFailure(w, err, log.Data{"action": "createSearchIndex", "logData": logData})
 		return
 	}
 
@@ -263,11 +277,26 @@ func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) 
 	dimension := vars["dimension"]
 
 	logData := log.Data{"instance_id": instanceID, "dimension": dimension}
+	auditParams := common.Params{"instance_id": instanceID, "dimension": dimension}
+
+	if err := api.auditor.Record(r.Context(), "deleteSearchIndex", "attempted", auditParams); err != nil {
+		handleAuditingFailure(w, err, log.Data{"action": "deleteSearchIndex", "logData": logData})
+		return
+	}
 
 	status, err := api.elasticsearch.DeleteSearchIndex(r.Context(), instanceID, dimension)
 	logData["status"] = status
 	if err != nil {
+		if err := api.auditor.Record(r.Context(), "deleteSearchIndex", "unsuccessful", auditParams); err != nil {
+			handleAuditingFailure(w, err, log.Data{"action": "deleteSearchIndex", "logData": logData})
+			return
+		}
 		setErrorCode(w, err, "failed to delete index")
+		return
+	}
+
+	if err := api.auditor.Record(r.Context(), "deleteSearchIndex", "successful", auditParams); err != nil {
+		handleAuditingFailure(w, err, log.Data{"action": "deleteSearchIndex", "logData": logData})
 		return
 	}
 
