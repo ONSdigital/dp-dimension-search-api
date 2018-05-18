@@ -25,16 +25,6 @@ var (
 	unauthenticatedReq = "unauthenticated request"
 )
 
-const (
-	auditGetSearch   = "getSearch"
-	auditCreateIndex = "createSearchIndex"
-	auditDeleteIndex = "deleteSearchIndex"
-
-	scenario_attemptOnly       = "audit a user attempted an action"
-	scenario_attemptAndSucceed = "audit a user attempted an action that will be successful"
-	scenario_attemptAndFail    = "audit a user attempted an action that will be unsuccessful"
-)
-
 type testOpts struct {
 	method                string
 	url                   string
@@ -100,7 +90,7 @@ func TestGetSearchPublishedWithoutAuthReturnsOK(t *testing.T) {
 		So(testres.w.Code, ShouldEqual, http.StatusOK)
 		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
 		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
-		expectedAuditOutcome(auditGetSearch, scenario_attemptAndSucceed, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptAndSucceed, testres)
 	})
 }
 
@@ -146,7 +136,7 @@ func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 		So(searchResults.Items[1].Matches.Label[1].Start, ShouldEqual, 19)
 		So(searchResults.Items[1].Matches.Label[1].End, ShouldEqual, 25)
 		So(searchResults.Items[1].Matches, ShouldResemble, models.Matches{Code: []models.Snippet(nil), Label: []models.Snippet{models.Snippet{Start: 1, End: 9}, models.Snippet{Start: 19, End: 25}}})
-		expectedAuditOutcome(auditGetSearch, scenario_attemptAndSucceed, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptAndSucceed, testres)
 
 	})
 
@@ -165,7 +155,7 @@ func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 		So(len(searchResults.Items), ShouldEqual, 2)
 		So(searchResults.Limit, ShouldEqual, 5)
 		So(searchResults.Offset, ShouldEqual, 20)
-		expectedAuditOutcome(auditGetSearch, scenario_attemptAndSucceed, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptAndSucceed, testres)
 	})
 }
 
@@ -178,7 +168,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
 		So(testres.w.Body.String(), ShouldEqual, "Failed to process the request due to an internal error\n")
-		expectedAuditOutcome(auditGetSearch, scenario_attemptAndFail, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptAndFail, testres)
 	})
 
 	Convey("Given the version document was not found via the dataset API return status 404 (not found)", t, func() {
@@ -189,7 +179,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
 		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
 		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
-		expectedAuditOutcome(auditGetSearch, scenario_attemptAndFail, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptAndFail, testres)
 	})
 
 	Convey("Given the limit parameter in request is not a number return status 400 (bad request)", t, func() {
@@ -198,7 +188,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusBadRequest)
 		So(testres.w.Body.String(), ShouldEqual, "strconv.Atoi: parsing \"four\": invalid syntax\n")
-		expectedAuditOutcome(auditGetSearch, scenario_attemptOnly, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptOnly, testres)
 	})
 
 	Convey("Given the offset parameter in request is not a number return status 400 (bad request)", t, func() {
@@ -207,7 +197,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusBadRequest)
 		So(testres.w.Body.String(), ShouldEqual, "strconv.Atoi: parsing \"fifty\": invalid syntax\n")
-		expectedAuditOutcome(auditGetSearch, scenario_attemptOnly, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptOnly, testres)
 	})
 
 	Convey("Given the query parameter, q does not exist in request return status 400 (bad request)", t, func() {
@@ -216,7 +206,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusBadRequest)
 		So(testres.w.Body.String(), ShouldEqual, "search term empty\n")
-		expectedAuditOutcome(auditGetSearch, scenario_attemptOnly, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptOnly, testres)
 	})
 
 	Convey("Given the offset parameter exceeds the default maximum results return status 400 (bad request)", t, func() {
@@ -225,7 +215,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusBadRequest)
 		So(testres.w.Body.String(), ShouldEqual, "the maximum offset has been reached, the offset cannot be more than "+strconv.Itoa(defaultMaxResults)+"\n")
-		expectedAuditOutcome(auditGetSearch, scenario_attemptOnly, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptOnly, testres)
 	})
 
 	Convey("Given search API fails to connect to elastic search cluster return status 500 (internal service error)", t, func() {
@@ -235,7 +225,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
 		So(testres.w.Body.String(), ShouldEqual, "Failed to process the request due to an internal error\n")
-		expectedAuditOutcome(auditGetSearch, scenario_attemptOnly, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptOnly, testres)
 	})
 
 	Convey("Given the search index does not exist return status 404 (not found)", t, func() {
@@ -245,7 +235,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
 		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
-		expectedAuditOutcome(auditGetSearch, scenario_attemptOnly, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptOnly, testres)
 	})
 }
 
@@ -261,7 +251,7 @@ func TestPublicSubnetUsersCannotSeeUnpublished(t *testing.T) {
 		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
 		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
 		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
-		expectedAuditOutcome(auditGetSearch, scenario_attemptAndFail, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptAndFail, testres)
 	})
 	Convey("Given public subnet, when an unauthenticated GET is made, then the dataset api should not see authentication and returns not found, so we return status 404 (not found)", t, func() {
 		testres := setupTest(testOpts{
@@ -273,7 +263,7 @@ func TestPublicSubnetUsersCannotSeeUnpublished(t *testing.T) {
 		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
 		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
 		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
-		expectedAuditOutcome(auditGetSearch, scenario_attemptAndFail, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptAndFail, testres)
 	})
 }
 
@@ -290,7 +280,7 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 		So(testres.w.Code, ShouldEqual, http.StatusOK)
 		So(testres.dsWithAuth.Calls, ShouldEqual, 1)
 		So(testres.dsNoAuth.Calls, ShouldEqual, 0)
-		expectedAuditOutcome(auditGetSearch, scenario_attemptAndSucceed, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptAndSucceed, testres)
 	})
 	Convey("Given private subnet, when an authenticated GET is made, force the dataset api to return 404 if authenticated, so we return 404", t, func() {
 		testres := setupTest(testOpts{
@@ -302,7 +292,7 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
 		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
-		expectedAuditOutcome(auditGetSearch, scenario_attemptAndFail, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptAndFail, testres)
 	})
 	Convey("Given private subnet, when an authenticated GET is made, force the dataset api to return 500 if authenticated, so we return 500", t, func() {
 		testres := setupTest(testOpts{
@@ -313,7 +303,7 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 			privateSubnet:         true,
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
-		expectedAuditOutcome(auditGetSearch, scenario_attemptAndFail, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptAndFail, testres)
 	})
 
 	Convey("Given private subnet, when an unauthenticated GET is made, then the dataset api should see no authentication and return not found, so we return status 404 (not found)", t, func() {
@@ -329,7 +319,7 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 
 		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
 		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
-		expectedAuditOutcome(auditGetSearch, scenario_attemptAndFail, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptAndFail, testres)
 	})
 
 	Convey("Given private subnet, when a badly-authenticated GET is made, then the dataset api should see no authentication and returns not found, so we return server error", t, func() {
@@ -344,7 +334,7 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 
 		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
 		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
-		expectedAuditOutcome(auditGetSearch, scenario_attemptAndFail, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptAndFail, testres)
 	})
 
 	Convey("Given private subnet, when an unauthenticated GET is made, then the dataset api should see no authentication and return not found, so we return status 404 (not found)", t, func() {
@@ -356,7 +346,7 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
 		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
-		expectedAuditOutcome(auditGetSearch, scenario_attemptAndFail, testres)
+		expectedAuditOutcome(models.AuditActionGetSearch, models.Scenario_attemptAndFail, testres)
 	})
 }
 
@@ -370,7 +360,7 @@ func TestCreateSearchIndexReturnsOK(t *testing.T) {
 			privateSubnet: true,
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusOK)
-		expectedAuditOutcome(auditCreateIndex, scenario_attemptAndSucceed, testres)
+		expectedAuditOutcome(models.AuditActionCreateIndex, models.Scenario_attemptAndSucceed, testres)
 	})
 }
 
@@ -408,7 +398,7 @@ func TestFailToCreateSearchIndex(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
 		So(testres.w.Body.String(), ShouldEqual, "Failed to process the request due to an internal error\n")
-		expectedAuditOutcome(auditCreateIndex, scenario_attemptAndFail, testres)
+		expectedAuditOutcome(models.AuditActionCreateIndex, models.Scenario_attemptAndFail, testres)
 	})
 }
 
@@ -422,7 +412,7 @@ func TestDeleteSearchIndexReturnsOK(t *testing.T) {
 			privateSubnet: true,
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusOK)
-		expectedAuditOutcome(auditDeleteIndex, scenario_attemptAndSucceed, testres)
+		expectedAuditOutcome(models.AuditActionDeleteIndex, models.Scenario_attemptAndSucceed, testres)
 	})
 }
 
@@ -460,7 +450,7 @@ func TestFailToDeleteSearchIndex(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
 		So(testres.w.Body.String(), ShouldEqual, "Failed to process the request due to an internal error\n")
-		expectedAuditOutcome(auditDeleteIndex, scenario_attemptAndFail, testres)
+		expectedAuditOutcome(models.AuditActionDeleteIndex, models.Scenario_attemptAndFail, testres)
 	})
 
 	Convey("Given a search index does not exists return a status 404 (not found)", t, func() {
@@ -474,7 +464,7 @@ func TestFailToDeleteSearchIndex(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
 		So(testres.w.Body.String(), ShouldContainSubstring, resourceNotFound)
-		expectedAuditOutcome(auditDeleteIndex, scenario_attemptAndFail, testres)
+		expectedAuditOutcome(models.AuditActionDeleteIndex, models.Scenario_attemptAndFail, testres)
 	})
 }
 
@@ -583,7 +573,7 @@ func expectedAuditOutcome(action, expectation string, testres testRes) {
 
 	// Set expected params based on endpoint
 	var expectedParams common.Params
-	if action == auditGetSearch {
+	if action == models.AuditActionGetSearch {
 		expectedParams = common.Params{"dataset_id": "123", "dimension": "aggregate", "edition": "2017", "version": "1"}
 	} else {
 		expectedParams = common.Params{"dimension": "aggregate", "instance_id": "123"}
@@ -591,18 +581,18 @@ func expectedAuditOutcome(action, expectation string, testres testRes) {
 
 	// Test the relevant scenario
 	switch expectation {
-	case scenario_attemptOnly:
+	case models.Scenario_attemptOnly:
 		So(len(recCalls), ShouldEqual, 1)
-		verifyAuditRecordCalls(recCalls[0], action, "attempted", expectedParams)
+		verifyAuditRecordCalls(recCalls[0], action, models.AuditResultAttempted, expectedParams)
 
-	case scenario_attemptAndSucceed:
+	case models.Scenario_attemptAndSucceed:
 		So(len(recCalls), ShouldEqual, 2)
-		verifyAuditRecordCalls(recCalls[0], action, "attempted", expectedParams)
-		verifyAuditRecordCalls(recCalls[1], action, "successful", expectedParams)
+		verifyAuditRecordCalls(recCalls[0], action, models.AuditResultAttempted, expectedParams)
+		verifyAuditRecordCalls(recCalls[1], action, models.AuditResultSuccessful, expectedParams)
 
-	case scenario_attemptAndFail:
+	case models.Scenario_attemptAndFail:
 		So(len(recCalls), ShouldEqual, 2)
-		verifyAuditRecordCalls(recCalls[0], action, "attempted", expectedParams)
-		verifyAuditRecordCalls(recCalls[1], action, "unsuccessful", expectedParams)
+		verifyAuditRecordCalls(recCalls[0], action, models.AuditResultAttempted, expectedParams)
+		verifyAuditRecordCalls(recCalls[1], action, models.AuditResultUnsuccessful, expectedParams)
 	}
 }
