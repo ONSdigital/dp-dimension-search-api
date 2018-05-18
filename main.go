@@ -47,7 +47,7 @@ func main() {
 	if cfg.HasPrivateEndpoints {
 		log.Info("private endpoints enabled, enabling action auditing", log.Data{"auditTopicName": cfg.AuditEventsTopic})
 
-		auditProducer, err = kafka.NewProducer(cfg.KafkaAddr, cfg.AuditEventsTopic, 0)
+		auditProducer, err = kafka.NewProducer(cfg.Brokers, cfg.AuditEventsTopic, 0)
 		if err != nil {
 			log.Error(errors.Wrap(err, "error creating kakfa audit producer"), nil)
 			os.Exit(1)
