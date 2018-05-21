@@ -1,8 +1,9 @@
 swagger: "2.0"
 info:
-  description: "An API used to search information on published datasets by the ONS."
+  description: "Used to search for possible options for a dimension within a published dataset.
+  Only certain dimensions, which can be represented as hierarchies, will be searchable."
   version: "1.0.0"
-  title: "Search API"
+  title: "Search within a dataset"
   license:
     name: "Open Government Licence v3.0"
     url: "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
@@ -70,7 +71,7 @@ paths:
     get:
       tags:
       - "Public"
-      summary: "Search for dimension option within a hierarchy for a version of a dataset"
+      summary: "Search for an option within a hierarchical dimension"
       description: "Perform a search on dimension options which are within a hierarchy of a published version of a dataset by the ONS."
       parameters:
       - $ref: '#/parameters/id'
