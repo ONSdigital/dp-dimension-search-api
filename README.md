@@ -30,7 +30,7 @@ one of:
 CREATE: `curl -X PUT <HOSTNAME>/search/instances/<instanceID>/dimensions/<dimensionName> -H <AUTH HEADER>`
 DELETE: `curl -X DELETE <HOSTNAME>/search/instances/<instanceID>/dimensions/<dimensionName> -H <AUTH HEADER>`
 
-The `<AUTH HEADER>` must be either a valid `X-FLorence-Token` or a valid 'Authorization` header.
+The `<AUTH HEADER>` must be either a valid `X-FLorence-Token` or a valid `Authorization` header.
 
 
 ### Configuration
