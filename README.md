@@ -27,8 +27,6 @@ one of:
 
 ### Manually Creating and Deleting Indexes
 
-You can manually create or delete endpoints via the following:
-
 CREATE: `curl -X PUT <HOSTNAME>/search/instances/<instanceID>/dimensions/<dimensionName> -H <AUTH HEADER>`
 DELETE: `curl -X DELETE <HOSTNAME>/search/instances/<instanceID>/dimensions/<dimensionName> -H <AUTH HEADER>`
 
