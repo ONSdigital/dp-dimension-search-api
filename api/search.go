@@ -1,8 +1,8 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -11,8 +11,10 @@ import (
 	"github.com/ONSdigital/dp-search-api/models"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/common"
+	"github.com/ONSdigital/go-ns/handlers/requestID"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 type pageVariables struct {
@@ -60,8 +62,10 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 
 	auditParams := common.Params{"dataset_id": datasetID, "edition": edition, "version": version, "dimension": dimension}
 
-	if err := api.auditor.Record(r.Context(), models.AuditActionGetSearch, models.AuditResultAttempted, auditParams); err != nil {
-		handleAuditingFailure(w, err, logData)
+	ctx := r.Context()
+
+	if err := api.auditor.Record(ctx, models.AuditTaskGetSearch, models.AuditActionAttempted, auditParams); err != nil {
+		handleAuditingFailure(w, ctx, models.AuditTaskGetSearch, models.AuditActionAttempted, err, logData)
 		return
 	}
 
@@ -76,8 +80,8 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	versionDoc, err := client.GetVersion(r.Context(), datasetID, edition, version)
 	if err != nil {
 		log.Error(err, nil)
-		if err := api.auditor.Record(r.Context(), models.AuditActionGetSearch, models.AuditResultUnsuccessful, auditParams); err != nil {
-			handleAuditingFailure(w, err, logData)
+		if err := api.auditor.Record(ctx, models.AuditTaskGetSearch, models.AuditActionUnsuccessful, auditParams); err != nil {
+			handleAuditingFailure(w, ctx, models.AuditTaskGetSearch, models.AuditActionUnsuccessful, err, logData)
 			return
 		}
 		setErrorCode(w, err, "failed to get version of a dataset from the dataset API")
@@ -154,8 +158,8 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := api.auditor.Record(r.Context(), models.AuditActionGetSearch, models.AuditResultSuccessful, auditParams); err != nil {
-		handleAuditingFailure(w, err, logData)
+	if err := api.auditor.Record(ctx, models.AuditTaskGetSearch, models.AuditActionSuccessful, auditParams); err != nil {
+		handleAuditingFailure(w, ctx, models.AuditTaskGetSearch, models.AuditActionSuccessful, err, logData)
 		return
 	}
 
@@ -240,8 +244,10 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 	logData := log.Data{"instance_id": instanceID, "dimension": dimension}
 	auditParams := common.Params{"instance_id": instanceID, "dimension": dimension}
 
-	if err := api.auditor.Record(r.Context(), models.AuditActionCreateIndex, models.AuditResultAttempted, auditParams); err != nil {
-		handleAuditingFailure(w, err, logData)
+	ctx := r.Context()
+
+	if err := api.auditor.Record(ctx, models.AuditTaskCreateIndex, models.AuditActionAttempted, auditParams); err != nil {
+		handleAuditingFailure(w, ctx, models.AuditTaskCreateIndex, models.AuditActionAttempted, err, logData)
 		return
 	}
 
@@ -251,16 +257,16 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := api.searchOutputQueue.Queue(output); err != nil {
-		if err := api.auditor.Record(r.Context(), models.AuditActionCreateIndex, models.AuditResultUnsuccessful, auditParams); err != nil {
-			handleAuditingFailure(w, err, logData)
+		if err := api.auditor.Record(ctx, models.AuditTaskCreateIndex, models.AuditActionUnsuccessful, auditParams); err != nil {
+			handleAuditingFailure(w, ctx, models.AuditTaskCreateIndex, models.AuditActionUnsuccessful, err, logData)
 			return
 		}
 		setErrorCode(w, err, "failed to create message to drive index creation")
 		return
 	}
 
-	if err := api.auditor.Record(r.Context(), models.AuditActionCreateIndex, models.AuditResultSuccessful, auditParams); err != nil {
-		handleAuditingFailure(w, err, logData)
+	if err := api.auditor.Record(ctx, models.AuditTaskCreateIndex, models.AuditActionSuccessful, auditParams); err != nil {
+		handleAuditingFailure(w, ctx, models.AuditTaskCreateIndex, models.AuditActionSuccessful, err, logData)
 		return
 	}
 
@@ -279,24 +285,26 @@ func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) 
 	logData := log.Data{"instance_id": instanceID, "dimension": dimension}
 	auditParams := common.Params{"instance_id": instanceID, "dimension": dimension}
 
-	if err := api.auditor.Record(r.Context(), models.AuditActionDeleteIndex, models.AuditResultAttempted, auditParams); err != nil {
-		handleAuditingFailure(w, err, logData)
+	ctx := r.Context()
+
+	if err := api.auditor.Record(ctx, models.AuditTaskDeleteIndex, models.AuditActionAttempted, auditParams); err != nil {
+		handleAuditingFailure(w, ctx, models.AuditTaskDeleteIndex, models.AuditActionAttempted, err, logData)
 		return
 	}
 
 	status, err := api.elasticsearch.DeleteSearchIndex(r.Context(), instanceID, dimension)
 	logData["status"] = status
 	if err != nil {
-		if err := api.auditor.Record(r.Context(), models.AuditActionDeleteIndex, models.AuditResultUnsuccessful, auditParams); err != nil {
-			handleAuditingFailure(w, err, logData)
+		if err := api.auditor.Record(r.Context(), models.AuditTaskDeleteIndex, models.AuditActionUnsuccessful, auditParams); err != nil {
+			handleAuditingFailure(w, ctx, models.AuditTaskDeleteIndex, models.AuditActionUnsuccessful, err, logData)
 			return
 		}
 		setErrorCode(w, err, "failed to delete index")
 		return
 	}
 
-	if err := api.auditor.Record(r.Context(), models.AuditActionDeleteIndex, models.AuditResultSuccessful, auditParams); err != nil {
-		handleAuditingFailure(w, err, logData)
+	if err := api.auditor.Record(r.Context(), models.AuditTaskDeleteIndex, models.AuditActionSuccessful, auditParams); err != nil {
+		handleAuditingFailure(w, ctx, models.AuditTaskDeleteIndex, models.AuditActionSuccessful, err, logData)
 		return
 	}
 
@@ -334,7 +342,30 @@ func setErrorCode(w http.ResponseWriter, err error, errorContext string) {
 	}
 }
 
-func handleAuditingFailure(w http.ResponseWriter, err error, logData log.Data) {
-	log.ErrorC("error while attempting to record audit event, failing request", err, logData)
+func handleAuditingFailure(w http.ResponseWriter, ctx context.Context, action, result string, err error, logData log.Data) {
+
+	logData["action"] = action
+	logData["result"] = result
+
+	if user := common.User(ctx); user != "" {
+		logData["user"] = user
+	}
+
+	var wrappedErr error
+
+	switch action {
+	case models.AuditActionAttempted:
+		wrappedErr = errors.WithMessage(err, models.AuditActionAttemptedErr)
+	case models.AuditActionSuccessful:
+		wrappedErr = errors.WithMessage(err, models.AuditActionSuccessfulErr)
+	case models.AuditActionUnsuccessful:
+		wrappedErr = errors.WithMessage(err, models.AuditActionUnsuccessfulErr)
+	}
+
+	if reqID := requestID.Get(ctx); reqID != "" {
+		log.ErrorC(reqID, wrappedErr, logData)
+	} else {
+		log.Error(wrappedErr, logData)
+	}
 	http.Error(w, "internal server error", http.StatusInternalServerError)
 }
