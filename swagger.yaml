@@ -40,7 +40,7 @@ parameters:
     type: string
   limit:
     name: limit
-    description: "The number of resources to be returned."
+    description: "The number of items requested, defaulted to 50 and limited to 1000."
     in: query
     type: integer
   offset:
