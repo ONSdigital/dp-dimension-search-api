@@ -11,6 +11,7 @@ import (
 
 	"github.com/ONSdigital/dp-search-api/api"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
+	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/elasticsearch"
 	"github.com/ONSdigital/go-ns/healthcheck"
@@ -21,6 +22,7 @@ import (
 
 // Service represents the necessary config for dp-search-api
 type Service struct {
+	Auditor                   audit.AuditorService
 	AuthAPIURL                string
 	BindAddr                  string
 	DatasetAPIURL             string
@@ -68,6 +70,7 @@ func (svc *Service) Start() {
 		svc.Elasticsearch,
 		svc.DefaultMaxResults,
 		svc.HasPrivateEndpoints,
+		svc.Auditor,
 	)
 
 	// blocks until a fatal error occurs

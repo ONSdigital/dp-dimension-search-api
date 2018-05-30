@@ -1,8 +1,8 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -11,8 +11,10 @@ import (
 	"github.com/ONSdigital/dp-search-api/models"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/common"
+	"github.com/ONSdigital/go-ns/handlers/requestID"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 type pageVariables struct {
@@ -34,6 +36,7 @@ var (
 )
 
 func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
+
 	vars := mux.Vars(r)
 
 	datasetID := vars["id"]
@@ -57,6 +60,15 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("incoming request", logData)
 
+	auditParams := common.Params{"dataset_id": datasetID, "edition": edition, "version": version, "dimension": dimension}
+
+	ctx := r.Context()
+
+	if err := api.auditor.Record(ctx, models.AuditTaskGetSearch, models.AuditActionAttempted, auditParams); err != nil {
+		handleAuditingFailure(w, ctx, models.AuditTaskGetSearch, models.AuditActionAttempted, err, logData)
+		return
+	}
+
 	client := api.datasetAPIClientNoAuth
 	if api.hasPrivateEndpoints && common.IsCallerPresent(r.Context()) {
 		// Authorised to search against an unpublished version
@@ -67,6 +79,11 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	// Get instanceID from datasetAPI
 	versionDoc, err := client.GetVersion(r.Context(), datasetID, edition, version)
 	if err != nil {
+		log.Error(err, nil)
+		if err := api.auditor.Record(ctx, models.AuditTaskGetSearch, models.AuditActionUnsuccessful, auditParams); err != nil {
+			handleAuditingFailure(w, ctx, models.AuditTaskGetSearch, models.AuditActionUnsuccessful, err, logData)
+			return
+		}
 		setErrorCode(w, err, "failed to get version of a dataset from the dataset API")
 		return
 	}
@@ -138,6 +155,11 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.ErrorC("failed to marshal dataset resource into bytes", err, nil)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := api.auditor.Record(ctx, models.AuditTaskGetSearch, models.AuditActionSuccessful, auditParams); err != nil {
+		handleAuditingFailure(w, ctx, models.AuditTaskGetSearch, models.AuditActionSuccessful, err, logData)
 		return
 	}
 
@@ -220,6 +242,14 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 	dimension := vars["dimension"]
 
 	logData := log.Data{"instance_id": instanceID, "dimension": dimension}
+	auditParams := common.Params{"instance_id": instanceID, "dimension": dimension}
+
+	ctx := r.Context()
+
+	if err := api.auditor.Record(ctx, models.AuditTaskCreateIndex, models.AuditActionAttempted, auditParams); err != nil {
+		handleAuditingFailure(w, ctx, models.AuditTaskCreateIndex, models.AuditActionAttempted, err, logData)
+		return
+	}
 
 	output := &searchoutputqueue.Search{
 		Dimension:  dimension,
@@ -227,7 +257,16 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := api.searchOutputQueue.Queue(output); err != nil {
+		if err := api.auditor.Record(ctx, models.AuditTaskCreateIndex, models.AuditActionUnsuccessful, auditParams); err != nil {
+			handleAuditingFailure(w, ctx, models.AuditTaskCreateIndex, models.AuditActionUnsuccessful, err, logData)
+			return
+		}
 		setErrorCode(w, err, "failed to create message to drive index creation")
+		return
+	}
+
+	if err := api.auditor.Record(ctx, models.AuditTaskCreateIndex, models.AuditActionSuccessful, auditParams); err != nil {
+		handleAuditingFailure(w, ctx, models.AuditTaskCreateIndex, models.AuditActionSuccessful, err, logData)
 		return
 	}
 
@@ -244,11 +283,28 @@ func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) 
 	dimension := vars["dimension"]
 
 	logData := log.Data{"instance_id": instanceID, "dimension": dimension}
+	auditParams := common.Params{"instance_id": instanceID, "dimension": dimension}
+
+	ctx := r.Context()
+
+	if err := api.auditor.Record(ctx, models.AuditTaskDeleteIndex, models.AuditActionAttempted, auditParams); err != nil {
+		handleAuditingFailure(w, ctx, models.AuditTaskDeleteIndex, models.AuditActionAttempted, err, logData)
+		return
+	}
 
 	status, err := api.elasticsearch.DeleteSearchIndex(r.Context(), instanceID, dimension)
 	logData["status"] = status
 	if err != nil {
+		if err := api.auditor.Record(r.Context(), models.AuditTaskDeleteIndex, models.AuditActionUnsuccessful, auditParams); err != nil {
+			handleAuditingFailure(w, ctx, models.AuditTaskDeleteIndex, models.AuditActionUnsuccessful, err, logData)
+			return
+		}
 		setErrorCode(w, err, "failed to delete index")
+		return
+	}
+
+	if err := api.auditor.Record(r.Context(), models.AuditTaskDeleteIndex, models.AuditActionSuccessful, auditParams); err != nil {
+		handleAuditingFailure(w, ctx, models.AuditTaskDeleteIndex, models.AuditActionSuccessful, err, logData)
 		return
 	}
 
@@ -284,4 +340,32 @@ func setErrorCode(w http.ResponseWriter, err error, errorContext string) {
 	default:
 		http.Error(w, internalError, http.StatusInternalServerError)
 	}
+}
+
+func handleAuditingFailure(w http.ResponseWriter, ctx context.Context, action, result string, err error, logData log.Data) {
+
+	logData["action"] = action
+	logData["result"] = result
+
+	if user := common.User(ctx); user != "" {
+		logData["user"] = user
+	}
+
+	var wrappedErr error
+
+	switch action {
+	case models.AuditActionAttempted:
+		wrappedErr = errors.WithMessage(err, models.AuditActionAttemptedErr)
+	case models.AuditActionSuccessful:
+		wrappedErr = errors.WithMessage(err, models.AuditActionSuccessfulErr)
+	case models.AuditActionUnsuccessful:
+		wrappedErr = errors.WithMessage(err, models.AuditActionUnsuccessfulErr)
+	}
+
+	if reqID := requestID.Get(ctx); reqID != "" {
+		log.ErrorC(reqID, wrappedErr, logData)
+	} else {
+		log.Error(wrappedErr, logData)
+	}
+	http.Error(w, "internal server error", http.StatusInternalServerError)
 }
