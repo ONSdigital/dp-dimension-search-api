@@ -11,16 +11,10 @@ import (
 	"github.com/ONSdigital/dp-search-api/models"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/common"
-	"github.com/ONSdigital/go-ns/handlers/requestID"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
-
-type pageVariables struct {
-	limit  int
-	offset int
-}
 
 const (
 	defaultLimit  = 20
@@ -364,7 +358,7 @@ func handleAuditingFailure(w http.ResponseWriter, ctx context.Context, action, r
 		wrappedErr = err
 	}
 
-	if reqID := requestID.Get(ctx); reqID != "" {
+	if reqID := common.GetRequestId(ctx); reqID != "" {
 		log.ErrorC(reqID, wrappedErr, logData)
 	} else {
 		log.Error(wrappedErr, logData)
