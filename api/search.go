@@ -353,13 +353,15 @@ func handleAuditingFailure(w http.ResponseWriter, ctx context.Context, action, r
 
 	var wrappedErr error
 
-	switch action {
+	switch result {
 	case models.AuditActionAttempted:
 		wrappedErr = errors.WithMessage(err, models.AuditActionAttemptedErr)
 	case models.AuditActionSuccessful:
 		wrappedErr = errors.WithMessage(err, models.AuditActionSuccessfulErr)
 	case models.AuditActionUnsuccessful:
 		wrappedErr = errors.WithMessage(err, models.AuditActionUnsuccessfulErr)
+	default:
+		wrappedErr = err
 	}
 
 	if reqID := requestID.Get(ctx); reqID != "" {
