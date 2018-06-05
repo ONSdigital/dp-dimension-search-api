@@ -9,6 +9,7 @@ import (
 
 // Config is the filing resource handler config
 type Config struct {
+	AuditEventsTopic          string        `envconfig:"AUDIT_EVENTS_TOPIC"`
 	AuthAPIURL                string        `envconfig:"ZEBEDEE_URL"`
 	BindAddr                  string        `envconfig:"BIND_ADDR"                  json:"-"`
 	Brokers                   []string      `envconfig:"KAFKA_ADDR"                 json:"-"`
@@ -36,6 +37,7 @@ func Get() (*Config, error) {
 	}
 
 	cfg = &Config{
+		AuditEventsTopic:          "audit-events",
 		AuthAPIURL:                "http://localhost:8082",
 		BindAddr:                  ":23100",
 		Brokers:                   []string{"localhost:9092"},

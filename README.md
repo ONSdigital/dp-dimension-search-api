@@ -24,6 +24,15 @@ one of:
 - success (200, JSON "status": "OK")
 - failure (500, JSON "status": "error").
 
+
+### Manually Creating and Deleting Indexes
+
+CREATE: `curl -X PUT <HOSTNAME>/search/instances/<instanceID>/dimensions/<dimensionName> -H <AUTH HEADER>`
+DELETE: `curl -X DELETE <HOSTNAME>/search/instances/<instanceID>/dimensions/<dimensionName> -H <AUTH HEADER>`
+
+The `<AUTH HEADER>` must be either a valid `X-FLorence-Token` or a valid `Authorization` header.
+
+
 ### Configuration
 
 | Environment variable       | Default                              | Description
