@@ -573,26 +573,29 @@ func expectedAuditOutcome(action, expectation string, testres testRes) {
 
 	// Set expected params based on endpoint
 	var expectedParams common.Params
+	var expectedParamsOnAttempt common.Params
 	if action == models.AuditTaskGetSearch {
 		expectedParams = common.Params{"dataset_id": "123", "dimension": "aggregate", "edition": "2017", "version": "1"}
+		expectedParamsOnAttempt = expectedParams
 	} else {
 		expectedParams = common.Params{"dimension": "aggregate", "instance_id": "123"}
+		expectedParamsOnAttempt = common.Params{"caller_identity": "APIAmWhoAPIAm", "dimension": "aggregate", "instance_id": "123"}
 	}
 
 	// Test the relevant scenario
 	switch expectation {
 	case models.Scenario_attemptOnly:
 		So(len(recCalls), ShouldEqual, 1)
-		verifyAuditRecordCalls(recCalls[0], action, models.AuditActionAttempted, expectedParams)
+		verifyAuditRecordCalls(recCalls[0], action, models.AuditActionAttempted, expectedParamsOnAttempt)
 
 	case models.Scenario_attemptAndSucceed:
 		So(len(recCalls), ShouldEqual, 2)
-		verifyAuditRecordCalls(recCalls[0], action, models.AuditActionAttempted, expectedParams)
+		verifyAuditRecordCalls(recCalls[0], action, models.AuditActionAttempted, expectedParamsOnAttempt)
 		verifyAuditRecordCalls(recCalls[1], action, models.AuditActionSuccessful, expectedParams)
 
 	case models.Scenario_attemptAndFail:
 		So(len(recCalls), ShouldEqual, 2)
-		verifyAuditRecordCalls(recCalls[0], action, models.AuditActionAttempted, expectedParams)
+		verifyAuditRecordCalls(recCalls[0], action, models.AuditActionAttempted, expectedParamsOnAttempt)
 		verifyAuditRecordCalls(recCalls[1], action, models.AuditActionUnsuccessful, expectedParams)
 	}
 }

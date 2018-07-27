@@ -240,11 +240,6 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 
 	ctx := r.Context()
 
-	if err := api.auditor.Record(ctx, models.AuditTaskCreateIndex, models.AuditActionAttempted, auditParams); err != nil {
-		handleAuditingFailure(w, ctx, models.AuditTaskCreateIndex, models.AuditActionAttempted, err, logData)
-		return
-	}
-
 	output := &searchoutputqueue.Search{
 		Dimension:  dimension,
 		InstanceID: instanceID,
@@ -280,11 +275,6 @@ func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) 
 	auditParams := common.Params{"instance_id": instanceID, "dimension": dimension}
 
 	ctx := r.Context()
-
-	if err := api.auditor.Record(ctx, models.AuditTaskDeleteIndex, models.AuditActionAttempted, auditParams); err != nil {
-		handleAuditingFailure(w, ctx, models.AuditTaskDeleteIndex, models.AuditActionAttempted, err, logData)
-		return
-	}
 
 	status, err := api.elasticsearch.DeleteSearchIndex(r.Context(), instanceID, dimension)
 	logData["status"] = status
