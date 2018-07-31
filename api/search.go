@@ -21,8 +21,11 @@ const (
 	defaultLimit  = 20
 	defaultOffset = 0
 
+	datasetNotFound = "dataset not found"
+	editionNotFound = "edition not found"
+	versionNotFound = "version not found"
+
 	internalError         = "internal server error"
-	notFoundError         = "resource not found"
 	exceedsDefaultMaximum = "the maximum offset has been reached, the offset cannot be more than"
 )
 
@@ -308,12 +311,6 @@ func setJSONContentType(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
-const (
-	datasetNotFound = "dataset not found"
-	editionNotFound = "edition not found"
-	versionNotFound = "version not found"
-)
-
 func setError(err error) (searchError error) {
 	switch {
 	case strings.Contains(err.Error(), versionNotFound):
@@ -330,14 +327,6 @@ func setError(err error) (searchError error) {
 }
 
 func setErrorCode(ctx context.Context, w http.ResponseWriter, err error) {
-
-	// if strings.HasPrefix(err.Error(), "invalid response: 401") {
-	// 	http.Error(w, err.Error(), http.StatusUnauthorized)
-	// }
-	//
-	// if matches := reNotFound.FindStringSubmatch(err.Error()); len(matches) > 0 {
-	// 	err = errors.New(matches[1])
-	// }
 
 	switch {
 	case errs.NotFoundMap[err]:
