@@ -3,11 +3,8 @@ package models
 import (
 	"errors"
 	"strconv"
-)
 
-// A list of errors that maybe returned from model
-var (
-	ErrorEmptySearchTerm = errors.New("search term empty")
+	errs "github.com/ONSdigital/dp-search-api/apierrors"
 )
 
 func ErrorMaximumOffsetReached(m int) error {
@@ -76,7 +73,7 @@ type PageVariables struct {
 // ValidateQueryParameters represents a model for validating query parameters
 func (page *PageVariables) ValidateQueryParameters(term string) error {
 	if term == "" {
-		return ErrorEmptySearchTerm
+		return errs.ErrEmptySearchTerm
 	}
 
 	if page.Offset >= page.DefaultMaxResults {

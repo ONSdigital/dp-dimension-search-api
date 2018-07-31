@@ -49,8 +49,9 @@ type SearchAPI struct {
 // CreateSearchAPI manages all the routes configured to API
 func CreateSearchAPI(
 	host, bindAddr, authAPIURL string, errorChan chan error, searchOutputQueue OutputQueue,
-	datasetAPIClient, datasetAPIClientNoAuth DatasetAPIer,
-	elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool, auditor audit.AuditorService) {
+	datasetAPIClient, datasetAPIClientNoAuth DatasetAPIer, elasticsearch Elasticsearcher,
+	defaultMaxResults int, hasPrivateEndpoints bool, auditor audit.AuditorService) {
+
 	router := mux.NewRouter()
 	routes(host, router, searchOutputQueue, datasetAPIClient, datasetAPIClientNoAuth, elasticsearch, defaultMaxResults, hasPrivateEndpoints, auditor)
 
