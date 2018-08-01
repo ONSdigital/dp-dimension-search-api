@@ -2,9 +2,9 @@ package mocks
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
+	errs "github.com/ONSdigital/dp-search-api/apierrors"
 	"github.com/ONSdigital/dp-search-api/models"
 )
 
@@ -14,18 +14,14 @@ type Elasticsearch struct {
 	IndexNotFound       bool
 }
 
-var (
-	errorIndexNotFound = errors.New("Index not found")
-)
-
 // QuerySearchIndex represents the mocked version of building a query and then calling elasticsearch index
 func (api *Elasticsearch) QuerySearchIndex(ctx context.Context, instanceID, dimension, term string, limit, offset int) (*models.SearchResponse, int, error) {
 	if api.InternalServerError {
-		return nil, 0, errorInternalServer
+		return nil, 0, errs.ErrInternalServer
 	}
 
 	if api.IndexNotFound {
-		return nil, http.StatusNotFound, errorIndexNotFound
+		return nil, http.StatusInternalServerError, errs.ErrIndexNotFound
 	}
 
 	firstHit := models.HitList{
@@ -68,11 +64,11 @@ func (api *Elasticsearch) QuerySearchIndex(ctx context.Context, instanceID, dime
 // DeleteSearchIndex represents the mocked version that removes an index from elasticsearch
 func (api *Elasticsearch) DeleteSearchIndex(ctx context.Context, instanceID, dimension string) (int, error) {
 	if api.InternalServerError {
-		return 0, errorInternalServer
+		return 0, errs.ErrInternalServer
 	}
 
 	if api.IndexNotFound {
-		return http.StatusNotFound, errorIndexNotFound
+		return http.StatusNotFound, errs.ErrDeleteIndexNotFound
 	}
 
 	return http.StatusOK, nil

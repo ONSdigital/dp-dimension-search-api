@@ -2,8 +2,8 @@ package mocks
 
 import (
 	"context"
-	"errors"
 
+	errs "github.com/ONSdigital/dp-search-api/apierrors"
 	datasetclient "github.com/ONSdigital/go-ns/clients/dataset"
 )
 
@@ -17,11 +17,6 @@ type DatasetAPI struct {
 	Calls               int
 }
 
-var (
-	errorInternalServer = errors.New("Internal server error")
-	errorNotFound       = errors.New("Not found")
-)
-
 // GetVersion represents the mocked version that queries the dataset API to get a version resource
 func (api *DatasetAPI) GetVersion(ctx context.Context, datasetID, edition, version string) (ver datasetclient.Version, err error) {
 	isAuthenticated := len(api.SvcAuth) > 0
@@ -30,20 +25,20 @@ func (api *DatasetAPI) GetVersion(ctx context.Context, datasetID, edition, versi
 
 	if api.InternalServerError {
 		if isBadAuthExpectation {
-			return ver, errorNotFound
+			return ver, errs.ErrVersionNotFound
 		}
-		return ver, errorInternalServer
+		return ver, errs.ErrInternalServer
 	}
 
 	if api.VersionNotFound {
 		if isBadAuthExpectation {
-			return ver, errorInternalServer
+			return ver, errs.ErrInternalServer
 		}
-		return ver, errorNotFound
+		return ver, errs.ErrVersionNotFound
 	}
 
 	if isBadAuthExpectation {
-		return ver, errorNotFound
+		return ver, errs.ErrVersionNotFound
 	}
 
 	return

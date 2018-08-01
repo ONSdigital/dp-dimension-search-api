@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	errs "github.com/ONSdigital/dp-search-api/apierrors"
 	"github.com/ONSdigital/dp-search-api/models"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/common"
@@ -20,8 +21,12 @@ const (
 	defaultLimit  = 20
 	defaultOffset = 0
 
-	internalError = "Failed to process the request due to an internal error"
-	notFoundError = "Resource not found"
+	datasetNotFound = "dataset not found"
+	editionNotFound = "edition not found"
+	versionNotFound = "version not found"
+
+	internalError         = "internal server error"
+	exceedsDefaultMaximum = "the maximum offset has been reached, the offset cannot be more than"
 )
 
 var (
@@ -30,7 +35,7 @@ var (
 )
 
 func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
-
+	ctx := r.Context()
 	vars := mux.Vars(r)
 
 	datasetID := vars["id"]
@@ -52,121 +57,127 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		"requested_offset": requestedOffset,
 	}
 
-	log.Info("incoming request", logData)
+	log.InfoCtx(ctx, "getSearch endpoint: incoming request", logData)
 
 	auditParams := common.Params{"dataset_id": datasetID, "edition": edition, "version": version, "dimension": dimension}
 
-	ctx := r.Context()
-
-	if err := api.auditor.Record(ctx, models.AuditTaskGetSearch, models.AuditActionAttempted, auditParams); err != nil {
-		handleAuditingFailure(w, ctx, models.AuditTaskGetSearch, models.AuditActionAttempted, err, logData)
+	if auditError := api.auditor.Record(ctx, models.AuditTaskGetSearch, models.AuditActionAttempted, auditParams); auditError != nil {
+		http.Error(w, internalError, http.StatusInternalServerError)
 		return
 	}
 
 	client := api.datasetAPIClientNoAuth
-	if api.hasPrivateEndpoints && common.IsCallerPresent(r.Context()) {
+	if api.hasPrivateEndpoints && common.IsCallerPresent(ctx) {
 		// Authorised to search against an unpublished version
 		// and exposes private endpoints
 		client = api.datasetAPIClient
 	}
 
-	// Get instanceID from datasetAPI
-	versionDoc, err := client.GetVersion(r.Context(), datasetID, edition, version)
-	if err != nil {
-		log.Error(err, nil)
-		if err := api.auditor.Record(ctx, models.AuditTaskGetSearch, models.AuditActionUnsuccessful, auditParams); err != nil {
-			handleAuditingFailure(w, ctx, models.AuditTaskGetSearch, models.AuditActionUnsuccessful, err, logData)
-			return
-		}
-		setErrorCode(w, err, "failed to get version of a dataset from the dataset API")
-		return
-	}
+	b, err := func() ([]byte, error) {
 
-	logData["version_doc"] = versionDoc
-
-	instanceID := versionDoc.ID
-	logData["instance_id"] = instanceID
-
-	limit := defaultLimit
-	if requestedLimit != "" {
-		limit, err = strconv.Atoi(requestedLimit)
+		// Get instanceID from datasetAPI
+		versionDoc, err := client.GetVersion(ctx, datasetID, edition, version)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+			log.ErrorCtx(ctx, errors.WithMessage(err, "getSearch endpoint: failed to get version of a dataset from the dataset API"), logData)
+			return nil, setError(err)
 		}
-	}
 
-	offset := defaultOffset
-	if requestedOffset != "" {
-		offset, err = strconv.Atoi(requestedOffset)
+		logData["version_doc"] = versionDoc
+
+		instanceID := versionDoc.ID
+		logData["instance_id"] = instanceID
+
+		limit := defaultLimit
+		if requestedLimit != "" {
+			limit, err = strconv.Atoi(requestedLimit)
+			if err != nil {
+				log.ErrorCtx(ctx, errors.WithMessage(err, "getSearch endpoint: request limit parameter error"), logData)
+				return nil, errs.ErrParsingQueryParameters
+			}
+		}
+
+		offset := defaultOffset
+		if requestedOffset != "" {
+			offset, err = strconv.Atoi(requestedOffset)
+			if err != nil {
+				log.ErrorCtx(ctx, errors.WithMessage(err, "getSearch endpoint: request offset parameter error"), logData)
+				return nil, errs.ErrParsingQueryParameters
+			}
+		}
+
+		page := &models.PageVariables{
+			DefaultMaxResults: api.defaultMaxResults,
+			Limit:             limit,
+			Offset:            offset,
+		}
+
+		if err = page.ValidateQueryParameters(term); err != nil {
+			log.ErrorCtx(ctx, errors.WithMessage(err, "getSearch endpoint: failed query parameter validation"), logData)
+			return nil, err
+		}
+
+		logData["limit"] = page.Limit
+		logData["offset"] = page.Offset
+
+		log.InfoCtx(ctx, "getSearch endpoint: just before querying search index", logData)
+
+		response, _, err := api.elasticsearch.QuerySearchIndex(ctx, instanceID, dimension, term, page.Limit, page.Offset)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+			log.ErrorCtx(ctx, errors.WithMessage(err, "getSearch endpoint: failed to query elastic search index"), logData)
+			return nil, err
 		}
-	}
 
-	page := &models.PageVariables{
-		DefaultMaxResults: api.defaultMaxResults,
-		Limit:             limit,
-		Offset:            offset,
-	}
+		searchResults := &models.SearchResults{
+			Count:  response.Hits.Total,
+			Limit:  page.Limit,
+			Offset: page.Offset,
+		}
 
-	if err = page.ValidateQueryParameters(term); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+		for _, result := range response.Hits.HitList {
+			result.Source.DimensionOptionURL = result.Source.URL
+			result.Source.URL = ""
 
-	logData["limit"] = page.Limit
-	logData["offset"] = page.Offset
+			result = getSnippets(ctx, result)
 
-	log.Info("just before calling query search index", logData)
+			doc := result.Source
+			searchResults.Items = append(searchResults.Items, doc)
+		}
 
-	response, _, err := api.elasticsearch.QuerySearchIndex(r.Context(), instanceID, dimension, term, page.Limit, page.Offset)
+		searchResults.Count = len(searchResults.Items)
+
+		b, err := json.Marshal(searchResults)
+		if err != nil {
+			log.ErrorCtx(ctx, errors.WithMessage(err, "getSearch endpoint: failed to marshal search resource into bytes"), logData)
+			return nil, errs.ErrInternalServer
+		}
+
+		return b, nil
+	}()
 	if err != nil {
-		setErrorCode(w, err, "failed to query elastic search index")
+		if auditErr := api.auditor.Record(ctx, models.AuditTaskGetSearch, models.AuditActionUnsuccessful, auditParams); auditErr != nil {
+			err = auditErr
+		}
+
+		setErrorCode(ctx, w, err)
 		return
 	}
 
-	searchResults := &models.SearchResults{
-		Count:  response.Hits.Total,
-		Limit:  page.Limit,
-		Offset: page.Offset,
-	}
-
-	for _, result := range response.Hits.HitList {
-		result.Source.DimensionOptionURL = result.Source.URL
-		result.Source.URL = ""
-
-		result = getSnippets(result)
-
-		doc := result.Source
-		searchResults.Items = append(searchResults.Items, doc)
-	}
-
-	searchResults.Count = len(searchResults.Items)
-
-	bytes, err := json.Marshal(searchResults)
-	if err != nil {
-		log.ErrorC("failed to marshal dataset resource into bytes", err, nil)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if err := api.auditor.Record(ctx, models.AuditTaskGetSearch, models.AuditActionSuccessful, auditParams); err != nil {
-		handleAuditingFailure(w, ctx, models.AuditTaskGetSearch, models.AuditActionSuccessful, err, logData)
+	if auditError := api.auditor.Record(ctx, models.AuditTaskGetSearch, models.AuditActionSuccessful, auditParams); auditError != nil {
+		http.Error(w, internalError, http.StatusInternalServerError)
 		return
 	}
 
 	setJSONContentType(w)
-	_, err = w.Write(bytes)
+	_, err = w.Write(b)
 	if err != nil {
-		log.Error(err, nil)
+		log.ErrorCtx(ctx, err, logData)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	log.Debug("get all datasets", nil)
+
+	log.InfoCtx(ctx, "getSearch endpoint: successfully searched index", logData)
 }
 
-func getSnippets(result models.HitList) models.HitList {
+func getSnippets(ctx context.Context, result models.HitList) models.HitList {
 
 	if len(result.Highlight.Code) > 0 {
 		highlightedCode := result.Highlight.Code[0]
@@ -191,7 +202,7 @@ func getSnippets(result models.HitList) models.HitList {
 			prevEnd = snippet.End
 
 			result.Source.Matches.Code = append(result.Source.Matches.Code, snippet)
-			log.Info("added code snippet", logData)
+			log.InfoCtx(ctx, "getSearch endpoint: added code snippet", logData)
 
 			highlightedCode = string(highlightedCode[end+2:])
 		}
@@ -220,7 +231,7 @@ func getSnippets(result models.HitList) models.HitList {
 			prevEnd = snippet.End
 
 			result.Source.Matches.Label = append(result.Source.Matches.Label, snippet)
-			log.Info("added label snippet", logData)
+			log.InfoCtx(ctx, "getSearch endpoint: added label snippet", logData)
 
 			highlightedLabel = string(highlightedLabel[end+2:])
 		}
@@ -230,6 +241,7 @@ func getSnippets(result models.HitList) models.HitList {
 }
 
 func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 
 	instanceID := vars["instance_id"]
@@ -238,12 +250,7 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 	logData := log.Data{"instance_id": instanceID, "dimension": dimension}
 	auditParams := common.Params{"instance_id": instanceID, "dimension": dimension}
 
-	ctx := r.Context()
-
-	if err := api.auditor.Record(ctx, models.AuditTaskCreateIndex, models.AuditActionAttempted, auditParams); err != nil {
-		handleAuditingFailure(w, ctx, models.AuditTaskCreateIndex, models.AuditActionAttempted, err, logData)
-		return
-	}
+	log.InfoCtx(ctx, "createSearchIndex endpoint: attempting to enqueue a new search index", logData)
 
 	output := &searchoutputqueue.Search{
 		Dimension:  dimension,
@@ -251,26 +258,25 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := api.searchOutputQueue.Queue(output); err != nil {
-		if err := api.auditor.Record(ctx, models.AuditTaskCreateIndex, models.AuditActionUnsuccessful, auditParams); err != nil {
-			handleAuditingFailure(w, ctx, models.AuditTaskCreateIndex, models.AuditActionUnsuccessful, err, logData)
+		if auditError := api.auditor.Record(ctx, models.AuditTaskCreateIndex, models.AuditActionUnsuccessful, auditParams); auditError != nil {
+			http.Error(w, internalError, http.StatusInternalServerError)
 			return
 		}
-		setErrorCode(w, err, "failed to create message to drive index creation")
+
+		setErrorCode(ctx, w, err)
 		return
 	}
 
-	if err := api.auditor.Record(ctx, models.AuditTaskCreateIndex, models.AuditActionSuccessful, auditParams); err != nil {
-		handleAuditingFailure(w, ctx, models.AuditTaskCreateIndex, models.AuditActionSuccessful, err, logData)
-		return
-	}
+	api.auditor.Record(ctx, models.AuditTaskCreateIndex, models.AuditActionSuccessful, auditParams)
 
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
 
-	log.Info("index deleted", logData)
+	log.InfoCtx(ctx, "createSearchIndex endpoint: index creation queued", logData)
 }
 
 func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 
 	instanceID := vars["instance_id"]
@@ -279,89 +285,57 @@ func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) 
 	logData := log.Data{"instance_id": instanceID, "dimension": dimension}
 	auditParams := common.Params{"instance_id": instanceID, "dimension": dimension}
 
-	ctx := r.Context()
+	log.InfoCtx(ctx, "deleteSearchIndex endpoint: attempting to delete search index", logData)
 
-	if err := api.auditor.Record(ctx, models.AuditTaskDeleteIndex, models.AuditActionAttempted, auditParams); err != nil {
-		handleAuditingFailure(w, ctx, models.AuditTaskDeleteIndex, models.AuditActionAttempted, err, logData)
-		return
-	}
-
-	status, err := api.elasticsearch.DeleteSearchIndex(r.Context(), instanceID, dimension)
+	status, err := api.elasticsearch.DeleteSearchIndex(ctx, instanceID, dimension)
 	logData["status"] = status
 	if err != nil {
-		if err := api.auditor.Record(r.Context(), models.AuditTaskDeleteIndex, models.AuditActionUnsuccessful, auditParams); err != nil {
-			handleAuditingFailure(w, ctx, models.AuditTaskDeleteIndex, models.AuditActionUnsuccessful, err, logData)
+		if auditError := api.auditor.Record(ctx, models.AuditTaskDeleteIndex, models.AuditActionUnsuccessful, auditParams); auditError != nil {
+			http.Error(w, internalError, http.StatusInternalServerError)
 			return
 		}
-		setErrorCode(w, err, "failed to delete index")
+
+		setErrorCode(ctx, w, err)
 		return
 	}
 
-	if err := api.auditor.Record(r.Context(), models.AuditTaskDeleteIndex, models.AuditActionSuccessful, auditParams); err != nil {
-		handleAuditingFailure(w, ctx, models.AuditTaskDeleteIndex, models.AuditActionSuccessful, err, logData)
-		return
-	}
+	api.auditor.Record(ctx, models.AuditTaskDeleteIndex, models.AuditActionSuccessful, auditParams)
 
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
 
-	log.Info("index deleted", logData)
+	log.InfoCtx(ctx, "deleteSearchIndex endpoint: search index deleted", logData)
 }
 
 func setJSONContentType(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
-func setErrorCode(w http.ResponseWriter, err error, errorContext string) {
-
-	if strings.HasPrefix(err.Error(), "invalid response: 401") {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+func setError(err error) (searchError error) {
+	switch {
+	case strings.Contains(err.Error(), versionNotFound):
+		searchError = errs.ErrVersionNotFound
+	case strings.Contains(err.Error(), editionNotFound):
+		searchError = errs.ErrEditionNotFound
+	case strings.Contains(err.Error(), datasetNotFound):
+		searchError = errs.ErrDatasetNotFound
+	default:
+		searchError = err
 	}
 
-	if matches := reNotFound.FindStringSubmatch(err.Error()); len(matches) > 0 {
-		err = errors.New(matches[1])
-	}
+	return searchError
+}
 
-	log.ErrorC(errorContext, err, nil)
+func setErrorCode(ctx context.Context, w http.ResponseWriter, err error) {
 
-	switch err.Error() {
-	case "Not found",
-		"Version not found",
-		"Edition not found",
-		"Index not found",
-		"Dataset not found":
-		http.Error(w, notFoundError, http.StatusNotFound)
+	switch {
+	case errs.NotFoundMap[err]:
+		http.Error(w, err.Error(), http.StatusNotFound)
+	case errs.BadRequestMap[err]:
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	case strings.Contains(err.Error(), exceedsDefaultMaximum):
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	default:
 		http.Error(w, internalError, http.StatusInternalServerError)
 	}
-}
-
-func handleAuditingFailure(w http.ResponseWriter, ctx context.Context, action, result string, err error, logData log.Data) {
-
-	logData["action"] = action
-	logData["result"] = result
-
-	if user := common.User(ctx); user != "" {
-		logData["user"] = user
-	}
-
-	var wrappedErr error
-
-	switch result {
-	case models.AuditActionAttempted:
-		wrappedErr = errors.WithMessage(err, models.AuditActionAttemptedErr)
-	case models.AuditActionSuccessful:
-		wrappedErr = errors.WithMessage(err, models.AuditActionSuccessfulErr)
-	case models.AuditActionUnsuccessful:
-		wrappedErr = errors.WithMessage(err, models.AuditActionUnsuccessfulErr)
-	default:
-		wrappedErr = err
-	}
-
-	if reqID := common.GetRequestId(ctx); reqID != "" {
-		log.ErrorC(reqID, wrappedErr, logData)
-	} else {
-		log.Error(wrappedErr, logData)
-	}
-	http.Error(w, "internal server error", http.StatusInternalServerError)
 }

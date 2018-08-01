@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ONSdigital/dp-dataset-api/store"
+	"github.com/ONSdigital/dp-search-api/models"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/healthcheck"
@@ -48,8 +49,9 @@ type SearchAPI struct {
 // CreateSearchAPI manages all the routes configured to API
 func CreateSearchAPI(
 	host, bindAddr, authAPIURL string, errorChan chan error, searchOutputQueue OutputQueue,
-	datasetAPIClient, datasetAPIClientNoAuth DatasetAPIer,
-	elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool, auditor audit.AuditorService) {
+	datasetAPIClient, datasetAPIClientNoAuth DatasetAPIer, elasticsearch Elasticsearcher,
+	defaultMaxResults int, hasPrivateEndpoints bool, auditor audit.AuditorService) {
+
 	router := mux.NewRouter()
 	routes(host, router, searchOutputQueue, datasetAPIClient, datasetAPIClientNoAuth, elasticsearch, defaultMaxResults, hasPrivateEndpoints, auditor)
 
@@ -95,8 +97,8 @@ func routes(host string, router *mux.Router, searchOutputQueue OutputQueue, data
 	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.getSearch).Methods("GET")
 
 	if hasPrivateEndpoints {
-		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", identity.Check(api.createSearchIndex)).Methods("PUT")
-		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", identity.Check(api.deleteSearchIndex)).Methods("DELETE")
+		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", identity.Check(auditor, models.AuditTaskCreateIndex, api.createSearchIndex)).Methods("PUT")
+		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", identity.Check(auditor, models.AuditTaskDeleteIndex, api.deleteSearchIndex)).Methods("DELETE")
 	}
 
 	return &api

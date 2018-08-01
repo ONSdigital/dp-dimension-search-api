@@ -38,7 +38,7 @@ func TestValidateQueryParameters(t *testing.T) {
 	Convey("Given the query term is empty return with an error", t, func() {
 		err := p.ValidateQueryParameters("")
 		So(err, ShouldNotBeEmpty)
-		So(err, ShouldResemble, errors.New("search term empty"))
+		So(err, ShouldResemble, errors.New("empty search term"))
 	})
 
 	Convey("Given the query term is NOT empty and the offset exceeds the maximum number of results return with an error", t, func() {
