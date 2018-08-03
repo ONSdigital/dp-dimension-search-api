@@ -126,6 +126,8 @@ paths:
         500:
           $ref: '#/responses/InternalError'
 responses:
+  MethodNotDefinedError:
+    description: "Method for existing path does not exist."
   InvalidRequestError:
     description: "Failed to process the request due to invalid request."
   InternalError:
