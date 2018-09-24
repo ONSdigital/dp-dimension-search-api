@@ -36,6 +36,10 @@ DELETE: `curl -X DELETE <HOSTNAME>/search/instances/<instanceID>/dimensions/<dim
 
 The `<AUTH HEADER>` must be either a valid `X-FLorence-Token` or a valid `Authorization` header.
 
+### Kafka scripts
+
+Scripts for updating and debugging Kafka can be found [here](https://github.com/ONSdigital/dp-data-tools)(dp-data-tools)
+
 
 ### Configuration
 
