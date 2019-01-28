@@ -27,11 +27,7 @@ job "dp-search-api" {
     }
 
     task "dp-search-api-web" {
-      driver = "exec"
-
-      artifact {
-        source = "s3::https://s3-eu-west-1.amazonaws.com/{{BUILD_BUCKET}}/dp-search-api/{{REVISION}}.tar.gz"
-      }
+      driver = "docker"
 
       artifact {
         source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-search-api/{{REVISION}}.tar.gz"
@@ -39,9 +35,14 @@ job "dp-search-api" {
 
       config {
         command = "${NOMAD_TASK_DIR}/start-task"
-        args    = [
-          "${NOMAD_TASK_DIR}/dp-search-api",
-        ]
+        
+	args = [“./dp-search-api”]
+
+        image = “{{ECR_URL}}:concourse-{{REVISION}}”
+
+        port_map {
+          http = “${NOMAD_PORT_http}”
+        }
       }
 
       service {
@@ -92,11 +93,7 @@ job "dp-search-api" {
     }
 
     task "dp-search-api-publishing" {
-      driver = "exec"
-
-      artifact {
-        source = "s3::https://s3-eu-west-1.amazonaws.com/{{BUILD_BUCKET}}/dp-search-api/{{REVISION}}.tar.gz"
-      }
+      driver = "docker"
 
       artifact {
         source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-search-api/{{REVISION}}.tar.gz"
@@ -104,9 +101,14 @@ job "dp-search-api" {
 
       config {
         command = "${NOMAD_TASK_DIR}/start-task"
-        args    = [
-          "${NOMAD_TASK_DIR}/dp-search-api",
-        ]
+
+	args = [“./dp-search-api”]
+
+        image = “{{ECR_URL}}:concourse-{{REVISION}}”
+
+        port_map {
+          http = “${NOMAD_PORT_http}”
+        }
       }
 
       service {
