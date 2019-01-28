@@ -36,12 +36,12 @@ job "dp-search-api" {
       config {
         command = "${NOMAD_TASK_DIR}/start-task"
         
-	args = [“./dp-search-api”]
+	args = ["./dp-search-api"]
 
-        image = “{{ECR_URL}}:concourse-{{REVISION}}”
+        image = "{{ECR_URL}}:concourse-{{REVISION}}"
 
         port_map {
-          http = “${NOMAD_PORT_http}”
+          http = "${NOMAD_PORT_http}"
         }
       }
 
@@ -102,12 +102,12 @@ job "dp-search-api" {
       config {
         command = "${NOMAD_TASK_DIR}/start-task"
 
-	args = [“./dp-search-api”]
+	args = ["./dp-search-api"]
 
-        image = “{{ECR_URL}}:concourse-{{REVISION}}”
+        image = "{{ECR_URL}}:concourse-{{REVISION}}"
 
         port_map {
-          http = “${NOMAD_PORT_http}”
+          http = "${NOMAD_PORT_http}"
         }
       }
 
