@@ -162,7 +162,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 	t.Parallel()
 	Convey("Given search API fails to connect to the dataset API return status 500 (internal service error)", t, func() {
 		testres := setupTest(testOpts{
-			url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			url:                   "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			dsInternalServerError: true,
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
@@ -219,7 +219,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 
 	Convey("Given search API fails to connect to elastic search cluster return status 500 (internal service error)", t, func() {
 		testres := setupTest(testOpts{
-			url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			url:                   "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			esInternalServerError: true,
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
@@ -297,7 +297,7 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 	})
 	Convey("Given private subnet, when an authenticated GET is made, force the dataset api to return 500 if authenticated, so we return 500", t, func() {
 		testres := setupTest(testOpts{
-			url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			url:                   "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			dsInternalServerError: true,
 			dsRequireAuth:         true,
 			reqHasAuth:            true,
