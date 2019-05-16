@@ -13,6 +13,7 @@ import (
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
+	"github.com/ONSdigital/go-ns/handlers/collectionID"
 )
 
 var httpServer *server.Server
@@ -57,6 +58,9 @@ func CreateSearchAPI(
 
 	healthcheckHandler := healthcheck.NewMiddleware(healthcheck.Do)
 	middlewareChain := alice.New(healthcheckHandler)
+
+	collectionIdHandler := collectionID.Handler
+	middlewareChain = middlewareChain.Append(collectionIdHandler)
 
 	if hasPrivateEndpoints {
 
