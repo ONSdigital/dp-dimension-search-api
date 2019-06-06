@@ -91,6 +91,12 @@ job "dp-search-api" {
       interval = "1m"
       mode     = "delay"
     }
+<<<<<<< HEAD
+=======
+
+    task "dp-search-api-publishing" {
+      driver = "exec"
+>>>>>>> master
 
     task "dp-search-api-publishing" {
       driver = "docker"
