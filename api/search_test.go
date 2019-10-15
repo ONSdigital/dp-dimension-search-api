@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	defaultMaxResults = 20
+	defaultMaxResults = 200
 )
 
 type testOpts struct {
@@ -108,7 +108,7 @@ func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 
 		So(searchResults.Count, ShouldEqual, 2)
 		So(len(searchResults.Items), ShouldEqual, 2)
-		So(searchResults.Limit, ShouldEqual, 20)
+		So(searchResults.Limit, ShouldEqual, 50)
 		So(searchResults.Offset, ShouldEqual, 0)
 		So(searchResults.Items[0].Code, ShouldEqual, "frs34g5t98hdd")
 		So(searchResults.Items[0].DimensionOptionURL, ShouldEqual, "http://localhost:8080/testing/1")
@@ -156,13 +156,31 @@ func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 		So(searchResults.Offset, ShouldEqual, 20)
 		expectedAuditOutcome(models.AuditTaskGetSearch, models.Scenario_attemptAndSucceed, testres)
 	})
+
+	Convey("Given the search query satisfies the search index when limit parameter is set beyond the maximum then return a status 200", t, func() {
+		testres := setupTest(testOpts{
+			url:        "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&limit=20000",
+			maxResults: defaultMaxResults,
+			reqHasAuth: true,
+		})
+		So(testres.w.Code, ShouldEqual, http.StatusOK)
+
+		// Check response json
+		searchResults := getSearchResults(testres.w.Body)
+
+		So(searchResults.Count, ShouldEqual, 2)
+		So(len(searchResults.Items), ShouldEqual, 2)
+		So(searchResults.Limit, ShouldEqual, defaultMaxResults)
+		So(searchResults.Offset, ShouldEqual, 0)
+		expectedAuditOutcome(models.AuditTaskGetSearch, models.Scenario_attemptAndSucceed, testres)
+	})
 }
 
 func TestGetSearchFailureScenarios(t *testing.T) {
 	t.Parallel()
 	Convey("Given search API fails to connect to the dataset API return status 500 (internal service error)", t, func() {
 		testres := setupTest(testOpts{
-			url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			url:                   "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			dsInternalServerError: true,
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
@@ -210,7 +228,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 
 	Convey("Given the offset parameter exceeds the default maximum results return status 400 (bad request)", t, func() {
 		testres := setupTest(testOpts{
-			url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&offset=50",
+			url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&offset=500",
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusBadRequest)
 		So(testres.w.Body.String(), ShouldEqual, "the maximum offset has been reached, the offset cannot be more than "+strconv.Itoa(defaultMaxResults)+"\n")
@@ -219,7 +237,7 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 
 	Convey("Given search API fails to connect to elastic search cluster return status 500 (internal service error)", t, func() {
 		testres := setupTest(testOpts{
-			url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			url:                   "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			esInternalServerError: true,
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusInternalServerError)
@@ -297,7 +315,7 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 	})
 	Convey("Given private subnet, when an authenticated GET is made, force the dataset api to return 500 if authenticated, so we return 500", t, func() {
 		testres := setupTest(testOpts{
-			url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			url:                   "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			dsInternalServerError: true,
 			dsRequireAuth:         true,
 			reqHasAuth:            true,

@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	defaultLimit  = 20
+	defaultLimit  = 50
 	defaultOffset = 0
 
 	datasetNotFound = "dataset not found"
