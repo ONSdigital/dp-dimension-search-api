@@ -17,6 +17,7 @@
 
 hierarchy_api_url=localhost:10550
 search_api_url=localhost:23100
+search_inst_prefix=$search_api_url/search/instances
 # token for accessing the search API (can easily be changed at runtime):
 SERVICE_AUTH_TOKEN=changeme
 
@@ -63,10 +64,11 @@ echo Creating: $cmd_file ...
 	#!/usr/bin/env bash
 	# XXX do not commit me XXX
 	
-	# change me?
+	# change these?
 	auth_token=$SERVICE_AUTH_TOKEN
+	search_inst_prefix=$search_inst_prefix
 	
-	cyrl(){ echo "Doing \$1"; curl -H "Authorization: Bearer \$auth_token" -X PUT "\$1" || sleep 10; }
+	cyrl(){ echo "Doing \$1"; curl -iH "Authorization: Bearer \$auth_token" -X PUT "\$1" || sleep 10; }
 	
 EOFstarter
 } > $cmd_file
@@ -100,7 +102,7 @@ for (( idx=0 ; idx < instance_count ; idx++ )); do
                 curl_ok "$hierarchy_api_url/hierarchies/$inst_id/$dim" || curl_res=$?
                 if [[ $curl_res -eq 0 ]]; then
                         echo "		add hierarchy $inst_id $dim"
-                        add_cmd "cyrl \"$search_api_url/search/instances/$inst_id/dimensions/$dim\""
+                        add_cmd "cyrl \"\$search_inst_prefix/$inst_id/dimensions/$dim\""
                         let dimensions_processed++
                         [[ $dimensions_processed -lt 5 ]] && add_cmd sleep $(( 6 - dimensions_processed ))
                 elif [[ $curl_res -eq 4 ]]; then
