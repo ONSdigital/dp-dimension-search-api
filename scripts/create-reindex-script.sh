@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # this script takes a list of instances (from a file)
-# and creates the curl commands needed to asking the search API
+# and creates the curl commands needed to ask the search API
 # to reindex the dimensions for that instance
 #
 # along the way, it ensures that:
