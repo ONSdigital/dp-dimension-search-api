@@ -42,7 +42,7 @@ func Get() (*Config, error) {
 		BindAddr:                  ":23100",
 		Brokers:                   []string{"localhost:9092"},
 		DatasetAPIURL:             "http://localhost:22000",
-		ElasticSearchAPIURL:       "http://localhost:9200",
+		ElasticSearchAPIURL:       "http://localhost:10200",
 		GracefulShutdownTimeout:   5 * time.Second,
 		HasPrivateEndpoints:       true,
 		HealthCheckInterval:       1 * time.Minute,
