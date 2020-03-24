@@ -6,14 +6,14 @@ image_resource:
   type: docker-image
   source:
     repository: golang
-    tag: 1.9.2
+    tag: 1.13.8
 
 inputs:
   - name: dp-search-api
-    path: go/src/github.com/ONSdigital/dp-search-api
+    path: dp-search-api
 
 outputs:
   - name: build
 
 run:
-  path: go/src/github.com/ONSdigital/dp-search-api/ci/scripts/build.sh
+  path: dp-search-api/ci/scripts/build.sh
