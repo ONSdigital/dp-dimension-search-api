@@ -8,17 +8,22 @@ BIN_DIR?=.
 export GOOS?=$(shell go env GOOS)
 export GOARCH?=$(shell go env GOARCH)
 
+BUILD_TIME=$(shell date +%s)
+GIT_COMMIT=$(shell git rev-parse HEAD)
+VERSION ?= $(shell git tag --points-at HEAD | grep ^v | head -n 1)
+LDFLAGS=-ldflags "-w -s -X 'main.Version=${VERSION}' -X 'main.BuildTime=$(BUILD_TIME)' -X 'main.GitCommit=$(GIT_COMMIT)'"
+
 export ENABLE_PRIVATE_ENDPOINTS?=true
 
 build:
 	@mkdir -p $(BUILD_ARCH)/$(BIN_DIR)
-	go build -o $(BUILD_ARCH)/$(BIN_DIR)/$(MAIN)
+	go build $(LDFLAGS) -o $(BUILD_ARCH)/$(BIN_DIR)/$(MAIN)
 debug: build
-	HUMAN_LOG=1 go run -race main.go
+	HUMAN_LOG=1 go run $(LDFLAGS) -race main.go
 acceptance-publishing: build
-	ENABLE_PRIVATE_ENDPOINTS=true MONGODB_DATABASE=test HUMAN_LOG=1 go run main.go
+	ENABLE_PRIVATE_ENDPOINTS=true MONGODB_DATABASE=test HUMAN_LOG=1 go run $(LDFLAGS) main.go
 acceptance-web: build
-	ENABLE_PRIVATE_ENDPOINTS=false MONGODB_DATABASE=test HUMAN_LOG=1 go run main.go
+	ENABLE_PRIVATE_ENDPOINTS=false MONGODB_DATABASE=test HUMAN_LOG=1 go run $(LDFLAGS) main.go
 test:
 	go test -cover -race ./...
 
