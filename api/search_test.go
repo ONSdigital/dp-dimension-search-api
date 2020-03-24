@@ -27,6 +27,7 @@ var (
 type testOpts struct {
 	method                string
 	url                   string
+	serviceAuthToken      string
 	maxResults            int
 	dsInternalServerError bool
 	dsRequireNoAuth       bool
@@ -39,10 +40,9 @@ type testOpts struct {
 	privateSubnet         bool
 }
 type testRes struct {
-	w          *httptest.ResponseRecorder
-	dsWithAuth *mocks.DatasetAPI
-	dsNoAuth   *mocks.DatasetAPI
-	audit      *audit.AuditorServiceMock
+	w              *httptest.ResponseRecorder
+	datasetAPIMock *mocks.DatasetAPI
+	audit          *audit.AuditorServiceMock
 }
 
 func setupTest(opts testOpts) testRes {
@@ -56,30 +56,30 @@ func setupTest(opts testOpts) testRes {
 		opts.maxResults = defaultMaxResults
 	}
 
-	datasetWithAuth := &mocks.DatasetAPI{InternalServerError: opts.dsInternalServerError, VersionNotFound: opts.dsVersionNotFound, RequireNoAuth: opts.dsRequireNoAuth, RequireAuth: opts.dsRequireAuth, SvcAuth: "AuthMe!"}
-	datasetNoAuth := &mocks.DatasetAPI{InternalServerError: opts.dsInternalServerError, VersionNotFound: opts.dsVersionNotFound, RequireNoAuth: opts.dsRequireNoAuth, RequireAuth: opts.dsRequireAuth}
+	datasetAPIMock := &mocks.DatasetAPI{InternalServerError: opts.dsInternalServerError, VersionNotFound: opts.dsVersionNotFound, RequireNoAuth: opts.dsRequireNoAuth, RequireAuth: opts.dsRequireAuth}
 
 	mockAuditor := getMockAuditor()
+
+	// fake the auth wrapper by adding user,caller to r.Context() before ServeHTTP() is called
+	if opts.reqHasAuth {
+		r = r.WithContext(common.SetUser(r.Context(), "coffee@test"))
+		r = r.WithContext(common.SetCaller(r.Context(), "APIAmWhoAPIAm"))
+		opts.serviceAuthToken = "1234"
+	}
 
 	api := routes(
 		"host", mux.NewRouter(),
 		&mocks.BuildSearch{ReturnError: opts.searchReturnError},
-		datasetWithAuth, datasetNoAuth,
+		datasetAPIMock, opts.serviceAuthToken,
 		&mocks.Elasticsearch{InternalServerError: opts.esInternalServerError, IndexNotFound: opts.esIndexNotFound},
 		opts.maxResults,
 		opts.privateSubnet,
 		mockAuditor,
 	)
 
-	// fake the auth wrapper by adding user,caller to r.Context() before ServeHTTP() is called
-	if opts.reqHasAuth {
-		r = r.WithContext(common.SetUser(r.Context(), "coffee@test"))
-		r = r.WithContext(common.SetCaller(r.Context(), "APIAmWhoAPIAm"))
-	}
-
 	api.router.ServeHTTP(w, r)
 
-	return testRes{w: w, dsWithAuth: datasetWithAuth, dsNoAuth: datasetNoAuth, audit: mockAuditor}
+	return testRes{w: w, datasetAPIMock: datasetAPIMock, audit: mockAuditor}
 }
 
 func TestGetSearchPublishedWithoutAuthReturnsOK(t *testing.T) {
@@ -87,8 +87,8 @@ func TestGetSearchPublishedWithoutAuthReturnsOK(t *testing.T) {
 	Convey("Given the search query satisfies the published search index then return OK", t, func() {
 		testres := setupTest(testOpts{url: "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term"})
 		So(testres.w.Code, ShouldEqual, http.StatusOK)
-		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
-		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
+		So(testres.datasetAPIMock.Calls, ShouldEqual, 1)
+		So(testres.datasetAPIMock.IsAuthenticated, ShouldEqual, false)
 		expectedAuditOutcome(models.AuditTaskGetSearch, models.Scenario_attemptAndSucceed, testres)
 	})
 }
@@ -101,6 +101,7 @@ func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 			url:        "http://localhost:23100/search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
 			reqHasAuth: true,
 		})
+
 		So(testres.w.Code, ShouldEqual, http.StatusOK)
 
 		// Check response json
@@ -195,7 +196,8 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
 		So(testres.w.Body.String(), ShouldContainSubstring, errs.ErrVersionNotFound.Error())
-		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
+		So(testres.datasetAPIMock.Calls, ShouldEqual, 1)
+		So(testres.datasetAPIMock.IsAuthenticated, ShouldEqual, false)
 		expectedAuditOutcome(models.AuditTaskGetSearch, models.Scenario_attemptAndFail, testres)
 	})
 
@@ -266,8 +268,8 @@ func TestPublicSubnetUsersCannotSeeUnpublished(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
 		So(testres.w.Body.String(), ShouldContainSubstring, errs.ErrVersionNotFound.Error())
-		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
-		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
+		So(testres.datasetAPIMock.Calls, ShouldEqual, 1)
+		So(testres.datasetAPIMock.IsAuthenticated, ShouldEqual, false)
 		expectedAuditOutcome(models.AuditTaskGetSearch, models.Scenario_attemptAndFail, testres)
 	})
 
@@ -279,8 +281,8 @@ func TestPublicSubnetUsersCannotSeeUnpublished(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
 		So(testres.w.Body.String(), ShouldContainSubstring, errs.ErrVersionNotFound.Error())
-		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
-		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
+		So(testres.datasetAPIMock.Calls, ShouldEqual, 1)
+		So(testres.datasetAPIMock.IsAuthenticated, ShouldEqual, false)
 		expectedAuditOutcome(models.AuditTaskGetSearch, models.Scenario_attemptAndFail, testres)
 	})
 }
@@ -296,8 +298,8 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 		})
 		So(testres.w.Body.String(), ShouldStartWith, "{")
 		So(testres.w.Code, ShouldEqual, http.StatusOK)
-		So(testres.dsWithAuth.Calls, ShouldEqual, 1)
-		So(testres.dsNoAuth.Calls, ShouldEqual, 0)
+		So(testres.datasetAPIMock.Calls, ShouldEqual, 1)
+		So(testres.datasetAPIMock.IsAuthenticated, ShouldEqual, true)
 		expectedAuditOutcome(models.AuditTaskGetSearch, models.Scenario_attemptAndSucceed, testres)
 	})
 
@@ -333,11 +335,10 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 			privateSubnet:     true,
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
-		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
+		So(testres.datasetAPIMock.Calls, ShouldEqual, 1)
+		So(testres.datasetAPIMock.IsAuthenticated, ShouldEqual, false)
 		So(testres.w.Body.String(), ShouldContainSubstring, errs.ErrVersionNotFound.Error())
 
-		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
-		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
 		expectedAuditOutcome(models.AuditTaskGetSearch, models.Scenario_attemptAndFail, testres)
 	})
 
@@ -351,8 +352,8 @@ func TestPrivateSubnetMightSeeUnpublished(t *testing.T) {
 		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
 		So(testres.w.Body.String(), ShouldContainSubstring, errs.ErrVersionNotFound.Error())
 
-		So(testres.dsWithAuth.Calls, ShouldEqual, 0)
-		So(testres.dsNoAuth.Calls, ShouldEqual, 1)
+		So(testres.datasetAPIMock.Calls, ShouldEqual, 1)
+		So(testres.datasetAPIMock.IsAuthenticated, ShouldEqual, false)
 		expectedAuditOutcome(models.AuditTaskGetSearch, models.Scenario_attemptAndFail, testres)
 	})
 

@@ -66,17 +66,17 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := api.datasetAPIClientNoAuth
+	serviceAuthToken := ""
 	if api.hasPrivateEndpoints && common.IsCallerPresent(ctx) {
 		// Authorised to search against an unpublished version
 		// and exposes private endpoints
-		client = api.datasetAPIClient
+		serviceAuthToken = api.serviceAuthToken
 	}
 
 	b, err := func() ([]byte, error) {
 
 		// Get instanceID from datasetAPI
-		versionDoc, err := client.GetVersion(ctx, datasetID, edition, version)
+		versionDoc, err := api.datasetAPIClient.GetVersion(ctx, "", serviceAuthToken, "", "", datasetID, edition, version)
 		if err != nil {
 			log.ErrorCtx(ctx, errors.WithMessage(err, "getSearch endpoint: failed to get version of a dataset from the dataset API"), logData)
 			return nil, setError(err)

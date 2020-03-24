@@ -10,22 +10,22 @@ import (
 
 	"github.com/pkg/errors"
 
+	rchttp "github.com/ONSdigital/dp-rchttp"
 	errs "github.com/ONSdigital/dp-search-api/apierrors"
 	"github.com/ONSdigital/dp-search-api/models"
-	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/smartystreets/go-aws-auth"
 )
 
 // API aggregates a client and URL and other common data for accessing the API
 type API struct {
-	client       common.RCHTTPClienter
+	client       rchttp.Clienter
 	url          string
 	signRequests bool
 }
 
 // NewElasticSearchAPI creates an API object
-func NewElasticSearchAPI(client common.RCHTTPClienter, elasticSearchAPIURL string, signRequests bool) *API {
+func NewElasticSearchAPI(client rchttp.Clienter, elasticSearchAPIURL string, signRequests bool) *API {
 	return &API{
 		client:       client,
 		url:          elasticSearchAPIURL,

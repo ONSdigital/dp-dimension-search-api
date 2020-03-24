@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	rchttp "github.com/ONSdigital/dp-rchttp"
 	"os"
 
 	"github.com/ONSdigital/dp-search-api/config"
@@ -11,12 +13,22 @@ import (
 	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
-	"github.com/ONSdigital/go-ns/rchttp"
 	"github.com/pkg/errors"
+)
+
+var (
+	// BuildTime represents the time in which the service was built
+	BuildTime string
+	// GitCommit represents the commit (SHA-1) hash of the service that is running
+	GitCommit string
+	// Version represents the version of the service that is running
+	Version string
 )
 
 func main() {
 	log.Namespace = "dp-search-api"
+
+	ctx := context.Background()
 
 	cfg, err := config.Get()
 	if err != nil {
@@ -59,6 +71,14 @@ func main() {
 		auditor = &audit.NopAuditor{}
 	}
 
+	versionInfo, err := healthcheck.NewVersionInfo(BuildTime, GitCommit, Version)
+	if err != nil {
+		log.ErrorC("error creating kafka producer", err, nil)
+		os.Exit(1)
+	}
+	exitIfError(err, "error creating version info")
+	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
+
 	outputQueue := searchoutputqueue.CreateOutputQueue(producer.Output())
 
 	svc := &service.Service{
@@ -70,8 +90,7 @@ func main() {
 		Elasticsearch:             elasticsearch,
 		ElasticsearchURL:          cfg.ElasticSearchAPIURL,
 		HasPrivateEndpoints:       cfg.HasPrivateEndpoints,
-		HealthCheckInterval:       cfg.HealthCheckInterval,
-		HealthCheckTimeout:        cfg.HealthCheckTimeout,
+		HealthCheck:               &hc,
 		MaxRetries:                cfg.MaxRetries,
 		OutputQueue:               outputQueue,
 		SearchAPIURL:              cfg.SearchAPIURL,
@@ -81,5 +100,12 @@ func main() {
 		SignElasticsearchRequests: cfg.SignElasticsearchRequests,
 	}
 
-	svc.Start()
+	svc.Start(ctx)
+}
+
+func exitIfError(err error, message string) {
+	if err != nil {
+		log.ErrorC(message, err, nil)
+		os.Exit(1)
+	}
 }

@@ -2,8 +2,8 @@ package api
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 
-	"github.com/ONSdigital/dp-dataset-api/store"
 	"github.com/ONSdigital/dp-search-api/models"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/audit"
@@ -17,9 +17,8 @@ import (
 
 var httpServer *server.Server
 
-// API provides an interface for the routes
-type API interface {
-	CreateSearchAPI(string, *mux.Router, store.DataStore) *SearchAPI
+type DatasetAPIClient interface {
+	GetVersion(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceAuthToken, collectionID, datasetID, edition, version string) (m dataset.Version, err error)
 }
 
 // DownloadsGenerator pre generates full file downloads for the specified dataset/edition/version
@@ -34,26 +33,26 @@ type OutputQueue interface {
 
 // SearchAPI manages searches across indices
 type SearchAPI struct {
-	auditor                audit.AuditorService
-	datasetAPIClient       DatasetAPIer
-	datasetAPIClientNoAuth DatasetAPIer
-	defaultMaxResults      int
-	elasticsearch          Elasticsearcher
-	hasPrivateEndpoints    bool
-	host                   string
-	internalToken          string
-	router                 *mux.Router
-	searchOutputQueue      OutputQueue
+	auditor             audit.AuditorService
+	datasetAPIClient    DatasetAPIClient
+	serviceAuthToken    string
+	defaultMaxResults   int
+	elasticsearch       Elasticsearcher
+	hasPrivateEndpoints bool
+	host                string
+	internalToken       string
+	router              *mux.Router
+	searchOutputQueue   OutputQueue
 }
 
 // CreateSearchAPI manages all the routes configured to API
 func CreateSearchAPI(
 	host, bindAddr, authAPIURL string, errorChan chan error, searchOutputQueue OutputQueue,
-	datasetAPIClient, datasetAPIClientNoAuth DatasetAPIer, elasticsearch Elasticsearcher,
+	datasetAPIClient DatasetAPIClient, serviceAuthToken string, elasticsearch Elasticsearcher,
 	defaultMaxResults int, hasPrivateEndpoints bool, auditor audit.AuditorService) {
 
 	router := mux.NewRouter()
-	routes(host, router, searchOutputQueue, datasetAPIClient, datasetAPIClientNoAuth, elasticsearch, defaultMaxResults, hasPrivateEndpoints, auditor)
+	routes(host, router, searchOutputQueue, datasetAPIClient, serviceAuthToken, elasticsearch, defaultMaxResults, hasPrivateEndpoints, auditor)
 
 	healthcheckHandler := healthcheck.NewMiddleware(healthcheck.Do)
 	middlewareChain := alice.New(healthcheckHandler)
@@ -80,18 +79,26 @@ func CreateSearchAPI(
 	}()
 }
 
-func routes(host string, router *mux.Router, searchOutputQueue OutputQueue, datasetAPIClient, datasetAPIClientNoAuth DatasetAPIer, elasticsearch Elasticsearcher, defaultMaxResults int, hasPrivateEndpoints bool, auditor audit.AuditorService) *SearchAPI {
+func routes(host string,
+	router *mux.Router,
+	searchOutputQueue OutputQueue,
+	datasetAPIClient DatasetAPIClient,
+	serviceAuthToken string,
+	elasticsearch Elasticsearcher,
+	defaultMaxResults int,
+	hasPrivateEndpoints bool,
+	auditor audit.AuditorService) *SearchAPI {
 
 	api := SearchAPI{
-		auditor:                auditor,
-		datasetAPIClient:       datasetAPIClient,
-		datasetAPIClientNoAuth: datasetAPIClientNoAuth,
-		defaultMaxResults:      defaultMaxResults,
-		elasticsearch:          elasticsearch,
-		hasPrivateEndpoints:    hasPrivateEndpoints,
-		searchOutputQueue:      searchOutputQueue,
-		host:                   host,
-		router:                 router,
+		auditor:             auditor,
+		datasetAPIClient:    datasetAPIClient,
+		serviceAuthToken:    serviceAuthToken,
+		defaultMaxResults:   defaultMaxResults,
+		elasticsearch:       elasticsearch,
+		hasPrivateEndpoints: hasPrivateEndpoints,
+		searchOutputQueue:   searchOutputQueue,
+		host:                host,
+		router:              router,
 	}
 
 	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.getSearch).Methods("GET")

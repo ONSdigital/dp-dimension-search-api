@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,52 +13,49 @@ import (
 	"github.com/ONSdigital/dp-search-api/api"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/audit"
-	"github.com/ONSdigital/go-ns/clients/dataset"
-	"github.com/ONSdigital/go-ns/elasticsearch"
-	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/pkg/errors"
 )
 
+type HealthCheck interface {
+	Start(ctx context.Context)
+	Stop()
+}
+
 // Service represents the necessary config for dp-search-api
 type Service struct {
-	Auditor                   audit.AuditorService
-	AuthAPIURL                string
-	BindAddr                  string
-	DatasetAPIURL             string
-	DefaultMaxResults         int
-	Elasticsearch             api.Elasticsearcher
-	ElasticsearchURL          string
-	EnvMax                    int
-	HealthCheckInterval       time.Duration
-	HealthCheckTimeout        time.Duration
-	MaxRetries                int
-	OutputQueue               searchoutputqueue.Output
-	SearchAPIURL              string
-	SearchIndexProducer       kafka.Producer
-	ServiceAuthToken          string
-	Shutdown                  time.Duration
-	SignElasticsearchRequests bool
-	HasPrivateEndpoints       bool
+	Auditor                    audit.AuditorService
+	AuthAPIURL                 string
+	BindAddr                   string
+	DatasetAPIURL              string
+	DefaultMaxResults          int
+	Elasticsearch              api.Elasticsearcher
+	ElasticsearchURL           string
+	EnvMax                     int
+	HealthCheck                HealthCheck
+	HealthCheckCriticalTimeout time.Duration
+	MaxRetries                 int
+	OutputQueue                searchoutputqueue.Output
+	SearchAPIURL               string
+	SearchIndexProducer        kafka.Producer
+	ServiceAuthToken           string
+	Shutdown                   time.Duration
+	SignElasticsearchRequests  bool
+	HasPrivateEndpoints        bool
 }
 
 // Start handles consumption of events
-func (svc *Service) Start() {
+func (svc *Service) Start(ctx context.Context) {
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
 	apiErrors := make(chan error, 1)
 
-	datasetAPINoAuth := dataset.NewAPIClient(svc.DatasetAPIURL, "", "")
-	datasetAPI := dataset.NewAPIClient(svc.DatasetAPIURL, svc.ServiceAuthToken, "")
+	datasetAPIClient := dataset.NewAPIClient(svc.DatasetAPIURL)
 
-	healthTicker := healthcheck.NewTicker(
-		svc.HealthCheckInterval,
-		datasetAPINoAuth,
-		elasticsearch.NewHealthCheckClient(svc.ElasticsearchURL, svc.SignElasticsearchRequests),
-	)
+	svc.HealthCheck.Start(ctx)
 
 	api.CreateSearchAPI(
 		svc.SearchAPIURL,
@@ -65,8 +63,8 @@ func (svc *Service) Start() {
 		svc.AuthAPIURL,
 		apiErrors,
 		&svc.OutputQueue,
-		datasetAPI,
-		datasetAPINoAuth,
+		datasetAPIClient,
+		svc.ServiceAuthToken,
 		svc.Elasticsearch,
 		svc.DefaultMaxResults,
 		svc.HasPrivateEndpoints,
@@ -90,7 +88,8 @@ func (svc *Service) Start() {
 	if err := svc.SearchIndexProducer.Close(ctx); err != nil {
 		log.Error(errors.Wrap(err, "error while attempting to shutdown kafka producer"), nil)
 	}
-	healthTicker.Close()
+
+	svc.HealthCheck.Stop()
 
 	log.Info("shutdown complete", nil)
 
