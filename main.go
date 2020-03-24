@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	rchttp "github.com/ONSdigital/dp-rchttp"
 	"os"
@@ -71,6 +72,8 @@ func main() {
 		auditor = &audit.NopAuditor{}
 	}
 
+	datasetAPIClient := dataset.NewAPIClient(cfg.DatasetAPIURL)
+
 	versionInfo, err := healthcheck.NewVersionInfo(BuildTime, GitCommit, Version)
 	if err != nil {
 		log.ErrorC("error creating kafka producer", err, nil)
@@ -79,13 +82,17 @@ func main() {
 	exitIfError(err, "error creating version info")
 	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
 
+	if err = hc.AddCheck("Dataset API", datasetAPIClient.Checker); err != nil {
+		log.ErrorC("error creating dataset API health check", err, nil)
+	}
+
 	outputQueue := searchoutputqueue.CreateOutputQueue(producer.Output())
 
 	svc := &service.Service{
 		Auditor:                   auditor,
 		AuthAPIURL:                cfg.AuthAPIURL,
 		BindAddr:                  cfg.BindAddr,
-		DatasetAPIURL:             cfg.DatasetAPIURL,
+		DatasetAPIClient:          datasetAPIClient,
 		DefaultMaxResults:         cfg.MaxSearchResultsOffset,
 		Elasticsearch:             elasticsearch,
 		ElasticsearchURL:          cfg.ElasticSearchAPIURL,

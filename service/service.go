@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"os"
 	"os/signal"
 	"syscall"
@@ -28,7 +27,7 @@ type Service struct {
 	Auditor                    audit.AuditorService
 	AuthAPIURL                 string
 	BindAddr                   string
-	DatasetAPIURL              string
+	DatasetAPIClient           api.DatasetAPIClient
 	DefaultMaxResults          int
 	Elasticsearch              api.Elasticsearcher
 	ElasticsearchURL           string
@@ -53,8 +52,6 @@ func (svc *Service) Start(ctx context.Context) {
 
 	apiErrors := make(chan error, 1)
 
-	datasetAPIClient := dataset.NewAPIClient(svc.DatasetAPIURL)
-
 	svc.HealthCheck.Start(ctx)
 
 	api.CreateSearchAPI(
@@ -63,7 +60,7 @@ func (svc *Service) Start(ctx context.Context) {
 		svc.AuthAPIURL,
 		apiErrors,
 		&svc.OutputQueue,
-		datasetAPIClient,
+		svc.DatasetAPIClient,
 		svc.ServiceAuthToken,
 		svc.Elasticsearch,
 		svc.DefaultMaxResults,
