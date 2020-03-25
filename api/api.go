@@ -11,8 +11,8 @@ import (
 	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/identity"
-	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
+	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 )
@@ -48,7 +48,7 @@ type SearchAPI struct {
 }
 
 // CreateSearchAPI manages all the routes configured to API
-func CreateSearchAPI(
+func CreateSearchAPI(ctx context.Context,
 	host, bindAddr, authAPIURL string, errorChan chan error, searchOutputQueue OutputQueue,
 	datasetAPIClient DatasetAPIClient, serviceAuthToken string, elasticsearch Elasticsearcher,
 	defaultMaxResults int, hasPrivateEndpoints bool, auditor audit.AuditorService) {
@@ -60,7 +60,7 @@ func CreateSearchAPI(
 	middlewareChain := alice.New(healthcheckHandler)
 
 	if hasPrivateEndpoints {
-		log.Debug("private endpoints are enabled. using identity middleware", nil)
+		log.Event(ctx, "private endpoints are enabled. using identity middleware", log.INFO)
 		identityHTTPClient := rchttp.NewClient()
 		identityClient := identityclient.NewAPIClient(identityHTTPClient, authAPIURL)
 
@@ -75,9 +75,9 @@ func CreateSearchAPI(
 	httpServer.HandleOSSignals = false
 
 	go func() {
-		log.Debug("Starting api...", nil)
+		log.Event(ctx, "Starting api...", log.INFO)
 		if err := httpServer.ListenAndServe(); err != nil {
-			log.ErrorC("api http server returned error", err, nil)
+			log.Event(ctx, "api http server returned error", log.ERROR, log.Error(err))
 			errorChan <- err
 		}
 	}()
@@ -120,6 +120,6 @@ func Close(ctx context.Context) error {
 	if err := httpServer.Shutdown(ctx); err != nil {
 		return err
 	}
-	log.Info("graceful shutdown of http server complete", nil)
+	log.Event(ctx, "graceful shutdown of http server complete", log.INFO)
 	return nil
 }

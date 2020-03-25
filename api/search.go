@@ -12,9 +12,8 @@ import (
 	"github.com/ONSdigital/dp-search-api/models"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/common"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -57,7 +56,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		"requested_offset": requestedOffset,
 	}
 
-	log.InfoCtx(ctx, "getSearch endpoint: incoming request", logData)
+	log.Event(ctx, "getSearch endpoint: incoming request", log.INFO, logData)
 
 	auditParams := common.Params{"dataset_id": datasetID, "edition": edition, "version": version, "dimension": dimension}
 
@@ -78,7 +77,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		// Get instanceID from datasetAPI
 		versionDoc, err := api.datasetAPIClient.GetVersion(ctx, "", serviceAuthToken, "", "", datasetID, edition, version)
 		if err != nil {
-			log.ErrorCtx(ctx, errors.WithMessage(err, "getSearch endpoint: failed to get version of a dataset from the dataset API"), logData)
+			log.Event(ctx, "getSearch endpoint: failed to get version of a dataset from the dataset API", log.ERROR, log.Error(err), logData)
 			return nil, setError(err)
 		}
 
@@ -91,7 +90,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		if requestedLimit != "" {
 			limit, err = strconv.Atoi(requestedLimit)
 			if err != nil {
-				log.ErrorCtx(ctx, errors.WithMessage(err, "getSearch endpoint: request limit parameter error"), logData)
+				log.Event(ctx, "getSearch endpoint: request limit parameter error", log.ERROR, log.Error(err), logData)
 				return nil, errs.ErrParsingQueryParameters
 			}
 		}
@@ -100,7 +99,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		if requestedOffset != "" {
 			offset, err = strconv.Atoi(requestedOffset)
 			if err != nil {
-				log.ErrorCtx(ctx, errors.WithMessage(err, "getSearch endpoint: request offset parameter error"), logData)
+				log.Event(ctx, "getSearch endpoint: request offset parameter error", log.ERROR, log.Error(err), logData)
 				return nil, errs.ErrParsingQueryParameters
 			}
 		}
@@ -112,18 +111,18 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err = page.ValidateQueryParameters(term); err != nil {
-			log.ErrorCtx(ctx, errors.WithMessage(err, "getSearch endpoint: failed query parameter validation"), logData)
+			log.Event(ctx, "getSearch endpoint: request offset parameter error", log.ERROR, log.Error(err), logData)
 			return nil, err
 		}
 
 		logData["limit"] = page.Limit
 		logData["offset"] = page.Offset
 
-		log.InfoCtx(ctx, "getSearch endpoint: just before querying search index", logData)
+		log.Event(ctx, "getSearch endpoint: just before querying search index", log.INFO, logData)
 
 		response, _, err := api.elasticsearch.QuerySearchIndex(ctx, instanceID, dimension, term, page.Limit, page.Offset)
 		if err != nil {
-			log.ErrorCtx(ctx, errors.WithMessage(err, "getSearch endpoint: failed to query elastic search index"), logData)
+			log.Event(ctx, "getSearch endpoint: failed to query elastic search index", log.ERROR, log.Error(err), logData)
 			return nil, err
 		}
 
@@ -147,7 +146,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 
 		b, err := json.Marshal(searchResults)
 		if err != nil {
-			log.ErrorCtx(ctx, errors.WithMessage(err, "getSearch endpoint: failed to marshal search resource into bytes"), logData)
+			log.Event(ctx, "getSearch endpoint: failed to marshal search resource into bytes", log.ERROR, log.Error(err), logData)
 			return nil, errs.ErrInternalServer
 		}
 
@@ -158,7 +157,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 			err = auditErr
 		}
 
-		setErrorCode(ctx, w, err)
+		setErrorCode(w, err)
 		return
 	}
 
@@ -170,11 +169,11 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	setJSONContentType(w)
 	_, err = w.Write(b)
 	if err != nil {
-		log.ErrorCtx(ctx, err, logData)
+		log.Event(ctx, "error writing response", log.ERROR, log.Error(err), logData)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	log.InfoCtx(ctx, "getSearch endpoint: successfully searched index", logData)
+	log.Event(ctx, "getSearch endpoint: successfully searched index", log.INFO, logData)
 }
 
 func getSnippets(ctx context.Context, result models.HitList) models.HitList {
@@ -202,7 +201,7 @@ func getSnippets(ctx context.Context, result models.HitList) models.HitList {
 			prevEnd = snippet.End
 
 			result.Source.Matches.Code = append(result.Source.Matches.Code, snippet)
-			log.InfoCtx(ctx, "getSearch endpoint: added code snippet", logData)
+			log.Event(ctx, "getSearch endpoint: added code snippet", log.INFO, logData)
 
 			highlightedCode = string(highlightedCode[end+2:])
 		}
@@ -231,7 +230,7 @@ func getSnippets(ctx context.Context, result models.HitList) models.HitList {
 			prevEnd = snippet.End
 
 			result.Source.Matches.Label = append(result.Source.Matches.Label, snippet)
-			log.InfoCtx(ctx, "getSearch endpoint: added label snippet", logData)
+			log.Event(ctx, "getSearch endpoint: added label snippet", log.INFO, logData)
 
 			highlightedLabel = string(highlightedLabel[end+2:])
 		}
@@ -250,7 +249,7 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 	logData := log.Data{"instance_id": instanceID, "dimension": dimension}
 	auditParams := common.Params{"instance_id": instanceID, "dimension": dimension}
 
-	log.InfoCtx(ctx, "createSearchIndex endpoint: attempting to enqueue a new search index", logData)
+	log.Event(ctx, "createSearchIndex endpoint: attempting to enqueue a new search index", log.INFO, logData)
 
 	output := &searchoutputqueue.Search{
 		Dimension:  dimension,
@@ -263,7 +262,7 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
-		setErrorCode(ctx, w, err)
+		setErrorCode(w, err)
 		return
 	}
 
@@ -272,7 +271,7 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
 
-	log.InfoCtx(ctx, "createSearchIndex endpoint: index creation queued", logData)
+	log.Event(ctx, "createSearchIndex endpoint: index creation queued", log.INFO, logData)
 }
 
 func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) {
@@ -285,7 +284,7 @@ func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) 
 	logData := log.Data{"instance_id": instanceID, "dimension": dimension}
 	auditParams := common.Params{"instance_id": instanceID, "dimension": dimension}
 
-	log.InfoCtx(ctx, "deleteSearchIndex endpoint: attempting to delete search index", logData)
+	log.Event(ctx, "deleteSearchIndex endpoint: attempting to delete search index", log.INFO, logData)
 
 	status, err := api.elasticsearch.DeleteSearchIndex(ctx, instanceID, dimension)
 	logData["status"] = status
@@ -295,7 +294,7 @@ func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
-		setErrorCode(ctx, w, err)
+		setErrorCode(w, err)
 		return
 	}
 
@@ -304,7 +303,7 @@ func (api *SearchAPI) deleteSearchIndex(w http.ResponseWriter, r *http.Request) 
 	setJSONContentType(w)
 	w.WriteHeader(http.StatusOK)
 
-	log.InfoCtx(ctx, "deleteSearchIndex endpoint: search index deleted", logData)
+	log.Event(ctx, "deleteSearchIndex endpoint: search index deleted", log.INFO, logData)
 }
 
 func setJSONContentType(w http.ResponseWriter) {
@@ -326,7 +325,7 @@ func setError(err error) (searchError error) {
 	return searchError
 }
 
-func setErrorCode(ctx context.Context, w http.ResponseWriter, err error) {
+func setErrorCode(w http.ResponseWriter, err error) {
 
 	switch {
 	case errs.NotFoundMap[err]:
