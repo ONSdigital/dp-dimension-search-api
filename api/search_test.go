@@ -67,15 +67,7 @@ func setupTest(opts testOpts) testRes {
 		opts.serviceAuthToken = "1234"
 	}
 
-	api := routes(
-		"host", mux.NewRouter(),
-		&mocks.BuildSearch{ReturnError: opts.searchReturnError},
-		datasetAPIMock, opts.serviceAuthToken,
-		&mocks.Elasticsearch{InternalServerError: opts.esInternalServerError, IndexNotFound: opts.esIndexNotFound},
-		opts.maxResults,
-		opts.privateSubnet,
-		mockAuditor,
-	)
+	api := routes("host", mux.NewRouter(), &mocks.BuildSearch{ReturnError: opts.searchReturnError}, datasetAPIMock, opts.serviceAuthToken, &mocks.Elasticsearch{InternalServerError: opts.esInternalServerError, IndexNotFound: opts.esIndexNotFound}, opts.maxResults, opts.privateSubnet, mockAuditor, nil)
 
 	api.router.ServeHTTP(w, r)
 

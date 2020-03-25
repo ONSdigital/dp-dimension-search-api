@@ -3,13 +3,13 @@ package api
 import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	rchttp "github.com/ONSdigital/dp-rchttp"
 
 	identityclient "github.com/ONSdigital/dp-api-clients-go/identity"
 	"github.com/ONSdigital/dp-search-api/models"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/audit"
-	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/identity"
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/ONSdigital/log.go/log"
@@ -33,6 +33,11 @@ type OutputQueue interface {
 	Queue(output *searchoutputqueue.Search) error
 }
 
+type HealthCheck interface {
+	Start(ctx context.Context)
+	Stop()
+}
+
 // SearchAPI manages searches across indices
 type SearchAPI struct {
 	auditor             audit.AuditorService
@@ -51,13 +56,22 @@ type SearchAPI struct {
 func CreateSearchAPI(ctx context.Context,
 	host, bindAddr, authAPIURL string, errorChan chan error, searchOutputQueue OutputQueue,
 	datasetAPIClient DatasetAPIClient, serviceAuthToken string, elasticsearch Elasticsearcher,
-	defaultMaxResults int, hasPrivateEndpoints bool, auditor audit.AuditorService) {
+	defaultMaxResults int, hasPrivateEndpoints bool, auditor audit.AuditorService,
+	healthCheck *healthcheck.HealthCheck) {
 
 	router := mux.NewRouter()
-	routes(host, router, searchOutputQueue, datasetAPIClient, serviceAuthToken, elasticsearch, defaultMaxResults, hasPrivateEndpoints, auditor)
+	routes(host,
+		router,
+		searchOutputQueue,
+		datasetAPIClient,
+		serviceAuthToken,
+		elasticsearch,
+		defaultMaxResults,
+		hasPrivateEndpoints,
+		auditor,
+		healthCheck)
 
-	healthcheckHandler := healthcheck.NewMiddleware(healthcheck.Do)
-	middlewareChain := alice.New(healthcheckHandler)
+	middlewareChain := alice.New()
 
 	if hasPrivateEndpoints {
 		log.Event(ctx, "private endpoints are enabled. using identity middleware", log.INFO)
@@ -91,7 +105,8 @@ func routes(host string,
 	elasticsearch Elasticsearcher,
 	defaultMaxResults int,
 	hasPrivateEndpoints bool,
-	auditor audit.AuditorService) *SearchAPI {
+	auditor audit.AuditorService,
+	healthCheck *healthcheck.HealthCheck) *SearchAPI {
 
 	api := SearchAPI{
 		auditor:             auditor,
@@ -105,6 +120,7 @@ func routes(host string,
 		router:              router,
 	}
 
+	api.router.HandleFunc("/health", healthCheck.Handler)
 	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.getSearch).Methods("GET")
 
 	if hasPrivateEndpoints {

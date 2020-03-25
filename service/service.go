@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka"
 	"os"
 	"os/signal"
@@ -17,11 +18,6 @@ import (
 	"github.com/ONSdigital/log.go/log"
 )
 
-type HealthCheck interface {
-	Start(ctx context.Context)
-	Stop()
-}
-
 // Service represents the necessary config for dp-search-api
 type Service struct {
 	Auditor                    audit.AuditorService
@@ -32,7 +28,7 @@ type Service struct {
 	Elasticsearch              api.Elasticsearcher
 	ElasticsearchURL           string
 	EnvMax                     int
-	HealthCheck                HealthCheck
+	HealthCheck                *healthcheck.HealthCheck
 	HealthCheckCriticalTimeout time.Duration
 	MaxRetries                 int
 	OutputQueue                searchoutputqueue.Output
@@ -67,6 +63,7 @@ func (svc *Service) Start(ctx context.Context) {
 		svc.DefaultMaxResults,
 		svc.HasPrivateEndpoints,
 		svc.Auditor,
+		svc.HealthCheck,
 	)
 
 	// blocks until a fatal error occurs
