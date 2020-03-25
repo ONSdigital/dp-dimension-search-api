@@ -3,7 +3,9 @@ package api
 import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	rchttp "github.com/ONSdigital/dp-rchttp"
 
+	identityclient "github.com/ONSdigital/dp-api-clients-go/identity"
 	"github.com/ONSdigital/dp-search-api/models"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/audit"
@@ -58,9 +60,9 @@ func CreateSearchAPI(
 	middlewareChain := alice.New(healthcheckHandler)
 
 	if hasPrivateEndpoints {
-
 		log.Debug("private endpoints are enabled. using identity middleware", nil)
-		identityHandler := identity.Handler(authAPIURL)
+		identityHTTPClient := rchttp.NewClient()
+		identityHandler := identity.HandlerForHTTPClient(identityclient.NewAPIClient(identityHTTPClient, authAPIURL))
 		middlewareChain = middlewareChain.Append(identityHandler)
 	}
 
