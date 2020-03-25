@@ -10,6 +10,7 @@ require (
 	github.com/ONSdigital/dp-kafka v1.1.4
 	github.com/ONSdigital/dp-rchttp v0.0.0-20200114090501-463a529590e8
 	github.com/ONSdigital/go-ns v0.0.0-20191104121206-f144c4ec2e58
+	github.com/ONSdigital/log.go v1.0.0
 	github.com/Shopify/sarama v1.26.1 // indirect
 	github.com/facebookgo/freeport v0.0.0-20150612182905-d4adf43b75b9 // indirect
 	github.com/go-avro/avro v0.0.0-20171219232920-444163702c11 // indirect

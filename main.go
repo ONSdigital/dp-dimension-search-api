@@ -10,15 +10,13 @@ import (
 	"github.com/ONSdigital/dp-search-api/kafkaadapter"
 	"os"
 
+	kafka "github.com/ONSdigital/dp-kafka"
 	"github.com/ONSdigital/dp-search-api/config"
 	"github.com/ONSdigital/dp-search-api/elasticsearch"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/dp-search-api/service"
 	"github.com/ONSdigital/go-ns/audit"
-	"github.com/ONSdigital/go-ns/log"
-	"github.com/pkg/errors"
-
-	kafka "github.com/ONSdigital/dp-kafka"
+	"github.com/ONSdigital/log.go/log"
 )
 
 var (
@@ -37,78 +35,72 @@ func main() {
 
 	cfg, err := config.Get()
 	if err != nil {
-		log.Error(err, nil)
+		log.Event(ctx, "failed to retrieve configuration", log.FATAL, log.Error(err))
 		os.Exit(1)
 	}
 
 	// sensitive fields are omitted from config.String().
-	log.Info("config on startup", log.Data{"config": cfg})
+	log.Event(ctx, "config on startup", log.INFO, log.Data{"config": cfg})
 
 	elasticHTTPClient := rchttp.NewClient()
 	elasticsearch := elasticsearch.NewElasticSearchAPI(elasticHTTPClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests)
 	_, status, err := elasticsearch.CallElastic(context.Background(), cfg.ElasticSearchAPIURL, "GET", nil)
 	if err != nil {
-		log.ErrorC("failed to start up, unable to connect to elastic search instance", err, log.Data{"http_status": status})
+		log.Event(ctx, "failed to start up, unable to connect to elastic search instance", log.FATAL, log.Error(err), log.Data{"http_status": status})
 		os.Exit(1)
 	}
 
 	producerChannels := kafka.CreateProducerChannels()
 	producer, err := kafka.NewProducer(ctx, cfg.Brokers, cfg.HierarchyBuiltTopic, cfg.KafkaMaxBytes, producerChannels)
-	if err != nil {
-		log.ErrorC("error creating kafka producer", err, nil)
-		os.Exit(1)
-	}
+	exitIfError(ctx, err, "error creating kafka producer")
 
 	var auditor audit.AuditorService
 	var auditProducer *kafka.Producer
 
 	if cfg.HasPrivateEndpoints {
-		log.Info("private endpoints enabled, enabling action auditing", log.Data{"auditTopicName": cfg.AuditEventsTopic})
+		log.Event(ctx, "private endpoints enabled, enabling action auditing", log.INFO, log.Data{"auditTopicName": cfg.AuditEventsTopic})
 
 		auditProducerChannels := kafka.CreateProducerChannels()
 		auditProducer, err = kafka.NewProducer(ctx, cfg.Brokers, cfg.AuditEventsTopic, 0, auditProducerChannels)
-		if err != nil {
-			log.Error(errors.Wrap(err, "error creating kakfa audit producer"), nil)
-			os.Exit(1)
-		}
+		exitIfError(ctx, err, "error creating kafka producer")
 
 		auditProducerAdapter := kafkaadapter.NewProducerAdapter(auditProducer)
 		auditor = audit.New(auditProducerAdapter, "dp-search-api")
 	} else {
-		log.Info("private endpoints disabled, auditing will not be enabled", nil)
+		log.Event(ctx, "private endpoints disabled, auditing will not be enabled", log.INFO)
 		auditor = &audit.NopAuditor{}
 	}
 
 	versionInfo, err := healthcheck.NewVersionInfo(BuildTime, GitCommit, Version)
 	if err != nil {
-		log.ErrorC("error creating kafka producer", err, nil)
+		log.Event(ctx, "error creating kafka producer", log.FATAL, log.Error(err))
 		os.Exit(1)
 	}
-	exitIfError(err, "error creating version info")
+	exitIfError(ctx, err, "error creating version info")
 	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
 
 	datasetAPIClient := dataset.NewAPIClient(cfg.DatasetAPIURL)
 	if err = hc.AddCheck("Dataset API", datasetAPIClient.Checker); err != nil {
-		log.ErrorC("error creating dataset API health check", err, nil)
+		log.Event(ctx, "error creating dataset API health check", log.Error(err))
 	}
 
 	// zebedee is used only for identity checking
 	zebedeeClient := zebedee.New(cfg.AuthAPIURL)
 	if err = hc.AddCheck("Zebedee", zebedeeClient.Checker); err != nil {
-		log.ErrorC("error creating zebedee health check", err, nil)
+		log.Event(ctx, "error creating zebedee health check", log.ERROR, log.Error(err))
 	}
 
 	elasticClient := elastic.NewClientWithHTTPClient(cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, elasticHTTPClient)
 	if err = hc.AddCheck("Elasticsearch", elasticClient.Checker); err != nil {
-		log.ErrorC("error creating elasticsearch health check", err, nil)
+		log.Event(ctx, "error creating elasticsearch health check", log.ERROR, log.Error(err))
 	}
 
 	if err = hc.AddCheck("Kafka Producer", producer.Checker); err != nil {
-		log.ErrorC("error adding check for kafka producer", err, nil)
+		log.Event(ctx, "error adding check for kafka producer", log.ERROR, log.Error(err))
 	}
 
 	if err = hc.AddCheck("Kafka Audit Producer", auditProducer.Checker); err != nil {
-		log.ErrorC("error adding check for kafka audit producer", err, nil)
+		log.Event(ctx, "error adding check for kafka audit producer", log.ERROR, log.Error(err))
 	}
 
 	outputQueue := searchoutputqueue.CreateOutputQueue(producer.Channels().Output)
@@ -135,9 +127,9 @@ func main() {
 	svc.Start(ctx)
 }
 
-func exitIfError(err error, message string) {
+func exitIfError(ctx context.Context, err error, message string) {
 	if err != nil {
-		log.ErrorC(message, err, nil)
+		log.Event(ctx, message, log.FATAL, log.Error(err))
 		os.Exit(1)
 	}
 }
