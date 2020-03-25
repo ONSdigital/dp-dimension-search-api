@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.1.0
+	github.com/ONSdigital/dp-elasticsearch v1.1.0
 	github.com/ONSdigital/dp-graph v1.0.2 // indirect
 	github.com/ONSdigital/dp-healthcheck v1.0.0
 	github.com/ONSdigital/dp-import v0.0.0-20180202121531-d3cc28e452c3

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/zebedee"
+	elastic "github.com/ONSdigital/dp-elasticsearch"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	rchttp "github.com/ONSdigital/dp-rchttp"
 	"os"
@@ -41,8 +42,8 @@ func main() {
 	// sensitive fields are omitted from config.String().
 	log.Info("config on startup", log.Data{"config": cfg})
 
-	elasticClient := rchttp.NewClient()
-	elasticsearch := elasticsearch.NewElasticSearchAPI(elasticClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests)
+	elasticHTTPClient := rchttp.NewClient()
+	elasticsearch := elasticsearch.NewElasticSearchAPI(elasticHTTPClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests)
 	_, status, err := elasticsearch.CallElastic(context.Background(), cfg.ElasticSearchAPIURL, "GET", nil)
 	if err != nil {
 		log.ErrorC("failed to start up, unable to connect to elastic search instance", err, log.Data{"http_status": status})
@@ -90,6 +91,11 @@ func main() {
 	zebedeeClient := zebedee.New(cfg.AuthAPIURL)
 	if err = hc.AddCheck("Zebedee", zebedeeClient.Checker); err != nil {
 		log.ErrorC("error creating zebedee health check", err, nil)
+	}
+
+	elasticClient := elastic.NewClientWithHTTPClient(cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, elasticHTTPClient)
+	if err = hc.AddCheck("Elasticsearch", elasticClient.Checker); err != nil {
+		log.ErrorC("error creating elasticsearch health check", err, nil)
 	}
 
 	outputQueue := searchoutputqueue.CreateOutputQueue(producer.Output())

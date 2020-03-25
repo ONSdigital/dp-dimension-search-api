@@ -4,6 +4,8 @@ github.com/ONSdigital/dp-code-list-api v0.0.0-20191210144507-f59b8560081b/go.mod
 github.com/ONSdigital/dp-dataset-api v0.0.0-20200107120339-6b78a084da75 h1:jPyHuoIWAsGQJlXgSd05qkd4MFLv9+bg/mwxbWXGoJE=
 github.com/ONSdigital/dp-dataset-api v0.0.0-20200107120339-6b78a084da75/go.mod h1:1MD0y8XYoBX+n9f91Ig4Jup0tcoJJt48h6xhKnyhQEA=
 github.com/ONSdigital/dp-dimension-importer v0.0.0-20190530123722-f43044c4fddb/go.mod h1:Hi08VrefBETyfK4Lqx6XNEkNEDIdbuX+GGNLB6Fd/Kc=
+github.com/ONSdigital/dp-elasticsearch v1.1.0 h1:dtS+dqmvH+3AUQTlkTAiFuHtDnQlL03ICcU5m3MB7lQ=
+github.com/ONSdigital/dp-elasticsearch v1.1.0/go.mod h1:wi4DjAdbt5ewBLXEDiNA7Xx2S9KXRYkQEl3eZ9Gerx0=
 github.com/ONSdigital/dp-graph v1.0.2 h1:EfHQMo53F67/EIs3S/d8AYAYcYpf83IfNiOr33YOjbI=
 github.com/ONSdigital/dp-graph v1.0.2/go.mod h1:QxXzx2k8rbE2asyp6uG4bwG5zo04nqQM4UEtlrsdYto=
 github.com/ONSdigital/dp-healthcheck v0.0.0-20200131122546-9db6d3f0494e/go.mod h1:zighxZ/0m5u7zo0eAr8XFlA+Dz2ic7A1vna6YXvhCjQ=
