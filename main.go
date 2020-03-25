@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/zebedee"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	rchttp "github.com/ONSdigital/dp-rchttp"
 	"os"
@@ -72,8 +73,6 @@ func main() {
 		auditor = &audit.NopAuditor{}
 	}
 
-	datasetAPIClient := dataset.NewAPIClient(cfg.DatasetAPIURL)
-
 	versionInfo, err := healthcheck.NewVersionInfo(BuildTime, GitCommit, Version)
 	if err != nil {
 		log.ErrorC("error creating kafka producer", err, nil)
@@ -82,8 +81,15 @@ func main() {
 	exitIfError(err, "error creating version info")
 	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
 
+	datasetAPIClient := dataset.NewAPIClient(cfg.DatasetAPIURL)
 	if err = hc.AddCheck("Dataset API", datasetAPIClient.Checker); err != nil {
 		log.ErrorC("error creating dataset API health check", err, nil)
+	}
+
+	// zebedee is used only for identity checking
+	zebedeeClient := zebedee.New(cfg.AuthAPIURL)
+	if err = hc.AddCheck("Zebedee", zebedeeClient.Checker); err != nil {
+		log.ErrorC("error creating zebedee health check", err, nil)
 	}
 
 	outputQueue := searchoutputqueue.CreateOutputQueue(producer.Output())

@@ -62,7 +62,9 @@ func CreateSearchAPI(
 	if hasPrivateEndpoints {
 		log.Debug("private endpoints are enabled. using identity middleware", nil)
 		identityHTTPClient := rchttp.NewClient()
-		identityHandler := identity.HandlerForHTTPClient(identityclient.NewAPIClient(identityHTTPClient, authAPIURL))
+		identityClient := identityclient.NewAPIClient(identityHTTPClient, authAPIURL)
+
+		identityHandler := identity.HandlerForHTTPClient(identityClient)
 		middlewareChain = middlewareChain.Append(identityHandler)
 	}
 
