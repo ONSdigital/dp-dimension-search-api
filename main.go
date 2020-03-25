@@ -53,7 +53,7 @@ func main() {
 	}
 
 	producerChannels := kafka.CreateProducerChannels()
-	kafkaProducer, err := kafka.NewProducer(ctx, cfg.Brokers, cfg.HierarchyBuiltTopic, cfg.KafkaMaxBytes, producerChannels)
+	producer, err := kafka.NewProducer(ctx, cfg.Brokers, cfg.HierarchyBuiltTopic, cfg.KafkaMaxBytes, producerChannels)
 	if err != nil {
 		log.ErrorC("error creating kafka producer", err, nil)
 		os.Exit(1)
@@ -103,7 +103,15 @@ func main() {
 		log.ErrorC("error creating elasticsearch health check", err, nil)
 	}
 
-	outputQueue := searchoutputqueue.CreateOutputQueue(kafkaProducer.Channels().Output)
+	if err = hc.AddCheck("Kafka Producer", producer.Checker); err != nil {
+		log.ErrorC("error adding check for kafka producer", err, nil)
+	}
+
+	if err = hc.AddCheck("Kafka Audit Producer", auditProducer.Checker); err != nil {
+		log.ErrorC("error adding check for kafka audit producer", err, nil)
+	}
+
+	outputQueue := searchoutputqueue.CreateOutputQueue(producer.Channels().Output)
 
 	svc := &service.Service{
 		Auditor:                   auditor,
@@ -118,7 +126,7 @@ func main() {
 		MaxRetries:                cfg.MaxRetries,
 		OutputQueue:               outputQueue,
 		SearchAPIURL:              cfg.SearchAPIURL,
-		SearchIndexProducer:       kafkaProducer,
+		SearchIndexProducer:       producer,
 		ServiceAuthToken:          cfg.ServiceAuthToken,
 		Shutdown:                  cfg.GracefulShutdownTimeout,
 		SignElasticsearchRequests: cfg.SignElasticsearchRequests,
