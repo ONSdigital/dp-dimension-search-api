@@ -71,39 +71,11 @@ func main() {
 		auditor = &audit.NopAuditor{}
 	}
 
-	versionInfo, err := healthcheck.NewVersionInfo(BuildTime, GitCommit, Version)
-	if err != nil {
-		log.Event(ctx, "error creating kafka producer", log.FATAL, log.Error(err))
-		os.Exit(1)
-	}
-	exitIfError(ctx, err, "error creating version info")
-	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
+	outputQueue := searchoutputqueue.CreateOutputQueue(producer.Channels().Output)
 
 	datasetAPIClient := dataset.NewAPIClient(cfg.DatasetAPIURL)
-	if err = hc.AddCheck("Dataset API", datasetAPIClient.Checker); err != nil {
-		log.Event(ctx, "error creating dataset API health check", log.Error(err))
-	}
 
-	// zebedee is used only for identity checking
-	zebedeeClient := zebedee.New(cfg.AuthAPIURL)
-	if err = hc.AddCheck("Zebedee", zebedeeClient.Checker); err != nil {
-		log.Event(ctx, "error creating zebedee health check", log.ERROR, log.Error(err))
-	}
-
-	elasticClient := elastic.NewClientWithHTTPClient(cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, elasticHTTPClient)
-	if err = hc.AddCheck("Elasticsearch", elasticClient.Checker); err != nil {
-		log.Event(ctx, "error creating elasticsearch health check", log.ERROR, log.Error(err))
-	}
-
-	if err = hc.AddCheck("Kafka Producer", producer.Checker); err != nil {
-		log.Event(ctx, "error adding check for kafka producer", log.ERROR, log.Error(err))
-	}
-
-	if err = hc.AddCheck("Kafka Audit Producer", auditProducer.Checker); err != nil {
-		log.Event(ctx, "error adding check for kafka audit producer", log.ERROR, log.Error(err))
-	}
-
-	outputQueue := searchoutputqueue.CreateOutputQueue(producer.Channels().Output)
+	hc := configureHealthChecks(ctx, cfg, elasticHTTPClient, producer, auditProducer, datasetAPIClient)
 
 	svc := &service.Service{
 		Auditor:                   auditor,
@@ -114,7 +86,7 @@ func main() {
 		Elasticsearch:             elasticsearch,
 		ElasticsearchURL:          cfg.ElasticSearchAPIURL,
 		HasPrivateEndpoints:       cfg.HasPrivateEndpoints,
-		HealthCheck:               &hc,
+		HealthCheck:               hc,
 		MaxRetries:                cfg.MaxRetries,
 		OutputQueue:               outputQueue,
 		SearchAPIURL:              cfg.SearchAPIURL,
@@ -125,6 +97,58 @@ func main() {
 	}
 
 	svc.Start(ctx)
+}
+
+func configureHealthChecks(ctx context.Context,
+	cfg *config.Config,
+	elasticHTTPClient rchttp.Clienter,
+	producer *kafka.Producer,
+	auditProducer *kafka.Producer,
+	datasetAPIClient *dataset.Client) *healthcheck.HealthCheck {
+
+	hasErrors := false
+
+	versionInfo, err := healthcheck.NewVersionInfo(BuildTime, GitCommit, Version)
+	if err != nil {
+		log.Event(ctx, "error creating version info", log.FATAL, log.Error(err))
+		hasErrors = true
+	}
+
+	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
+
+	if err = hc.AddCheck("Dataset API", datasetAPIClient.Checker); err != nil {
+		log.Event(ctx, "error creating dataset API health check", log.Error(err))
+		hasErrors = true
+	}
+
+	// zebedee is used only for identity checking
+	zebedeeClient := zebedee.New(cfg.AuthAPIURL)
+	if err = hc.AddCheck("Zebedee", zebedeeClient.Checker); err != nil {
+		log.Event(ctx, "error creating zebedee health check", log.ERROR, log.Error(err))
+		hasErrors = true
+	}
+
+	elasticClient := elastic.NewClientWithHTTPClient(cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, elasticHTTPClient)
+	if err = hc.AddCheck("Elasticsearch", elasticClient.Checker); err != nil {
+		log.Event(ctx, "error creating elasticsearch health check", log.ERROR, log.Error(err))
+		hasErrors = true
+	}
+
+	if err = hc.AddCheck("Kafka Producer", producer.Checker); err != nil {
+		log.Event(ctx, "error adding check for kafka producer", log.ERROR, log.Error(err))
+		hasErrors = true
+	}
+
+	if err = hc.AddCheck("Kafka Audit Producer", auditProducer.Checker); err != nil {
+		log.Event(ctx, "error adding check for kafka audit producer", log.ERROR, log.Error(err))
+		hasErrors = true
+	}
+
+	if hasErrors {
+		os.Exit(1)
+	}
+
+	return &hc
 }
 
 func exitIfError(ctx context.Context, err error, message string) {
