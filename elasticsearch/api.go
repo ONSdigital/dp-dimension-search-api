@@ -8,12 +8,10 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/pkg/errors"
-
 	rchttp "github.com/ONSdigital/dp-rchttp"
 	errs "github.com/ONSdigital/dp-search-api/apierrors"
 	"github.com/ONSdigital/dp-search-api/models"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/log.go/log"
 	"github.com/smartystreets/go-aws-auth"
 )
 
@@ -57,13 +55,13 @@ func (api *API) QuerySearchIndex(ctx context.Context, instanceID, dimension, ter
 
 	logData := log.Data{"term": term, "path": path}
 
-	log.InfoCtx(ctx, "searching index", logData)
+	log.Event(ctx, "searching index", log.INFO, logData)
 
 	body := buildSearchQuery(term, limit, offset)
 
 	bytes, err := json.Marshal(body)
 	if err != nil {
-		log.ErrorCtx(ctx, errors.WithMessage(err, "unable to marshal elastic search query to bytes"), logData)
+		log.Event(ctx, "unable to marshal elastic search query to bytes", log.ERROR, log.Error(err), logData)
 		return nil, 0, errs.ErrMarshallingQuery
 	}
 
@@ -72,18 +70,18 @@ func (api *API) QuerySearchIndex(ctx context.Context, instanceID, dimension, ter
 	responseBody, status, err := api.CallElastic(ctx, path, "GET", bytes)
 	logData["status"] = status
 	if err != nil {
-		log.ErrorCtx(ctx, errors.WithMessage(err, "failed to call elasticsearch"), logData)
+		log.Event(ctx, "failed to call elasticsearch", log.ERROR, log.Error(err), logData)
 		return nil, status, errs.ErrIndexNotFound
 	}
 
 	logData["response_body"] = string(responseBody)
 
 	if err = json.Unmarshal(responseBody, response); err != nil {
-		log.ErrorCtx(ctx, errors.WithMessage(err, "unable to unmarshal json body"), logData)
+		log.Event(ctx, "unable to unmarshal json body", log.ERROR, log.Error(err), logData)
 		return nil, status, errs.ErrUnmarshallingJSON
 	}
 
-	log.InfoCtx(ctx, "search results", logData)
+	log.Event(ctx, "search results", log.INFO, logData)
 
 	return response, status, nil
 }
@@ -94,7 +92,7 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 
 	URL, err := url.Parse(path)
 	if err != nil {
-		log.ErrorCtx(ctx, errors.WithMessage(err, "failed to create url for elastic call"), logData)
+		log.Event(ctx, "failed to create url for elastic call", log.ERROR, log.Error(err), logData)
 		return nil, 0, err
 	}
 	path = URL.String()
@@ -111,7 +109,7 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 	}
 	// check req, above, didn't error
 	if err != nil {
-		log.ErrorCtx(ctx, errors.WithMessage(err, "failed to create request for call to elastic"), logData)
+		log.Event(ctx, "failed to create request for call to elastic", log.ERROR, log.Error(err), logData)
 		return nil, 0, err
 	}
 
@@ -121,7 +119,7 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 
 	resp, err := api.client.Do(ctx, req)
 	if err != nil {
-		log.ErrorCtx(ctx, errors.WithMessage(err, "failed to call elastic"), logData)
+		log.Event(ctx, "failed to call elastic", log.ERROR, log.Error(err), logData)
 		return nil, 0, err
 	}
 	defer resp.Body.Close()
@@ -130,13 +128,13 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 
 	jsonBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.ErrorCtx(ctx, errors.WithMessage(err, "failed to read response body from call to elastic"), logData)
+		log.Event(ctx, "failed to read response body from call to elastic", log.ERROR, log.Error(err), logData)
 		return nil, resp.StatusCode, err
 	}
 	logData["json_body"] = string(jsonBody)
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= 300 {
-		log.ErrorCtx(ctx, errs.ErrUnexpectedStatusCode, logData)
+		log.Event(ctx, errs.ErrUnexpectedStatusCode.Error(), log.ERROR, log.Error(errs.ErrUnexpectedStatusCode), logData)
 		return nil, resp.StatusCode, errs.ErrUnexpectedStatusCode
 	}
 
