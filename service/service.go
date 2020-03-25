@@ -14,8 +14,7 @@ import (
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/audit"
 
-	"github.com/ONSdigital/go-ns/log"
-	"github.com/pkg/errors"
+	"github.com/ONSdigital/log.go/log"
 )
 
 type HealthCheck interface {
@@ -56,6 +55,7 @@ func (svc *Service) Start(ctx context.Context) {
 	svc.HealthCheck.Start(ctx)
 
 	api.CreateSearchAPI(
+		ctx,
 		svc.SearchAPIURL,
 		svc.BindAddr,
 		svc.AuthAPIURL,
@@ -72,24 +72,24 @@ func (svc *Service) Start(ctx context.Context) {
 	// blocks until a fatal error occurs
 	select {
 	case err := <-apiErrors:
-		log.ErrorC("api error received", err, nil)
+		log.Event(ctx, "api error received", log.ERROR, log.Error(err))
 	case <-signals:
-		log.Debug("os signal received", nil)
+		log.Event(ctx, "os signal received", log.INFO)
 	}
 
 	// Gracefully shutdown the application closing any open resources.
-	log.Info(fmt.Sprintf("shutdown with timeout: %s", svc.Shutdown), nil)
+	log.Event(ctx, fmt.Sprintf("shutdown with timeout: %s", svc.Shutdown), log.INFO)
 	ctx, cancel := context.WithTimeout(context.Background(), svc.Shutdown)
 
 	// stop any incoming requests before closing any outbound connections
 	api.Close(ctx)
 	if err := svc.SearchIndexProducer.Close(ctx); err != nil {
-		log.Error(errors.Wrap(err, "error while attempting to shutdown kafka producer"), nil)
+		log.Event(ctx, "error while attempting to shutdown kafka producer", log.ERROR, log.Error(err))
 	}
 
 	svc.HealthCheck.Stop()
 
-	log.Info("shutdown complete", nil)
+	log.Event(ctx, "shutdown complete", log.INFO)
 
 	cancel()
 	os.Exit(1)
