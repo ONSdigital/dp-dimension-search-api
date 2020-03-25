@@ -7,6 +7,7 @@ import (
 	elastic "github.com/ONSdigital/dp-elasticsearch"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	rchttp "github.com/ONSdigital/dp-rchttp"
+	"github.com/ONSdigital/dp-search-api/kafkaadapter"
 	"os"
 
 	"github.com/ONSdigital/dp-search-api/config"
@@ -14,9 +15,10 @@ import (
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/dp-search-api/service"
 	"github.com/ONSdigital/go-ns/audit"
-	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/pkg/errors"
+
+	kafka "github.com/ONSdigital/dp-kafka"
 )
 
 var (
@@ -50,25 +52,28 @@ func main() {
 		os.Exit(1)
 	}
 
-	producer, err := kafka.NewProducer(cfg.Brokers, cfg.HierarchyBuiltTopic, cfg.KafkaMaxBytes)
+	producerChannels := kafka.CreateProducerChannels()
+	kafkaProducer, err := kafka.NewProducer(ctx, cfg.Brokers, cfg.HierarchyBuiltTopic, cfg.KafkaMaxBytes, producerChannels)
 	if err != nil {
 		log.ErrorC("error creating kafka producer", err, nil)
 		os.Exit(1)
 	}
 
 	var auditor audit.AuditorService
-	var auditProducer kafka.Producer
+	var auditProducer *kafka.Producer
 
 	if cfg.HasPrivateEndpoints {
 		log.Info("private endpoints enabled, enabling action auditing", log.Data{"auditTopicName": cfg.AuditEventsTopic})
 
-		auditProducer, err = kafka.NewProducer(cfg.Brokers, cfg.AuditEventsTopic, 0)
+		auditProducerChannels := kafka.CreateProducerChannels()
+		auditProducer, err = kafka.NewProducer(ctx, cfg.Brokers, cfg.AuditEventsTopic, 0, auditProducerChannels)
 		if err != nil {
 			log.Error(errors.Wrap(err, "error creating kakfa audit producer"), nil)
 			os.Exit(1)
 		}
 
-		auditor = audit.New(auditProducer, "dp-search-api")
+		auditProducerAdapter := kafkaadapter.NewProducerAdapter(auditProducer)
+		auditor = audit.New(auditProducerAdapter, "dp-search-api")
 	} else {
 		log.Info("private endpoints disabled, auditing will not be enabled", nil)
 		auditor = &audit.NopAuditor{}
@@ -98,7 +103,7 @@ func main() {
 		log.ErrorC("error creating elasticsearch health check", err, nil)
 	}
 
-	outputQueue := searchoutputqueue.CreateOutputQueue(producer.Output())
+	outputQueue := searchoutputqueue.CreateOutputQueue(kafkaProducer.Channels().Output)
 
 	svc := &service.Service{
 		Auditor:                   auditor,
@@ -113,7 +118,7 @@ func main() {
 		MaxRetries:                cfg.MaxRetries,
 		OutputQueue:               outputQueue,
 		SearchAPIURL:              cfg.SearchAPIURL,
-		SearchIndexProducer:       producer,
+		SearchIndexProducer:       kafkaProducer,
 		ServiceAuthToken:          cfg.ServiceAuthToken,
 		Shutdown:                  cfg.GracefulShutdownTimeout,
 		SignElasticsearchRequests: cfg.SignElasticsearchRequests,

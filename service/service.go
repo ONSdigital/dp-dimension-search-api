@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	kafka "github.com/ONSdigital/dp-kafka"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,7 +13,7 @@ import (
 	"github.com/ONSdigital/dp-search-api/api"
 	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/audit"
-	"github.com/ONSdigital/go-ns/kafka"
+
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/pkg/errors"
 )
@@ -37,7 +38,7 @@ type Service struct {
 	MaxRetries                 int
 	OutputQueue                searchoutputqueue.Output
 	SearchAPIURL               string
-	SearchIndexProducer        kafka.Producer
+	SearchIndexProducer        *kafka.Producer
 	ServiceAuthToken           string
 	Shutdown                   time.Duration
 	SignElasticsearchRequests  bool
