@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/middleware"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	rchttp "github.com/ONSdigital/dp-rchttp"
 
@@ -71,7 +72,8 @@ func CreateSearchAPI(ctx context.Context,
 		auditor,
 		healthCheck)
 
-	middlewareChain := alice.New()
+	// Create new middleware chain with whitelisted handler for /health endpoint
+	middlewareChain := alice.New(middleware.Whitelist(middleware.HealthcheckFilter(healthCheck.Handler)))
 
 	if hasPrivateEndpoints {
 		log.Event(ctx, "private endpoints are enabled. using identity middleware", log.INFO)

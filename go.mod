@@ -3,13 +3,13 @@ module github.com/ONSdigital/dp-search-api
 go 1.14
 
 require (
-	github.com/ONSdigital/dp-api-clients-go v1.1.0
+	github.com/ONSdigital/dp-api-clients-go v1.9.0
 	github.com/ONSdigital/dp-elasticsearch v1.1.0
 	github.com/ONSdigital/dp-healthcheck v1.0.0
 	github.com/ONSdigital/dp-import v0.0.0-20180202121531-d3cc28e452c3
 	github.com/ONSdigital/dp-kafka v1.1.4
 	github.com/ONSdigital/dp-rchttp v0.0.0-20200114090501-463a529590e8
-	github.com/ONSdigital/go-ns v0.0.0-20191104121206-f144c4ec2e58
+	github.com/ONSdigital/go-ns v0.0.0-20200205115900-a11716f93bad
 	github.com/ONSdigital/log.go v1.0.0
 	github.com/Shopify/sarama v1.26.1 // indirect
 	github.com/facebookgo/freeport v0.0.0-20150612182905-d4adf43b75b9 // indirect
