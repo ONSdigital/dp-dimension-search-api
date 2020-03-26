@@ -66,13 +66,17 @@ func (svc *Service) Start(ctx context.Context) {
 		svc.HealthCheck,
 	)
 
-	// blocks until a fatal error occurs
-	select {
-	case err := <-apiErrors:
-		log.Event(ctx, "api error received", log.ERROR, log.Error(err))
-	case <-signals:
-		log.Event(ctx, "os signal received", log.INFO)
-	}
+	go func() {
+		for {
+			select {
+			case err := <-apiErrors:
+				log.Event(ctx, "api error received", log.ERROR, log.Error(err))
+			}
+		}
+	}()
+
+	<-signals
+	log.Event(ctx, "os signal received", log.INFO)
 
 	// Gracefully shutdown the application closing any open resources.
 	log.Event(ctx, fmt.Sprintf("shutdown with timeout: %s", svc.Shutdown), log.INFO)
