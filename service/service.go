@@ -33,7 +33,8 @@ type Service struct {
 	MaxRetries                 int
 	OutputQueue                searchoutputqueue.Output
 	SearchAPIURL               string
-	SearchIndexProducer        *kafka.Producer
+	AuditProducer              *kafka.Producer
+	HierarchyBuiltProducer     *kafka.Producer
 	ServiceAuthToken           string
 	Shutdown                   time.Duration
 	SignElasticsearchRequests  bool
@@ -84,11 +85,15 @@ func (svc *Service) Start(ctx context.Context) {
 
 	// stop any incoming requests before closing any outbound connections
 	api.Close(ctx)
-	if err := svc.SearchIndexProducer.Close(ctx); err != nil {
-		log.Event(ctx, "error while attempting to shutdown kafka producer", log.ERROR, log.Error(err))
+	svc.HealthCheck.Stop()
+
+	if err := svc.HierarchyBuiltProducer.Close(ctx); err != nil {
+		log.Event(ctx, "error while attempting to shutdown hierarchy built kafka producer", log.ERROR, log.Error(err))
 	}
 
-	svc.HealthCheck.Stop()
+	if err := svc.AuditProducer.Close(ctx); err != nil {
+		log.Event(ctx, "error while attempting to shutdown audit kafka producer", log.ERROR, log.Error(err))
+	}
 
 	log.Event(ctx, "shutdown complete", log.INFO)
 

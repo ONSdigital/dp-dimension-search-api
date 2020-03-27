@@ -51,8 +51,8 @@ func main() {
 	}
 
 	producerChannels := kafka.CreateProducerChannels()
-	producer, err := kafka.NewProducer(ctx, cfg.Brokers, cfg.HierarchyBuiltTopic, cfg.KafkaMaxBytes, producerChannels)
-	exitIfError(ctx, err, "error creating kafka producer")
+	hierarchyBuiltProducer, err := kafka.NewProducer(ctx, cfg.Brokers, cfg.HierarchyBuiltTopic, cfg.KafkaMaxBytes, producerChannels)
+	exitIfError(ctx, err, "error creating kafka hierarchyBuiltProducer")
 
 	var auditor audit.AuditorService
 	var auditProducer *kafka.Producer
@@ -62,7 +62,7 @@ func main() {
 
 		auditProducerChannels := kafka.CreateProducerChannels()
 		auditProducer, err = kafka.NewProducer(ctx, cfg.Brokers, cfg.AuditEventsTopic, 0, auditProducerChannels)
-		exitIfError(ctx, err, "error creating kafka producer")
+		exitIfError(ctx, err, "error creating kafka hierarchyBuiltProducer")
 
 		auditProducerAdapter := kafkaadapter.NewProducerAdapter(auditProducer)
 		auditor = audit.New(auditProducerAdapter, "dp-search-api")
@@ -71,11 +71,11 @@ func main() {
 		auditor = &audit.NopAuditor{}
 	}
 
-	outputQueue := searchoutputqueue.CreateOutputQueue(producer.Channels().Output)
+	outputQueue := searchoutputqueue.CreateOutputQueue(hierarchyBuiltProducer.Channels().Output)
 
 	datasetAPIClient := dataset.NewAPIClient(cfg.DatasetAPIURL)
 
-	hc := configureHealthChecks(ctx, cfg, elasticHTTPClient, producer, auditProducer, datasetAPIClient)
+	hc := configureHealthChecks(ctx, cfg, elasticHTTPClient, hierarchyBuiltProducer, auditProducer, datasetAPIClient)
 
 	svc := &service.Service{
 		Auditor:                   auditor,
@@ -90,7 +90,8 @@ func main() {
 		MaxRetries:                cfg.MaxRetries,
 		OutputQueue:               outputQueue,
 		SearchAPIURL:              cfg.SearchAPIURL,
-		SearchIndexProducer:       producer,
+		AuditProducer:             auditProducer,
+		HierarchyBuiltProducer:    hierarchyBuiltProducer,
 		ServiceAuthToken:          cfg.ServiceAuthToken,
 		Shutdown:                  cfg.GracefulShutdownTimeout,
 		SignElasticsearchRequests: cfg.SignElasticsearchRequests,
