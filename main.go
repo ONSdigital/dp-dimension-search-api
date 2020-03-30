@@ -53,6 +53,7 @@ func main() {
 	producerChannels := kafka.CreateProducerChannels()
 	hierarchyBuiltProducer, err := kafka.NewProducer(ctx, cfg.Brokers, cfg.HierarchyBuiltTopic, cfg.KafkaMaxBytes, producerChannels)
 	exitIfError(ctx, err, "error creating kafka hierarchyBuiltProducer")
+	hierarchyBuiltProducer.Channels().LogErrors(ctx, "error received from hierarchy built kafka producer, topic: "+cfg.HierarchyBuiltTopic)
 
 	var auditor audit.AuditorService
 	var auditProducer *kafka.Producer
@@ -63,6 +64,7 @@ func main() {
 		auditProducerChannels := kafka.CreateProducerChannels()
 		auditProducer, err = kafka.NewProducer(ctx, cfg.Brokers, cfg.AuditEventsTopic, 0, auditProducerChannels)
 		exitIfError(ctx, err, "error creating kafka hierarchyBuiltProducer")
+		auditProducer.Channels().LogErrors(ctx, "error received from kafka audit producer, topic: "+cfg.AuditEventsTopic)
 
 		auditProducerAdapter := kafkaadapter.NewProducerAdapter(auditProducer)
 		auditor = audit.New(auditProducerAdapter, "dp-search-api")
