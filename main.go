@@ -124,13 +124,6 @@ func configureHealthChecks(ctx context.Context,
 		hasErrors = true
 	}
 
-	// zebedee is used only for identity checking
-	zebedeeClient := zebedee.New(cfg.AuthAPIURL)
-	if err = hc.AddCheck("Zebedee", zebedeeClient.Checker); err != nil {
-		log.Event(ctx, "error creating zebedee health check", log.ERROR, log.Error(err))
-		hasErrors = true
-	}
-
 	elasticClient := elastic.NewClientWithHTTPClient(cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, elasticHTTPClient)
 	if err = hc.AddCheck("Elasticsearch", elasticClient.Checker); err != nil {
 		log.Event(ctx, "error creating elasticsearch health check", log.ERROR, log.Error(err))
@@ -145,6 +138,13 @@ func configureHealthChecks(ctx context.Context,
 	if cfg.HasPrivateEndpoints {
 		if err = hc.AddCheck("Kafka Audit Producer", auditProducer.Checker); err != nil {
 			log.Event(ctx, "error adding check for kafka audit producer", log.ERROR, log.Error(err))
+			hasErrors = true
+		}
+
+		// zebedee is used only for identity checking
+		zebedeeClient := zebedee.New(cfg.AuthAPIURL)
+		if err = hc.AddCheck("Zebedee", zebedeeClient.Checker); err != nil {
+			log.Event(ctx, "error creating zebedee health check", log.ERROR, log.Error(err))
 			hasErrors = true
 		}
 	}
