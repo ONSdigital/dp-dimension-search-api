@@ -91,8 +91,10 @@ func (svc *Service) Start(ctx context.Context) {
 		log.Event(ctx, "error while attempting to shutdown hierarchy built kafka producer", log.ERROR, log.Error(err))
 	}
 
-	if err := svc.AuditProducer.Close(ctx); err != nil {
-		log.Event(ctx, "error while attempting to shutdown audit kafka producer", log.ERROR, log.Error(err))
+	if svc.HasPrivateEndpoints {
+		if err := svc.AuditProducer.Close(ctx); err != nil {
+			log.Event(ctx, "error while attempting to shutdown audit kafka producer", log.ERROR, log.Error(err))
+		}
 	}
 
 	log.Event(ctx, "shutdown complete", log.INFO)

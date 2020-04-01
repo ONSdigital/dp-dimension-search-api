@@ -142,9 +142,11 @@ func configureHealthChecks(ctx context.Context,
 		hasErrors = true
 	}
 
-	if err = hc.AddCheck("Kafka Audit Producer", auditProducer.Checker); err != nil {
-		log.Event(ctx, "error adding check for kafka audit producer", log.ERROR, log.Error(err))
-		hasErrors = true
+	if cfg.HasPrivateEndpoints {
+		if err = hc.AddCheck("Kafka Audit Producer", auditProducer.Checker); err != nil {
+			log.Event(ctx, "error adding check for kafka audit producer", log.ERROR, log.Error(err))
+			hasErrors = true
+		}
 	}
 
 	if hasErrors {
