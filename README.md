@@ -43,23 +43,23 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 
 ### Configuration
 
-| Environment variable       | Default                              | Description
-| -------------------------- | -------------------------------------| -----------
-| BIND_ADDR                  | :23100                               | The host and port to bind to
-| DATASET_API_URL            | http://localhost:22000               | The host name for the dataset API
-| DATASET_API_AUTH_TOKEN     | FD0108EA-825D-411C-9B1D-41EF7727F465 | The auth token used for authentication to the dataset API
-| ELASTIC_SEARCH_URL         | http://localhost:10200               | The host name for elasticsearch
-| ENABLE_PRIVATE_ENDPOINTS   | false                                | Set true ("1","t","true") when private endpoints should be accessible
-| GRACEFUL_SHUTDOWN_TIMEOUT  | 5s                                   | The graceful shutdown timeout
-| HEALTHCHECK_INTERVAL       | 1m                                   | The time between calling the healthcheck endpoint for check subsystems
-| HEALTHCHECK_TIMEOUT        | 2s                                   | The timeout that the healthcheck allows for checked subsystems
-| HIERARCHY_BUILT_TOPIC      | hierarchy-built                      | The kafka topic to write messages to
-| KAFKA_ADDR                 | localhost:9092                       | The list of kafka hosts
-| KAFKA_MAX_BYTES            | 2000000                              | The maximum permitted size of a message. Should be set equal to or smaller than the broker's `message.max.bytes`
-| MAX_SEARCH_RESULTS_OFFSET  | 1000                                 | The maximum offset for the number of results returned by search query
-| REQUEST_MAX_RETRIES        | 3                                    | The maximum number of attempts for a single http request due to external service failure
-| SEARCH_API_URL             | http://localhost:23100               | The host name for this service, search API
-| SERVICE_AUTH_TOKEN         | SD0108EA-825D-411C-45J3-41EF7727F123 | The token used to identify this service when authenticating
+| Environment variable         | Default                              | Description
+| ---------------------------- | -------------------------------------| -----------
+| BIND_ADDR                    | :23100                               | The host and port to bind to
+| DATASET_API_URL              | http://localhost:22000               | The host name for the dataset API
+| DATASET_API_AUTH_TOKEN       | FD0108EA-825D-411C-9B1D-41EF7727F465 | The auth token used for authentication to the dataset API
+| ELASTIC_SEARCH_URL           | http://localhost:10200               | The host name for elasticsearch
+| ENABLE_PRIVATE_ENDPOINTS     | false                                | Set true ("1","t","true") when private endpoints should be accessible
+| GRACEFUL_SHUTDOWN_TIMEOUT    | 5s                                   | The graceful shutdown timeout
+| HEALTHCHECK_INTERVAL         | 30s                                  | The time between calling the health check endpoint for check subsystems
+| HEALTHCHECK_CRITICAL_TIMEOUT | 90s                                  | The timeout that the health check allows for checked subsystems
+| HIERARCHY_BUILT_TOPIC        | hierarchy-built                      | The kafka topic to write messages to
+| KAFKA_ADDR                   | localhost:9092                       | The list of kafka hosts
+| KAFKA_MAX_BYTES              | 2000000                              | The maximum permitted size of a message. Should be set equal to or smaller than the broker's `message.max.bytes`
+| MAX_SEARCH_RESULTS_OFFSET    | 1000                                 | The maximum offset for the number of results returned by search query
+| REQUEST_MAX_RETRIES          | 3                                    | The maximum number of attempts for a single http request due to external service failure
+| SEARCH_API_URL               | http://localhost:23100               | The host name for this service, search API
+| SERVICE_AUTH_TOKEN           | SD0108EA-825D-411C-45J3-41EF7727F123 | The token used to identify this service when authenticating
 
 
 ### Contributing
