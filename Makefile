@@ -15,15 +15,31 @@ LDFLAGS=-ldflags "-w -s -X 'main.Version=${VERSION}' -X 'main.BuildTime=$(BUILD_
 
 export ENABLE_PRIVATE_ENDPOINTS?=true
 
+.PHONY: all
+all: audit test build
+
+.PHONY: audit
+audit:
+	nancy go.sum
+
+.PHONY: build
 build:
 	@mkdir -p $(BUILD_ARCH)/$(BIN_DIR)
 	go build $(LDFLAGS) -o $(BUILD_ARCH)/$(BIN_DIR)/$(MAIN)
+
+.PHONY: debug
 debug: build
 	HUMAN_LOG=1 go run $(LDFLAGS) -race main.go
+
+.PHONY: acceptance-publishing
 acceptance-publishing: build
 	ENABLE_PRIVATE_ENDPOINTS=true MONGODB_DATABASE=test HUMAN_LOG=1 go run $(LDFLAGS) main.go
+
+.PHONY: acceptance-web
 acceptance-web: build
 	ENABLE_PRIVATE_ENDPOINTS=false MONGODB_DATABASE=test HUMAN_LOG=1 go run $(LDFLAGS) main.go
+
+.PHONY: test
 test:
 	go test -cover -race ./...
 
