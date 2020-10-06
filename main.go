@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
+	"os"
+
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/zebedee"
 	elastic "github.com/ONSdigital/dp-elasticsearch"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	rchttp "github.com/ONSdigital/dp-rchttp"
 	"github.com/ONSdigital/dp-search-api/kafkaadapter"
-	"os"
 
 	kafka "github.com/ONSdigital/dp-kafka"
 	"github.com/ONSdigital/dp-search-api/config"
@@ -124,7 +125,9 @@ func configureHealthChecks(ctx context.Context,
 		hasErrors = true
 	}
 
-	elasticClient := elastic.NewClientWithHTTPClient(cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, elasticHTTPClient)
+	var indexes string
+
+	elasticClient := elastic.NewClientWithHTTPClient(cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, elasticHTTPClient, indexes)
 	if err = hc.AddCheck("Elasticsearch", elasticClient.Checker); err != nil {
 		log.Event(ctx, "error creating elasticsearch health check", log.ERROR, log.Error(err))
 		hasErrors = true
