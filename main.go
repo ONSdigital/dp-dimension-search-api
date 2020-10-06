@@ -125,9 +125,7 @@ func configureHealthChecks(ctx context.Context,
 		hasErrors = true
 	}
 
-	var indexes string
-
-	elasticClient := elastic.NewClientWithHTTPClient(cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, elasticHTTPClient, indexes)
+	elasticClient := elastic.NewClientWithHTTPClient(cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, elasticHTTPClient)
 	if err = hc.AddCheck("Elasticsearch", elasticClient.Checker); err != nil {
 		log.Event(ctx, "error creating elasticsearch health check", log.ERROR, log.Error(err))
 		hasErrors = true
