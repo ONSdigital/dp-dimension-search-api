@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
+	"os"
+
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/zebedee"
 	elastic "github.com/ONSdigital/dp-elasticsearch"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	rchttp "github.com/ONSdigital/dp-rchttp"
 	"github.com/ONSdigital/dp-search-api/kafkaadapter"
-	"os"
 
 	kafka "github.com/ONSdigital/dp-kafka"
 	"github.com/ONSdigital/dp-search-api/config"
