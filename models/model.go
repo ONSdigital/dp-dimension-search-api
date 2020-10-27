@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strconv"
 
-	errs "github.com/ONSdigital/dp-search-api/apierrors"
+	errs "github.com/ONSdigital/dp-dimension-search-api/apierrors"
 )
 
 func ErrorMaximumOffsetReached(m int) error {

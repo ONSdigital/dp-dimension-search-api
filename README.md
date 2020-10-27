@@ -1,4 +1,4 @@
-dp-search-api
+dp-dimension-search-api
 ==================
 
 A ONS API used to search information against datasets which are published.
@@ -16,7 +16,7 @@ not work correctly but the api will stil be able to send back responses.
 
 ### Getting started
 
-* Clone the repo `go get github.com/ONSdigital/dp-search-api`
+* Clone the repo `go get github.com/ONSdigital/dp-dimension-search-api`
 * Run elasticsearch
 * Run the application `make debug`
 

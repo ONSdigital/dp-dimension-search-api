@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"net/url"
 
+	errs "github.com/ONSdigital/dp-dimension-search-api/apierrors"
+	"github.com/ONSdigital/dp-dimension-search-api/models"
 	rchttp "github.com/ONSdigital/dp-rchttp"
-	errs "github.com/ONSdigital/dp-search-api/apierrors"
-	"github.com/ONSdigital/dp-search-api/models"
 	"github.com/ONSdigital/log.go/log"
-	"github.com/smartystreets/go-aws-auth"
+	awsauth "github.com/smartystreets/go-aws-auth"
 )
 
 // API aggregates a client and URL and other common data for accessing the API

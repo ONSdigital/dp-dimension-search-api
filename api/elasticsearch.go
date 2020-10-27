@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	"github.com/ONSdigital/dp-search-api/models"
+	"github.com/ONSdigital/dp-dimension-search-api/models"
 )
 
 // Elasticsearcher - An interface used to access elasticsearch
