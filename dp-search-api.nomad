@@ -1,4 +1,4 @@
-job "dp-search-api" {
+job "dp-dimension-search-api" {
   datacenters = ["eu-west-1"]
   region      = "eu"
   type        = "service"
@@ -26,17 +26,17 @@ job "dp-search-api" {
       mode     = "delay"
     }
 
-    task "dp-search-api-web" {
+    task "dp-dimension-search-api-web" {
       driver = "docker"
 
       artifact {
-        source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-search-api/{{REVISION}}.tar.gz"
+        source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-dimension-search-api/{{REVISION}}.tar.gz"
       }
 
       config {
         command = "${NOMAD_TASK_DIR}/start-task"
         
-	args = ["./dp-search-api"]
+	args = ["./dp-dimension-search-api"]
 
         image = "{{ECR_URL}}:concourse-{{REVISION}}"
 
@@ -46,7 +46,7 @@ job "dp-search-api" {
       }
 
       service {
-        name = "dp-search-api"
+        name = "dp-dimension-search-api"
         port = "http"
         tags = ["web"]
         check {
@@ -72,7 +72,7 @@ job "dp-search-api" {
       }
 
       vault {
-        policies = ["dp-search-api-web"]
+        policies = ["dp-dimension-search-api-web"]
       }
     }
   }
@@ -92,17 +92,17 @@ job "dp-search-api" {
       mode     = "delay"
     }
 
-    task "dp-search-api-publishing" {
+    task "dp-dimension-search-api-publishing" {
       driver = "docker"
 
       artifact {
-        source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-search-api/{{REVISION}}.tar.gz"
+        source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-dimension-search-api/{{REVISION}}.tar.gz"
       }
 
       config {
         command = "${NOMAD_TASK_DIR}/start-task"
 
-	args = ["./dp-search-api"]
+	args = ["./dp-dimension-search-api"]
 
         image = "{{ECR_URL}}:concourse-{{REVISION}}"
 
@@ -112,7 +112,7 @@ job "dp-search-api" {
       }
 
       service {
-        name = "dp-search-api"
+        name = "dp-dimension-search-api"
         port = "http"
         tags = ["publishing"]
         check {
@@ -138,7 +138,7 @@ job "dp-search-api" {
       }
 
       vault {
-        policies = ["dp-search-api-publishing"]
+        policies = ["dp-dimension-search-api-publishing"]
       }
     }
   }

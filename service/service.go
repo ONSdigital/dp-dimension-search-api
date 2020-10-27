@@ -2,23 +2,24 @@ package service
 
 import (
 	"fmt"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	kafka "github.com/ONSdigital/dp-kafka"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	kafka "github.com/ONSdigital/dp-kafka"
+
 	"golang.org/x/net/context"
 
-	"github.com/ONSdigital/dp-search-api/api"
-	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
+	"github.com/ONSdigital/dp-dimension-search-api/api"
+	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/audit"
 
 	"github.com/ONSdigital/log.go/log"
 )
 
-// Service represents the necessary config for dp-search-api
+// Service represents the necessary config for dp-dimension-search-api
 type Service struct {
 	Auditor                    audit.AuditorService
 	AuthAPIURL                 string

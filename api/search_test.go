@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"testing"
 
-	errs "github.com/ONSdigital/dp-search-api/apierrors"
-	"github.com/ONSdigital/dp-search-api/mocks"
-	"github.com/ONSdigital/dp-search-api/models"
+	errs "github.com/ONSdigital/dp-dimension-search-api/apierrors"
+	"github.com/ONSdigital/dp-dimension-search-api/mocks"
+	"github.com/ONSdigital/dp-dimension-search-api/models"
 	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/gorilla/mux"
