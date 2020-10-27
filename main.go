@@ -30,7 +30,7 @@ var (
 )
 
 func main() {
-	log.Namespace = "dp-search-api"
+	log.Namespace = "dp-dimension-search-api"
 
 	ctx := context.Background()
 
