@@ -8,8 +8,8 @@ image_resource:
     tag: latest
 
 inputs:
-  - name: dp-search-api
-    path: dp-search-api
+  - name: dp-dimension-search-api
+    path: dp-dimension-search-api
 
 run:
-  path: dp-search-api/ci/scripts/audit.sh
+  path: dp-dimension-search-api/ci/scripts/audit.sh

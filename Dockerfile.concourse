@@ -2,6 +2,6 @@ FROM onsdigital/dp-concourse-tools-ubuntu
 
 WORKDIR /app/
 
-ADD dp-search-api .
+ADD dp-dimension-search-api .
 
-CMD ./dp-search-api
+CMD ./dp-dimension-search-api

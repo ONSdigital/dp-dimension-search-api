@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	errs "github.com/ONSdigital/dp-search-api/apierrors"
-	"github.com/ONSdigital/dp-search-api/models"
-	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
+	errs "github.com/ONSdigital/dp-dimension-search-api/apierrors"
+	"github.com/ONSdigital/dp-dimension-search-api/models"
+	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
