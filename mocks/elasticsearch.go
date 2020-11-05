@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	errs "github.com/ONSdigital/dp-search-api/apierrors"
-	"github.com/ONSdigital/dp-search-api/models"
+	errs "github.com/ONSdigital/dp-dimension-search-api/apierrors"
+	"github.com/ONSdigital/dp-dimension-search-api/models"
 )
 
 // Elasticsearch represents a list of error flags to set error in mocked elasticsearch

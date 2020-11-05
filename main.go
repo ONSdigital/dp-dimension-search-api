@@ -6,16 +6,16 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/zebedee"
+	"github.com/ONSdigital/dp-dimension-search-api/kafkaadapter"
 	elastic "github.com/ONSdigital/dp-elasticsearch"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	rchttp "github.com/ONSdigital/dp-rchttp"
-	"github.com/ONSdigital/dp-search-api/kafkaadapter"
 
+	"github.com/ONSdigital/dp-dimension-search-api/config"
+	"github.com/ONSdigital/dp-dimension-search-api/elasticsearch"
+	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
+	"github.com/ONSdigital/dp-dimension-search-api/service"
 	kafka "github.com/ONSdigital/dp-kafka"
-	"github.com/ONSdigital/dp-search-api/config"
-	"github.com/ONSdigital/dp-search-api/elasticsearch"
-	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
-	"github.com/ONSdigital/dp-search-api/service"
 	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/log.go/log"
 )
@@ -30,7 +30,7 @@ var (
 )
 
 func main() {
-	log.Namespace = "dp-search-api"
+	log.Namespace = "dp-dimension-search-api"
 
 	ctx := context.Background()
 
@@ -68,7 +68,7 @@ func main() {
 		auditProducer.Channels().LogErrors(ctx, "error received from kafka audit producer, topic: "+cfg.AuditEventsTopic)
 
 		auditProducerAdapter := kafkaadapter.NewProducerAdapter(auditProducer)
-		auditor = audit.New(auditProducerAdapter, "dp-search-api")
+		auditor = audit.New(auditProducerAdapter, "dp-dimension-search-api")
 	} else {
 		log.Event(ctx, "private endpoints disabled, auditing will not be enabled", log.INFO)
 		auditor = &audit.NopAuditor{}

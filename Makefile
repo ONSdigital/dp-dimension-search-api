@@ -1,5 +1,5 @@
 SHELL=bash
-MAIN=dp-search-api
+MAIN=dp-dimension-search-api
 
 BUILD=build
 BUILD_ARCH=$(BUILD)/$(GOOS)-$(GOARCH)

@@ -3,7 +3,7 @@ package mocks
 import (
 	"fmt"
 
-	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
+	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
 )
 
 // BuildSearch contains a flag indicating whether the message failed to go on queue

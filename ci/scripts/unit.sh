@@ -2,6 +2,6 @@
 
 cwd=$(pwd)
 
-pushd $cwd/dp-search-api
+pushd $cwd/dp-dimension-search-api
   make test
 popd

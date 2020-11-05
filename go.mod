@@ -1,4 +1,4 @@
-module github.com/ONSdigital/dp-search-api
+module github.com/ONSdigital/dp-dimension-search-api
 
 go 1.14
 

@@ -9,11 +9,11 @@ image_resource:
     tag: 1.13.8
 
 inputs:
-  - name: dp-search-api
-    path: dp-search-api
+  - name: dp-dimension-search-api
+    path: dp-dimension-search-api
 
 outputs:
   - name: build
 
 run:
-  path: dp-search-api/ci/scripts/build.sh
+  path: dp-dimension-search-api/ci/scripts/build.sh

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	errs "github.com/ONSdigital/dp-search-api/apierrors"
+	errs "github.com/ONSdigital/dp-dimension-search-api/apierrors"
 )
 
 // DatasetAPI represents a list of error flags to set error in mocked dataset API

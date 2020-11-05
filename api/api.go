@@ -2,14 +2,15 @@ package api
 
 import (
 	"context"
+
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/middleware"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	rchttp "github.com/ONSdigital/dp-rchttp"
 
 	identityclient "github.com/ONSdigital/dp-api-clients-go/identity"
-	"github.com/ONSdigital/dp-search-api/models"
-	"github.com/ONSdigital/dp-search-api/searchoutputqueue"
+	"github.com/ONSdigital/dp-dimension-search-api/models"
+	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
 	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/identity"
 	"github.com/ONSdigital/go-ns/server"
