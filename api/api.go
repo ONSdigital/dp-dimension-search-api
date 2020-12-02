@@ -125,10 +125,15 @@ func routes(host string,
 
 	api.router.HandleFunc("/health", healthCheck.Handler)
 	api.router.HandleFunc("/dimension-search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.getSearch).Methods("GET")
+	// Temporary transitional routes - remove search endpoints after migration
+	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.getSearch).Methods("GET")
 
 	if hasPrivateEndpoints {
 		api.router.HandleFunc("/dimension-search/instances/{instance_id}/dimensions/{dimension}", identity.Check(auditor, models.AuditTaskCreateIndex, api.createSearchIndex)).Methods("PUT")
 		api.router.HandleFunc("/dimension-search/instances/{instance_id}/dimensions/{dimension}", identity.Check(auditor, models.AuditTaskDeleteIndex, api.deleteSearchIndex)).Methods("DELETE")
+		// Temporary transitional routes - remove search endpoints after migration
+		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", identity.Check(auditor, models.AuditTaskCreateIndex, api.createSearchIndex)).Methods("PUT")
+		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", identity.Check(auditor, models.AuditTaskDeleteIndex, api.deleteSearchIndex)).Methods("DELETE")
 	}
 
 	return &api
