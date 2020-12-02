@@ -31,8 +31,8 @@ one of:
 
 ### Manually Creating and Deleting Indexes
 
-CREATE: `curl -X PUT <HOSTNAME>/search/instances/<instanceID>/dimensions/<dimensionName> -H <AUTH HEADER>`
-DELETE: `curl -X DELETE <HOSTNAME>/search/instances/<instanceID>/dimensions/<dimensionName> -H <AUTH HEADER>`
+CREATE: `curl -X PUT <HOSTNAME>/dimension-search/instances/<instanceID>/dimensions/<dimensionName> -H <AUTH HEADER>`
+DELETE: `curl -X DELETE <HOSTNAME>/dimension-search/instances/<instanceID>/dimensions/<dimensionName> -H <AUTH HEADER>`
 
 The `<AUTH HEADER>` must be either a valid `X-FLorence-Token` or a valid `Authorization` header.
 

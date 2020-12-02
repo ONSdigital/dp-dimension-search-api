@@ -16,8 +16,8 @@
 ###
 
 hierarchy_api_url=localhost:10550
-search_api_url=localhost:23100
-search_inst_prefix=$search_api_url/search/instances
+dimension_search_api_url=localhost:23100
+search_inst_prefix=$dimension_search_api_url/dimension-search/instances
 # token for accessing the search API (can easily be changed at runtime):
 SERVICE_AUTH_TOKEN=changeme
 

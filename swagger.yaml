@@ -67,7 +67,7 @@ securityDefinitions:
     in: header
     type: apiKey
 paths:
-  /search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}:
+  /dimension-search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}:
     get:
       tags:
       - "Public"
@@ -94,7 +94,7 @@ paths:
           $ref: '#/responses/NotFoundError'
         500:
           $ref: '#/responses/InternalError'
-  /search/instances/{instance_id}/dimensions/{name}:
+  /dimension-search/instances/{instance_id}/dimensions/{name}:
     put:
       tags:
       - "Private user"
