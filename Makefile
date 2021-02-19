@@ -2,11 +2,7 @@ SHELL=bash
 MAIN=dp-dimension-search-api
 
 BUILD=build
-BUILD_ARCH=$(BUILD)/$(GOOS)-$(GOARCH)
 BIN_DIR?=.
-
-export GOOS?=$(shell go env GOOS)
-export GOARCH?=$(shell go env GOARCH)
 
 BUILD_TIME=$(shell date +%s)
 GIT_COMMIT=$(shell git rev-parse HEAD)
@@ -20,16 +16,16 @@ all: audit test build
 
 .PHONY: audit
 audit:
-	nancy go.sum
+	go list -m all | nancy sleuth
 
 .PHONY: build
 build:
-	@mkdir -p $(BUILD_ARCH)/$(BIN_DIR)
-	go build $(LDFLAGS) -o $(BUILD_ARCH)/$(BIN_DIR)/$(MAIN)
+	@mkdir -p $(BUILD)/$(BIN_DIR)
+	go build $(LDFLAGS) -o $(BUILD)/$(BIN_DIR)/$(MAIN) main.go
 
 .PHONY: debug
 debug: build
-	HUMAN_LOG=1 go run $(LDFLAGS) -race main.go
+	HUMAN_LOG=1 go run -race $(LDFLAGS) -race main.go
 
 .PHONY: acceptance-publishing
 acceptance-publishing: build
