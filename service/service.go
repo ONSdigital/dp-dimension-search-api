@@ -84,14 +84,12 @@ func (svc *Service) Start(ctx context.Context) {
 	api.Close(ctx)
 	svc.HealthCheck.Stop()
 
-	if svc.HasPrivateEndpoints {
-		if err := svc.HierarchyBuiltProducer.Close(ctx); err != nil {
-			log.Event(ctx, "error while attempting to shutdown hierarchy built kafka producer", log.ERROR, log.Error(err))
-		}
+	if err := svc.HierarchyBuiltProducer.Close(ctx); err != nil {
+		log.Event(ctx, "error while attempting to shutdown hierarchy built kafka producer", log.ERROR, log.Error(err))
 	}
 
 	log.Event(ctx, "shutdown complete", log.INFO)
 
 	cancel()
-	os.Exit(1)
+	os.Exit(0)
 }
