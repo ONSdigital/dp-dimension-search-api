@@ -22,11 +22,13 @@ not work correctly but the api will stil be able to send back responses.
 
 ### Healthcheck
 
-The endpoint `/healthcheck` checks the connection to elasticsearch and returns
-one of:
+The endpoint `/health` checks all backing services, e.g. elasticsearch, dataset API:
 
-- success (200, JSON "status": "OK")
-- failure (500, JSON "status": "error").
+- success (200)
+- warning (429) - either application is starting up or a connection to a backend service 
+    has been lost in the last `HEALTHCHECK_CRITICAL_TIMEOUT` value, (default set to 90 seconds, 
+    see table below)but there is still time to recover.
+- failure (500)
 
 
 ### Manually Creating and Deleting Indexes
@@ -47,7 +49,6 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 | ---------------------------- | -------------------------------------| -----------
 | BIND_ADDR                    | :23100                               | The host and port to bind to
 | DATASET_API_URL              | http://localhost:22000               | The host name for the dataset API
-| DATASET_API_AUTH_TOKEN       | FD0108EA-825D-411C-9B1D-41EF7727F465 | The auth token used for authentication to the dataset API
 | ELASTIC_SEARCH_URL           | http://localhost:10200               | The host name for elasticsearch
 | ENABLE_PRIVATE_ENDPOINTS     | false                                | Set true ("1","t","true") when private endpoints should be accessible
 | GRACEFUL_SHUTDOWN_TIMEOUT    | 5s                                   | The graceful shutdown timeout
