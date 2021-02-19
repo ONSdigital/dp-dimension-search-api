@@ -48,8 +48,8 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 | Environment variable         | Default                              | Description
 | ---------------------------- | -------------------------------------| -----------
 | BIND_ADDR                    | :23100                               | The host and port to bind to
-| DATASET_API_URL              | http://localhost:22000               | The host name for the dataset API
-| ELASTIC_SEARCH_URL           | http://localhost:10200               | The host name for elasticsearch
+| DATASET_API_URL              | http://localhost:22000               | The host name and port for the dataset API
+| ELASTIC_SEARCH_URL           | http://localhost:10200               | The host name and port for elasticsearch
 | ENABLE_PRIVATE_ENDPOINTS     | false                                | Set true ("1","t","true") when private endpoints should be accessible
 | GRACEFUL_SHUTDOWN_TIMEOUT    | 5s                                   | The graceful shutdown timeout
 | HEALTHCHECK_INTERVAL         | 30s                                  | The time between calling the health check endpoint for check subsystems
@@ -57,10 +57,13 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 | HIERARCHY_BUILT_TOPIC        | hierarchy-built                      | The kafka topic to write messages to
 | KAFKA_ADDR                   | localhost:9092                       | The list of kafka hosts
 | KAFKA_MAX_BYTES              | 2000000                              | The maximum permitted size of a message. Should be set equal to or smaller than the broker's `message.max.bytes`
+| KAFKA_VERSION                | "1.0.2"                              | The kafka version that this service expects to connect to
 | MAX_SEARCH_RESULTS_OFFSET    | 1000                                 | The maximum offset for the number of results returned by search query
 | REQUEST_MAX_RETRIES          | 3                                    | The maximum number of attempts for a single http request due to external service failure
-| SEARCH_API_URL               | http://localhost:23100               | The host name for this service, search API
+| SEARCH_API_URL               | http://localhost:23100               | The host name and port for this service, dimension search API
 | SERVICE_AUTH_TOKEN           | SD0108EA-825D-411C-45J3-41EF7727F123 | The token used to identify this service when authenticating
+| SIGN_ELASTICSEARCH_REQUESTS  | false                                | Boolean flag to identify whether elasticsearch requests via elastic API need to be signed if elasticsearch cluster is running in aws
+| ZEBEDEE_URL                  | http://localhost:8082                | The URL to zebedee, used to authenticate requests
 
 
 ### Contributing

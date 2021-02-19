@@ -20,6 +20,7 @@ type Config struct {
 	HealthCheckCriticalTimeout time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
 	HierarchyBuiltTopic        string        `envconfig:"HIERARCHY_BUILT_TOPIC"`
 	KafkaMaxBytes              int           `envconfig:"KAFKA_MAX_BYTES"`
+	KafkaVersion               string        `envconfig:"KAFKA_VERSION"`
 	MaxRetries                 int           `envconfig:"REQUEST_MAX_RETRIES"`
 	MaxSearchResultsOffset     int           `envconfig:"MAX_SEARCH_RESULTS_OFFSET"`
 	SearchAPIURL               string        `envconfig:"SEARCH_API_URL"`
@@ -47,6 +48,7 @@ func Get() (*Config, error) {
 		HealthCheckCriticalTimeout: 90 * time.Second,
 		HierarchyBuiltTopic:        "hierarchy-built",
 		KafkaMaxBytes:              2000000,
+		KafkaVersion:               "1.0.2",
 		MaxRetries:                 3,
 		MaxSearchResultsOffset:     1000,
 		SearchAPIURL:               "http://localhost:23100",
