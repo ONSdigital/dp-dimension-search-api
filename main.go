@@ -5,18 +5,15 @@ import (
 	"os"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	"github.com/ONSdigital/dp-api-clients-go/zebedee"
-	"github.com/ONSdigital/dp-dimension-search-api/kafkaadapter"
 	elastic "github.com/ONSdigital/dp-elasticsearch"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	rchttp "github.com/ONSdigital/dp-rchttp"
+	dphttp "github.com/ONSdigital/dp-net/http"
 
 	"github.com/ONSdigital/dp-dimension-search-api/config"
 	"github.com/ONSdigital/dp-dimension-search-api/elasticsearch"
 	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
 	"github.com/ONSdigital/dp-dimension-search-api/service"
 	kafka "github.com/ONSdigital/dp-kafka"
-	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/log.go/log"
 )
 
@@ -43,7 +40,7 @@ func main() {
 	// sensitive fields are omitted from config.String().
 	log.Event(ctx, "config on startup", log.INFO, log.Data{"config": cfg})
 
-	elasticHTTPClient := rchttp.NewClient()
+	elasticHTTPClient := dphttp.NewClient()
 	elasticsearch := elasticsearch.NewElasticSearchAPI(elasticHTTPClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests)
 	_, status, err := elasticsearch.CallElastic(context.Background(), cfg.ElasticSearchAPIURL, "GET", nil)
 	if err != nil {
@@ -56,32 +53,13 @@ func main() {
 	exitIfError(ctx, err, "error creating kafka hierarchyBuiltProducer")
 	hierarchyBuiltProducer.Channels().LogErrors(ctx, "error received from hierarchy built kafka producer, topic: "+cfg.HierarchyBuiltTopic)
 
-	var auditor audit.AuditorService
-	var auditProducer *kafka.Producer
-
-	if cfg.HasPrivateEndpoints {
-		log.Event(ctx, "private endpoints enabled, enabling action auditing", log.INFO, log.Data{"auditTopicName": cfg.AuditEventsTopic})
-
-		auditProducerChannels := kafka.CreateProducerChannels()
-		auditProducer, err = kafka.NewProducer(ctx, cfg.Brokers, cfg.AuditEventsTopic, 0, auditProducerChannels)
-		exitIfError(ctx, err, "error creating kafka hierarchyBuiltProducer")
-		auditProducer.Channels().LogErrors(ctx, "error received from kafka audit producer, topic: "+cfg.AuditEventsTopic)
-
-		auditProducerAdapter := kafkaadapter.NewProducerAdapter(auditProducer)
-		auditor = audit.New(auditProducerAdapter, "dp-dimension-search-api")
-	} else {
-		log.Event(ctx, "private endpoints disabled, auditing will not be enabled", log.INFO)
-		auditor = &audit.NopAuditor{}
-	}
-
 	outputQueue := searchoutputqueue.CreateOutputQueue(hierarchyBuiltProducer.Channels().Output)
 
 	datasetAPIClient := dataset.NewAPIClient(cfg.DatasetAPIURL)
 
-	hc := configureHealthChecks(ctx, cfg, elasticHTTPClient, hierarchyBuiltProducer, auditProducer, datasetAPIClient)
+	hc := configureHealthChecks(ctx, cfg, elasticHTTPClient, hierarchyBuiltProducer, datasetAPIClient)
 
 	svc := &service.Service{
-		Auditor:                   auditor,
 		AuthAPIURL:                cfg.AuthAPIURL,
 		BindAddr:                  cfg.BindAddr,
 		DatasetAPIClient:          datasetAPIClient,
@@ -93,7 +71,6 @@ func main() {
 		MaxRetries:                cfg.MaxRetries,
 		OutputQueue:               outputQueue,
 		SearchAPIURL:              cfg.SearchAPIURL,
-		AuditProducer:             auditProducer,
 		HierarchyBuiltProducer:    hierarchyBuiltProducer,
 		ServiceAuthToken:          cfg.ServiceAuthToken,
 		Shutdown:                  cfg.GracefulShutdownTimeout,
@@ -105,9 +82,8 @@ func main() {
 
 func configureHealthChecks(ctx context.Context,
 	cfg *config.Config,
-	elasticHTTPClient rchttp.Clienter,
+	elasticHTTPClient dphttp.Clienter,
 	producer *kafka.Producer,
-	auditProducer *kafka.Producer,
 	datasetAPIClient *dataset.Client) *healthcheck.HealthCheck {
 
 	hasErrors := false
@@ -134,20 +110,6 @@ func configureHealthChecks(ctx context.Context,
 	if err = hc.AddCheck("Kafka Producer", producer.Checker); err != nil {
 		log.Event(ctx, "error adding check for kafka producer", log.ERROR, log.Error(err))
 		hasErrors = true
-	}
-
-	if cfg.HasPrivateEndpoints {
-		if err = hc.AddCheck("Kafka Audit Producer", auditProducer.Checker); err != nil {
-			log.Event(ctx, "error adding check for kafka audit producer", log.ERROR, log.Error(err))
-			hasErrors = true
-		}
-
-		// zebedee is used only for identity checking
-		zebedeeClient := zebedee.New(cfg.AuthAPIURL)
-		if err = hc.AddCheck("Zebedee", zebedeeClient.Checker); err != nil {
-			log.Event(ctx, "error creating zebedee health check", log.ERROR, log.Error(err))
-			hasErrors = true
-		}
 	}
 
 	if hasErrors {

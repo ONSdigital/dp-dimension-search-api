@@ -10,20 +10,20 @@ import (
 
 	errs "github.com/ONSdigital/dp-dimension-search-api/apierrors"
 	"github.com/ONSdigital/dp-dimension-search-api/models"
-	rchttp "github.com/ONSdigital/dp-rchttp"
+	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
 	awsauth "github.com/smartystreets/go-aws-auth"
 )
 
 // API aggregates a client and URL and other common data for accessing the API
 type API struct {
-	client       rchttp.Clienter
+	client       dphttp.Clienter
 	url          string
 	signRequests bool
 }
 
 // NewElasticSearchAPI creates an API object
-func NewElasticSearchAPI(client rchttp.Clienter, elasticSearchAPIURL string, signRequests bool) *API {
+func NewElasticSearchAPI(client dphttp.Clienter, elasticSearchAPIURL string, signRequests bool) *API {
 	return &API{
 		client:       client,
 		url:          elasticSearchAPIURL,
