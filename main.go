@@ -42,11 +42,6 @@ func main() {
 
 	elasticHTTPClient := dphttp.NewClient()
 	elasticsearch := elasticsearch.NewElasticSearchAPI(elasticHTTPClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests)
-	_, status, err := elasticsearch.CallElastic(context.Background(), cfg.ElasticSearchAPIURL, "GET", nil)
-	if err != nil {
-		log.Event(ctx, "failed to start up, unable to connect to elastic search instance", log.FATAL, log.Error(err), log.Data{"http_status": status})
-		os.Exit(1)
-	}
 
 	producerChannels := kafka.CreateProducerChannels()
 	hierarchyBuiltProducer, err := kafka.NewProducer(ctx, cfg.Brokers, cfg.HierarchyBuiltTopic, cfg.KafkaMaxBytes, producerChannels)
