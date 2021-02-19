@@ -13,7 +13,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-search-api/elasticsearch"
 	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
 	"github.com/ONSdigital/dp-dimension-search-api/service"
-	kafka "github.com/ONSdigital/dp-kafka"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/log"
 )
 
@@ -43,10 +43,19 @@ func main() {
 	elasticHTTPClient := dphttp.NewClient()
 	elasticsearch := elasticsearch.NewElasticSearchAPI(elasticHTTPClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests)
 
-	producerChannels := kafka.CreateProducerChannels()
-	hierarchyBuiltProducer, err := kafka.NewProducer(ctx, cfg.Brokers, cfg.HierarchyBuiltTopic, cfg.KafkaMaxBytes, producerChannels)
+	// producerChannels := kafka.CreateProducerChannels()
+	// hierarchyBuiltProducer, err := kafka.NewProducer(ctx, cfg.Brokers, cfg.HierarchyBuiltTopic, cfg.KafkaMaxBytes, producerChannels)
+	// exitIfError(ctx, err, "error creating kafka hierarchyBuiltProducer")
+	// hierarchyBuiltProducer.Channels().LogErrors(ctx, "error received from hierarchy built kafka producer, topic: "+cfg.HierarchyBuiltTopic)
+
+	hierarchyBuiltProducer, err := kafka.NewProducer(
+		ctx,
+		cfg.Brokers,
+		cfg.HierarchyBuiltTopic,
+		kafka.CreateProducerChannels(),
+		&kafka.ProducerConfig{KafkaVersion: &cfg.KafkaVersion, MaxMessageBytes: &cfg.KafkaMaxBytes},
+	)
 	exitIfError(ctx, err, "error creating kafka hierarchyBuiltProducer")
-	hierarchyBuiltProducer.Channels().LogErrors(ctx, "error received from hierarchy built kafka producer, topic: "+cfg.HierarchyBuiltTopic)
 
 	outputQueue := searchoutputqueue.CreateOutputQueue(hierarchyBuiltProducer.Channels().Output)
 

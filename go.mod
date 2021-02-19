@@ -7,7 +7,7 @@ require (
 	github.com/ONSdigital/dp-elasticsearch v1.3.0
 	github.com/ONSdigital/dp-healthcheck v1.0.5
 	github.com/ONSdigital/dp-import v0.0.0-20180202121531-d3cc28e452c3
-	github.com/ONSdigital/dp-kafka v1.1.7
+	github.com/ONSdigital/dp-kafka/v2 v2.1.2
 	github.com/ONSdigital/dp-net v1.0.11
 	github.com/ONSdigital/go-ns v0.0.0-20200902154605-290c8b5ba5eb
 	github.com/ONSdigital/log.go v1.0.1
@@ -24,5 +24,4 @@ require (
 	golang.org/x/net v0.0.0-20210119194325-5f4716e94777
 	golang.org/x/sys v0.0.0-20210218155724-8ebf48af031b // indirect
 	gopkg.in/avro.v0 v0.0.0-20171217001914-a730b5802183 // indirect
-	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
