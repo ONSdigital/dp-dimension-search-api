@@ -25,7 +25,7 @@ build:
 
 .PHONY: debug
 debug: build
-	HUMAN_LOG=1 go run -race $(LDFLAGS) -race main.go
+	HUMAN_LOG=1 go run -race $(LDFLAGS) main.go
 
 .PHONY: acceptance-publishing
 acceptance-publishing: build
