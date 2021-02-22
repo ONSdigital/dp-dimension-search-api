@@ -9,9 +9,8 @@ import (
 
 // Config is the filing resource handler config
 type Config struct {
-	AuditEventsTopic           string        `envconfig:"AUDIT_EVENTS_TOPIC"`
 	AuthAPIURL                 string        `envconfig:"ZEBEDEE_URL"`
-	BindAddr                   string        `envconfig:"BIND_ADDR"                  json:"-"`
+	BindAddr                   string        `envconfig:"BIND_ADDR"`
 	Brokers                    []string      `envconfig:"KAFKA_ADDR"                 json:"-"`
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
 	ElasticSearchAPIURL        string        `envconfig:"ELASTIC_SEARCH_URL"         json:"-"`
@@ -21,6 +20,7 @@ type Config struct {
 	HealthCheckCriticalTimeout time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
 	HierarchyBuiltTopic        string        `envconfig:"HIERARCHY_BUILT_TOPIC"`
 	KafkaMaxBytes              int           `envconfig:"KAFKA_MAX_BYTES"`
+	KafkaVersion               string        `envconfig:"KAFKA_VERSION"`
 	MaxRetries                 int           `envconfig:"REQUEST_MAX_RETRIES"`
 	MaxSearchResultsOffset     int           `envconfig:"MAX_SEARCH_RESULTS_OFFSET"`
 	SearchAPIURL               string        `envconfig:"SEARCH_API_URL"`
@@ -37,7 +37,6 @@ func Get() (*Config, error) {
 	}
 
 	cfg = &Config{
-		AuditEventsTopic:           "audit-events",
 		AuthAPIURL:                 "http://localhost:8082",
 		BindAddr:                   ":23100",
 		Brokers:                    []string{"localhost:9092"},
@@ -49,6 +48,7 @@ func Get() (*Config, error) {
 		HealthCheckCriticalTimeout: 90 * time.Second,
 		HierarchyBuiltTopic:        "hierarchy-built",
 		KafkaMaxBytes:              2000000,
+		KafkaVersion:               "1.0.2",
 		MaxRetries:                 3,
 		MaxSearchResultsOffset:     1000,
 		SearchAPIURL:               "http://localhost:23100",

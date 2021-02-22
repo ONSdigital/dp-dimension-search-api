@@ -8,20 +8,18 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	kafka "github.com/ONSdigital/dp-kafka"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 
 	"golang.org/x/net/context"
 
 	"github.com/ONSdigital/dp-dimension-search-api/api"
 	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
-	"github.com/ONSdigital/go-ns/audit"
 
 	"github.com/ONSdigital/log.go/log"
 )
 
 // Service represents the necessary config for dp-dimension-search-api
 type Service struct {
-	Auditor                    audit.AuditorService
 	AuthAPIURL                 string
 	BindAddr                   string
 	DatasetAPIClient           api.DatasetAPIClient
@@ -34,7 +32,6 @@ type Service struct {
 	MaxRetries                 int
 	OutputQueue                searchoutputqueue.Output
 	SearchAPIURL               string
-	AuditProducer              *kafka.Producer
 	HierarchyBuiltProducer     *kafka.Producer
 	ServiceAuthToken           string
 	Shutdown                   time.Duration
@@ -64,7 +61,6 @@ func (svc *Service) Start(ctx context.Context) {
 		svc.Elasticsearch,
 		svc.DefaultMaxResults,
 		svc.HasPrivateEndpoints,
-		svc.Auditor,
 		svc.HealthCheck,
 	)
 
@@ -92,14 +88,8 @@ func (svc *Service) Start(ctx context.Context) {
 		log.Event(ctx, "error while attempting to shutdown hierarchy built kafka producer", log.ERROR, log.Error(err))
 	}
 
-	if svc.HasPrivateEndpoints {
-		if err := svc.AuditProducer.Close(ctx); err != nil {
-			log.Event(ctx, "error while attempting to shutdown audit kafka producer", log.ERROR, log.Error(err))
-		}
-	}
-
 	log.Event(ctx, "shutdown complete", log.INFO)
 
 	cancel()
-	os.Exit(1)
+	os.Exit(0)
 }
