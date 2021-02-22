@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/zebedee"
 	elastic "github.com/ONSdigital/dp-elasticsearch"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	dphttp "github.com/ONSdigital/dp-net/http"
@@ -43,11 +44,6 @@ func main() {
 	elasticHTTPClient := dphttp.NewClient()
 	elasticsearch := elasticsearch.NewElasticSearchAPI(elasticHTTPClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests)
 
-	// producerChannels := kafka.CreateProducerChannels()
-	// hierarchyBuiltProducer, err := kafka.NewProducer(ctx, cfg.Brokers, cfg.HierarchyBuiltTopic, cfg.KafkaMaxBytes, producerChannels)
-	// exitIfError(ctx, err, "error creating kafka hierarchyBuiltProducer")
-	// hierarchyBuiltProducer.Channels().LogErrors(ctx, "error received from hierarchy built kafka producer, topic: "+cfg.HierarchyBuiltTopic)
-
 	hierarchyBuiltProducer, err := kafka.NewProducer(
 		ctx,
 		cfg.Brokers,
@@ -56,6 +52,8 @@ func main() {
 		&kafka.ProducerConfig{KafkaVersion: &cfg.KafkaVersion, MaxMessageBytes: &cfg.KafkaMaxBytes},
 	)
 	exitIfError(ctx, err, "error creating kafka hierarchyBuiltProducer")
+
+	hierarchyBuiltProducer.Channels().LogErrors(ctx, "error received from hierarchy built kafka producer, topic: "+cfg.HierarchyBuiltTopic)
 
 	outputQueue := searchoutputqueue.CreateOutputQueue(hierarchyBuiltProducer.Channels().Output)
 
@@ -114,6 +112,15 @@ func configureHealthChecks(ctx context.Context,
 	if err = hc.AddCheck("Kafka Producer", producer.Checker); err != nil {
 		log.Event(ctx, "error adding check for kafka producer", log.ERROR, log.Error(err))
 		hasErrors = true
+	}
+
+	if cfg.HasPrivateEndpoints {
+		// zebedee is used only for identity checking
+		zebedeeClient := zebedee.New(cfg.AuthAPIURL)
+		if err = hc.AddCheck("Zebedee", zebedeeClient.Checker); err != nil {
+			log.Event(ctx, "error creating zebedee health check", log.ERROR, log.Error(err))
+			hasErrors = true
+		}
 	}
 
 	if hasErrors {
