@@ -6,13 +6,11 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/middleware"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	rchttp "github.com/ONSdigital/dp-rchttp"
 
 	identityclient "github.com/ONSdigital/dp-api-clients-go/identity"
-	"github.com/ONSdigital/dp-dimension-search-api/models"
 	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
+	dphandlers "github.com/ONSdigital/dp-net/handlers"
 	"github.com/ONSdigital/go-ns/audit"
-	"github.com/ONSdigital/go-ns/identity"
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
@@ -58,7 +56,7 @@ type SearchAPI struct {
 func CreateSearchAPI(ctx context.Context,
 	host, bindAddr, authAPIURL string, errorChan chan error, searchOutputQueue OutputQueue,
 	datasetAPIClient DatasetAPIClient, serviceAuthToken string, elasticsearch Elasticsearcher,
-	defaultMaxResults int, hasPrivateEndpoints bool, auditor audit.AuditorService,
+	defaultMaxResults int, hasPrivateEndpoints bool,
 	healthCheck *healthcheck.HealthCheck) {
 
 	router := mux.NewRouter()
@@ -70,7 +68,6 @@ func CreateSearchAPI(ctx context.Context,
 		elasticsearch,
 		defaultMaxResults,
 		hasPrivateEndpoints,
-		auditor,
 		healthCheck)
 
 	// Create new middleware chain with whitelisted handler for /health endpoint
@@ -78,11 +75,9 @@ func CreateSearchAPI(ctx context.Context,
 
 	if hasPrivateEndpoints {
 		log.Event(ctx, "private endpoints are enabled. using identity middleware", log.INFO)
-		identityHTTPClient := rchttp.NewClient()
-		identityClient := identityclient.NewAPIClient(identityHTTPClient, authAPIURL)
+		identityClient := identityclient.New(authAPIURL)
 
-		identityHandler := identity.HandlerForHTTPClient(identityClient)
-		middlewareChain = middlewareChain.Append(identityHandler)
+		middlewareChain = middlewareChain.Append(dphandlers.IdentityWithHTTPClient(identityClient))
 	}
 
 	alice := middlewareChain.Then(router)
@@ -108,11 +103,9 @@ func routes(host string,
 	elasticsearch Elasticsearcher,
 	defaultMaxResults int,
 	hasPrivateEndpoints bool,
-	auditor audit.AuditorService,
 	healthCheck *healthcheck.HealthCheck) *SearchAPI {
 
 	api := SearchAPI{
-		auditor:             auditor,
 		datasetAPIClient:    datasetAPIClient,
 		serviceAuthToken:    serviceAuthToken,
 		defaultMaxResults:   defaultMaxResults,
@@ -125,15 +118,10 @@ func routes(host string,
 
 	api.router.HandleFunc("/health", healthCheck.Handler)
 	api.router.HandleFunc("/dimension-search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.getSearch).Methods("GET")
-	// Temporary transitional routes - remove search endpoints after migration
-	api.router.HandleFunc("/search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.getSearch).Methods("GET")
 
 	if hasPrivateEndpoints {
-		api.router.HandleFunc("/dimension-search/instances/{instance_id}/dimensions/{dimension}", identity.Check(auditor, models.AuditTaskCreateIndex, api.createSearchIndex)).Methods("PUT")
-		api.router.HandleFunc("/dimension-search/instances/{instance_id}/dimensions/{dimension}", identity.Check(auditor, models.AuditTaskDeleteIndex, api.deleteSearchIndex)).Methods("DELETE")
-		// Temporary transitional routes - remove search endpoints after migration
-		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", identity.Check(auditor, models.AuditTaskCreateIndex, api.createSearchIndex)).Methods("PUT")
-		api.router.HandleFunc("/search/instances/{instance_id}/dimensions/{dimension}", identity.Check(auditor, models.AuditTaskDeleteIndex, api.deleteSearchIndex)).Methods("DELETE")
+		api.router.HandleFunc("/dimension-search/instances/{instance_id}/dimensions/{dimension}", dphandlers.CheckIdentity(api.createSearchIndex)).Methods("PUT")
+		api.router.HandleFunc("/dimension-search/instances/{instance_id}/dimensions/{dimension}", dphandlers.CheckIdentity(api.deleteSearchIndex)).Methods("DELETE")
 	}
 
 	return &api
