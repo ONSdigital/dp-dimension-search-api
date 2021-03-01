@@ -127,9 +127,9 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		}
 
 		searchResults := &models.SearchResults{
-			Count:  response.Hits.Total,
-			Limit:  page.Limit,
-			Offset: page.Offset,
+			TotalCount: response.Hits.Total,
+			Limit:      page.Limit,
+			Offset:     page.Offset,
 		}
 
 		for _, result := range response.Hits.HitList {

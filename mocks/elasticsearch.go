@@ -55,7 +55,7 @@ func (api *Elasticsearch) QuerySearchIndex(ctx context.Context, instanceID, dime
 
 	return &models.SearchResponse{
 		Hits: models.Hits{
-			Total:   1,
+			Total:   22,
 			HitList: []models.HitList{firstHit, secondHit},
 		},
 	}, http.StatusOK, nil
