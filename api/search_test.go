@@ -140,6 +140,7 @@ func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 		So(len(searchResults.Items), ShouldEqual, 2)
 		So(searchResults.Limit, ShouldEqual, 5)
 		So(searchResults.Offset, ShouldEqual, 20)
+		So(searchResults.TotalCount, ShouldEqual, 22)
 	})
 
 	Convey("Given the search query satisfies the search index when limit parameter is set beyond the maximum then return a status 200", t, func() {
@@ -157,6 +158,7 @@ func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 		So(len(searchResults.Items), ShouldEqual, 2)
 		So(searchResults.Limit, ShouldEqual, defaultMaxResults)
 		So(searchResults.Offset, ShouldEqual, 0)
+		So(searchResults.TotalCount, ShouldEqual, 22)
 	})
 }
 
