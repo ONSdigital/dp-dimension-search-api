@@ -10,6 +10,7 @@ import (
 // Config is the filing resource handler config
 type Config struct {
 	AuthAPIURL                 string        `envconfig:"ZEBEDEE_URL"`
+	AwsSDKSigner               bool          `envconfig:"AWS_SDK_SIGNER"`
 	BindAddr                   string        `envconfig:"BIND_ADDR"`
 	Brokers                    []string      `envconfig:"KAFKA_ADDR"                 json:"-"`
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
@@ -37,6 +38,7 @@ func Get() (*Config, error) {
 	}
 
 	cfg = &Config{
+		AwsSDKSigner:               false,
 		AuthAPIURL:                 "http://localhost:8082",
 		BindAddr:                   ":23100",
 		Brokers:                    []string{"localhost:9092"},
