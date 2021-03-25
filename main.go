@@ -42,7 +42,7 @@ func main() {
 	log.Event(ctx, "config on startup", log.INFO, log.Data{"config": cfg})
 
 	elasticHTTPClient := dphttp.NewClient()
-	elasticsearch := elasticsearch.NewElasticSearchAPI(elasticHTTPClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, cfg.AwsSDKSigner)
+	elasticsearch := elasticsearch.NewElasticSearchAPI(elasticHTTPClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, cfg.AwsSDKSigner, cfg.AwsService, cfg.AwsRegion)
 
 	hierarchyBuiltProducer, err := kafka.NewProducer(
 		ctx,
