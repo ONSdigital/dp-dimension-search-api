@@ -75,8 +75,7 @@ func (api *API) QuerySearchIndex(ctx context.Context, instanceID, dimension, ter
 		return nil, 0, errs.ErrMarshallingQuery
 	}
 
-	requestBody := string(bytes)
-	logData["request_body"] = string(requestBody)
+	logData["request_body"] = string(bytes)
 
 	responseBody, status, err := api.CallElastic(ctx, path, "GET", bytes)
 	logData["status"] = status
