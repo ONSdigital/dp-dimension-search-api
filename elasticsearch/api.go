@@ -7,26 +7,36 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
+	"time"
 
 	errs "github.com/ONSdigital/dp-dimension-search-api/apierrors"
 	"github.com/ONSdigital/dp-dimension-search-api/models"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
+	credentials "github.com/aws/aws-sdk-go/aws/credentials"
+	signerV4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	awsauth "github.com/smartystreets/go-aws-auth"
 )
 
 // API aggregates a client and URL and other common data for accessing the API
 type API struct {
+	awsRegion    string
+	awsSDKSigner bool
+	awsService   string
 	client       dphttp.Clienter
 	url          string
 	signRequests bool
 }
 
 // NewElasticSearchAPI creates an API object
-func NewElasticSearchAPI(client dphttp.Clienter, elasticSearchAPIURL string, signRequests bool) *API {
+func NewElasticSearchAPI(client dphttp.Clienter, elasticSearchAPIURL string, signRequests bool, awsSDKSigner bool, awsService, awsRegion string) *API {
 	return &API{
+		awsSDKSigner: awsSDKSigner,
 		client:       client,
 		url:          elasticSearchAPIURL,
+		awsRegion:    awsRegion,
+		awsService:   awsService,
 		signRequests: signRequests,
 	}
 }
@@ -99,11 +109,14 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 	logData["url"] = path
 
 	var req *http.Request
+	var bodyReader *strings.Reader
 
 	if payload != nil {
 		req, err = http.NewRequest(method, path, bytes.NewReader(payload.([]byte)))
 		req.Header.Add("Content-type", "application/json")
-		logData["payload"] = string(payload.([]byte))
+		payloadAsString := string(payload.([]byte))
+		logData["payload"] = payloadAsString
+		bodyReader = strings.NewReader(payloadAsString)
 	} else {
 		req, err = http.NewRequest(method, path, nil)
 	}
@@ -114,7 +127,13 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 	}
 
 	if api.signRequests {
-		awsauth.Sign(req)
+		if api.awsSDKSigner {
+			credentials := credentials.NewEnvCredentials()
+			signer := signerV4.NewSigner(credentials)
+			signer.Sign(req, bodyReader, api.awsService, api.awsRegion, time.Now())
+		} else {
+			awsauth.Sign(req)
+		}
 	}
 
 	resp, err := api.client.Do(ctx, req)

@@ -1,6 +1,6 @@
 module github.com/ONSdigital/dp-dimension-search-api
 
-go 1.15
+go 1.16
 
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.33.6
@@ -12,6 +12,7 @@ require (
 	github.com/ONSdigital/go-ns v0.0.0-20200902154605-290c8b5ba5eb
 	github.com/ONSdigital/log.go v1.0.1
 	github.com/Shopify/sarama v1.28.0 // indirect
+	github.com/aws/aws-sdk-go v1.38.3
 	github.com/fatih/color v1.10.0 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/hokaccha/go-prettyjson v0.0.0-20210113012101-fb4e108d2519 // indirect
