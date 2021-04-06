@@ -22,6 +22,9 @@ func TestSpec(t *testing.T) {
 
 			Convey("The values should be set to the expected defaults", func() {
 				So(cfg.AuthAPIURL, ShouldEqual, "http://localhost:8082")
+				So(cfg.AwsRegion, ShouldEqual, "eu-west-1")
+				So(cfg.AwsService, ShouldEqual, "es")
+				So(cfg.AwsSDKSigner, ShouldEqual, false)
 				So(cfg.BindAddr, ShouldEqual, ":23100")
 				So(cfg.Brokers, ShouldResemble, []string{"localhost:9092"})
 				So(cfg.DatasetAPIURL, ShouldEqual, "http://localhost:22000")
