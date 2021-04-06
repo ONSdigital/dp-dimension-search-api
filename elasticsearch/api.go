@@ -15,7 +15,7 @@ import (
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
 	credentials "github.com/aws/aws-sdk-go/aws/credentials"
-	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
+	signerV4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	awsauth "github.com/smartystreets/go-aws-auth"
 )
 
@@ -116,7 +116,7 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 		req.Header.Add("Content-type", "application/json")
 		payloadAsString := string(payload.([]byte))
 		logData["payload"] = payloadAsString
-		bodyReader = strings.NewReader(string(payloadAsString))
+		bodyReader = strings.NewReader(payloadAsString)
 	} else {
 		req, err = http.NewRequest(method, path, nil)
 	}
@@ -129,7 +129,7 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 	if api.signRequests {
 		if api.awsSDKSigner {
 			credentials := credentials.NewEnvCredentials()
-			signer := v4.NewSigner(credentials)
+			signer := signerV4.NewSigner(credentials)
 			signer.Sign(req, bodyReader, api.awsService, api.awsRegion, time.Now())
 		} else {
 			awsauth.Sign(req)
