@@ -4,19 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	errs "github.com/ONSdigital/dp-dimension-search-api/apierrors"
 	"github.com/ONSdigital/dp-dimension-search-api/models"
+	esauth "github.com/ONSdigital/dp-elasticsearch/v2/awsauth"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
-	credentials "github.com/aws/aws-sdk-go/aws/credentials"
-	signerV4 "github.com/aws/aws-sdk-go/aws/signer/v4"
-	awsauth "github.com/smartystreets/go-aws-auth"
 )
 
 // API aggregates a client and URL and other common data for accessing the API
@@ -109,14 +107,13 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 	logData["url"] = path
 
 	var req *http.Request
-	var bodyReader *strings.Reader
+	var bodyReader io.ReadSeeker
 
 	if payload != nil {
 		req, err = http.NewRequest(method, path, bytes.NewReader(payload.([]byte)))
 		req.Header.Add("Content-type", "application/json")
-		payloadAsString := string(payload.([]byte))
-		logData["payload"] = payloadAsString
-		bodyReader = strings.NewReader(payloadAsString)
+		logData["payload"] = string(payload.([]byte))
+		bodyReader = bytes.NewReader(payload.([]byte))
 	} else {
 		req, err = http.NewRequest(method, path, nil)
 	}
@@ -127,12 +124,9 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 	}
 
 	if api.signRequests {
-		if api.awsSDKSigner {
-			credentials := credentials.NewEnvCredentials()
-			signer := signerV4.NewSigner(credentials)
-			signer.Sign(req, bodyReader, api.awsService, api.awsRegion, time.Now())
-		} else {
-			awsauth.Sign(req)
+		signer := esauth.NewSigner(api.awsSDKSigner, api.awsService, api.awsRegion)
+		if err = signer.Sign(req, bodyReader, time.Now()); err != nil {
+			return nil, 0, err
 		}
 	}
 
