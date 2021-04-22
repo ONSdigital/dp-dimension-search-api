@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.33.6
-	github.com/ONSdigital/dp-elasticsearch/v2 v2.1.1-0.20210422163935-578f11e53462
+	github.com/ONSdigital/dp-elasticsearch/v2 v2.1.1-0.20210422183419-bdec41793c80
 	github.com/ONSdigital/dp-healthcheck v1.0.5
 	github.com/ONSdigital/dp-import v0.0.0-20180202121531-d3cc28e452c3
 	github.com/ONSdigital/dp-kafka/v2 v2.1.2
