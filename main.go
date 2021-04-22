@@ -6,7 +6,7 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/zebedee"
-	elastic "github.com/ONSdigital/dp-elasticsearch"
+	elastic "github.com/ONSdigital/dp-elasticsearch/v2/elasticsearch"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	dphttp "github.com/ONSdigital/dp-net/http"
 
@@ -103,7 +103,7 @@ func configureHealthChecks(ctx context.Context,
 		hasErrors = true
 	}
 
-	elasticClient := elastic.NewClientWithHTTPClient(cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, elasticHTTPClient)
+	elasticClient := elastic.NewClientWithHTTPClientAndOptionalAWSSignage(cfg.ElasticSearchAPIURL, cfg.AwsRegion, cfg.AwsService, cfg.AwsSDKSigner, cfg.SignElasticsearchRequests, elasticHTTPClient)
 	if err = hc.AddCheck("Elasticsearch", elasticClient.Checker); err != nil {
 		log.Event(ctx, "error creating elasticsearch health check", log.ERROR, log.Error(err))
 		hasErrors = true
