@@ -6,6 +6,8 @@ github.com/ONSdigital/dp-elasticsearch/v2 v2.0.2-0.20210409074639-dfef4e78646f h
 github.com/ONSdigital/dp-elasticsearch/v2 v2.0.2-0.20210409074639-dfef4e78646f/go.mod h1:6TiCOz3at6ZPzB7W82Ki+mx9lumRZ/vkC5cwC4XN9rI=
 github.com/ONSdigital/dp-elasticsearch/v2 v2.1.1-0.20210422155808-8793249dbbec h1:OQlncwqbmCU4ioiFLpSBM0GJxhgZecrBhF4o84eLoIY=
 github.com/ONSdigital/dp-elasticsearch/v2 v2.1.1-0.20210422155808-8793249dbbec/go.mod h1:ytn2UdvrPn6ZvmFImMHosSPhCg+gjIOZZ9NHDz/CBII=
+github.com/ONSdigital/dp-elasticsearch/v2 v2.1.1-0.20210422163935-578f11e53462 h1:f9/Zan23EPmcN3FsciqQMLP/NZ//lOOTxxYbzKHpOvg=
+github.com/ONSdigital/dp-elasticsearch/v2 v2.1.1-0.20210422163935-578f11e53462/go.mod h1:ytn2UdvrPn6ZvmFImMHosSPhCg+gjIOZZ9NHDz/CBII=
 github.com/ONSdigital/dp-frontend-models v1.1.0/go.mod h1:TT96P7Mi69N3Tc/jFNdbjiwG4GAaMjP26HLotFQ6BPw=
 github.com/ONSdigital/dp-healthcheck v0.0.0-20200131122546-9db6d3f0494e/go.mod h1:zighxZ/0m5u7zo0eAr8XFlA+Dz2ic7A1vna6YXvhCjQ=
 github.com/ONSdigital/dp-healthcheck v1.0.5 h1:DXnohGIqXaLLeYGdaGOhgkZjAbWMNoLAjQ3EgZeMT3M=
