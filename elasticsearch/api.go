@@ -20,7 +20,7 @@ import (
 // API aggregates a client and URL and other common data for accessing the API
 type API struct {
 	awsRegion    string
-	awsSDKSigner bool
+	awsSDKSigner *esauth.Signer
 	awsService   string
 	client       dphttp.Clienter
 	url          string
@@ -28,7 +28,7 @@ type API struct {
 }
 
 // NewElasticSearchAPI creates an API object
-func NewElasticSearchAPI(client dphttp.Clienter, elasticSearchAPIURL string, signRequests bool, awsSDKSigner bool, awsService, awsRegion string) *API {
+func NewElasticSearchAPI(client dphttp.Clienter, elasticSearchAPIURL string, signRequests bool, awsSDKSigner *esauth.Signer, awsService, awsRegion string) *API {
 	return &API{
 		awsSDKSigner: awsSDKSigner,
 		client:       client,
@@ -124,8 +124,7 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 	}
 
 	if api.signRequests {
-		signer := esauth.NewSigner(api.awsSDKSigner, api.awsService, api.awsRegion)
-		if err = signer.Sign(req, bodyReader, time.Now()); err != nil {
+		if err = api.awsSDKSigner.Sign(req, bodyReader, time.Now()); err != nil {
 			return nil, 0, err
 		}
 	}
