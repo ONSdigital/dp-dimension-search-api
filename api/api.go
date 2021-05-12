@@ -10,7 +10,6 @@ import (
 	identityclient "github.com/ONSdigital/dp-api-clients-go/identity"
 	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
 	dphandlers "github.com/ONSdigital/dp-net/handlers"
-	"github.com/ONSdigital/go-ns/audit"
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
@@ -40,7 +39,6 @@ type HealthCheck interface {
 
 // SearchAPI manages searches across indices
 type SearchAPI struct {
-	auditor             audit.AuditorService
 	datasetAPIClient    DatasetAPIClient
 	serviceAuthToken    string
 	defaultMaxResults   int
