@@ -10,13 +10,13 @@ import (
 	identityclient "github.com/ONSdigital/dp-api-clients-go/identity"
 	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
 	dphandlers "github.com/ONSdigital/dp-net/handlers"
-	"github.com/ONSdigital/go-ns/server"
+	"github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 )
 
-var httpServer *server.Server
+var httpServer *http.Server
 
 type DatasetAPIClient interface {
 	GetVersion(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceAuthToken, collectionID, datasetID, edition, version string) (m dataset.Version, err error)
@@ -79,7 +79,7 @@ func CreateSearchAPI(ctx context.Context,
 	}
 
 	alice := middlewareChain.Then(router)
-	httpServer = server.New(bindAddr, alice)
+	httpServer = http.NewServer(bindAddr, alice)
 
 	// Disable this here to allow service to manage graceful shutdown of the entire app.
 	httpServer.HandleOSSignals = false
