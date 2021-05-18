@@ -6,7 +6,8 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/zebedee"
-	elastic "github.com/ONSdigital/dp-elasticsearch"
+	esauth "github.com/ONSdigital/dp-elasticsearch/v2/awsauth"
+	elastic "github.com/ONSdigital/dp-elasticsearch/v2/elasticsearch"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	dphttp "github.com/ONSdigital/dp-net/http"
 
@@ -41,8 +42,17 @@ func main() {
 	// sensitive fields are omitted from config.String().
 	log.Event(ctx, "config on startup", log.INFO, log.Data{"config": cfg})
 
+	var esSigner *esauth.Signer
+	if cfg.SignElasticsearchRequests {
+		esSigner, err = esauth.NewAwsSigner("", "", cfg.AwsRegion, cfg.AwsService)
+		if err != nil {
+			log.Event(ctx, "failed to create aws v4 signer", log.ERROR, log.Error(err))
+			os.Exit(1)
+		}
+	}
+
 	elasticHTTPClient := dphttp.NewClient()
-	elasticsearch := elasticsearch.NewElasticSearchAPI(elasticHTTPClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests)
+	elasticsearch := elasticsearch.NewElasticSearchAPI(elasticHTTPClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, esSigner, cfg.AwsService, cfg.AwsRegion)
 
 	hierarchyBuiltProducer, err := kafka.NewProducer(
 		ctx,
@@ -59,7 +69,7 @@ func main() {
 
 	datasetAPIClient := dataset.NewAPIClient(cfg.DatasetAPIURL)
 
-	hc := configureHealthChecks(ctx, cfg, elasticHTTPClient, hierarchyBuiltProducer, datasetAPIClient)
+	hc := configureHealthChecks(ctx, cfg, elasticHTTPClient, esSigner, hierarchyBuiltProducer, datasetAPIClient)
 
 	svc := &service.Service{
 		AuthAPIURL:                cfg.AuthAPIURL,
@@ -85,6 +95,7 @@ func main() {
 func configureHealthChecks(ctx context.Context,
 	cfg *config.Config,
 	elasticHTTPClient dphttp.Clienter,
+	esSigner *esauth.Signer,
 	producer *kafka.Producer,
 	datasetAPIClient *dataset.Client) *healthcheck.HealthCheck {
 
@@ -103,7 +114,7 @@ func configureHealthChecks(ctx context.Context,
 		hasErrors = true
 	}
 
-	elasticClient := elastic.NewClientWithHTTPClient(cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, elasticHTTPClient)
+	elasticClient := elastic.NewClientWithHTTPClientAndAwsSigner(cfg.ElasticSearchAPIURL, esSigner, cfg.SignElasticsearchRequests, elasticHTTPClient)
 	if err = hc.AddCheck("Elasticsearch", elasticClient.Checker); err != nil {
 		log.Event(ctx, "error creating elasticsearch health check", log.ERROR, log.Error(err))
 		hasErrors = true

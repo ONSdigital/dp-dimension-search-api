@@ -4,29 +4,37 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"time"
 
 	errs "github.com/ONSdigital/dp-dimension-search-api/apierrors"
 	"github.com/ONSdigital/dp-dimension-search-api/models"
+	esauth "github.com/ONSdigital/dp-elasticsearch/v2/awsauth"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
-	awsauth "github.com/smartystreets/go-aws-auth"
 )
 
 // API aggregates a client and URL and other common data for accessing the API
 type API struct {
+	awsRegion    string
+	awsSDKSigner *esauth.Signer
+	awsService   string
 	client       dphttp.Clienter
 	url          string
 	signRequests bool
 }
 
 // NewElasticSearchAPI creates an API object
-func NewElasticSearchAPI(client dphttp.Clienter, elasticSearchAPIURL string, signRequests bool) *API {
+func NewElasticSearchAPI(client dphttp.Clienter, elasticSearchAPIURL string, signRequests bool, awsSDKSigner *esauth.Signer, awsService, awsRegion string) *API {
 	return &API{
+		awsSDKSigner: awsSDKSigner,
 		client:       client,
 		url:          elasticSearchAPIURL,
+		awsRegion:    awsRegion,
+		awsService:   awsService,
 		signRequests: signRequests,
 	}
 }
@@ -99,11 +107,13 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 	logData["url"] = path
 
 	var req *http.Request
+	var bodyReader io.ReadSeeker
 
 	if payload != nil {
 		req, err = http.NewRequest(method, path, bytes.NewReader(payload.([]byte)))
 		req.Header.Add("Content-type", "application/json")
 		logData["payload"] = string(payload.([]byte))
+		bodyReader = bytes.NewReader(payload.([]byte))
 	} else {
 		req, err = http.NewRequest(method, path, nil)
 	}
@@ -114,7 +124,9 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 	}
 
 	if api.signRequests {
-		awsauth.Sign(req)
+		if err = api.awsSDKSigner.Sign(req, bodyReader, time.Now()); err != nil {
+			return nil, 0, err
+		}
 	}
 
 	resp, err := api.client.Do(ctx, req)
