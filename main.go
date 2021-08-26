@@ -54,12 +54,24 @@ func main() {
 	elasticHTTPClient := dphttp.NewClient()
 	elasticsearch := elasticsearch.NewElasticSearchAPI(elasticHTTPClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, esSigner, cfg.AwsService, cfg.AwsRegion)
 
+	pConfig := &kafka.ProducerConfig{
+		KafkaVersion:    &cfg.KafkaVersion,
+		MaxMessageBytes: &cfg.KafkaMaxBytes,
+	}
+	if cfg.KafkaSecProtocol == "TLS" {
+		pConfig.SecurityConfig = kafka.GetSecurityConfig(
+			cfg.KafkaSecCACerts,
+			cfg.KafkaSecClientCert,
+			cfg.KafkaSecClientKey,
+			cfg.KafkaSecSkipVerify,
+		)
+	}
 	hierarchyBuiltProducer, err := kafka.NewProducer(
 		ctx,
 		cfg.Brokers,
 		cfg.HierarchyBuiltTopic,
 		kafka.CreateProducerChannels(),
-		&kafka.ProducerConfig{KafkaVersion: &cfg.KafkaVersion, MaxMessageBytes: &cfg.KafkaMaxBytes},
+		pConfig,
 	)
 	exitIfError(ctx, err, "error creating kafka hierarchyBuiltProducer")
 
