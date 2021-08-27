@@ -64,7 +64,6 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 | KAFKA_SEC_CLIENT_CERT        | _unset_                              | PEM for the client certificate [1]
 | KAFKA_SEC_CA_CERTS           | _unset_                              | CA cert chain for the server cert [1]
 | KAFKA_SEC_SKIP_VERIFY        | false                                | ignores server certificate issues if `true` [1]
-| FILTER_JOB_SUBMITTED_TOPIC   | filter-job-submitted                 | The kafka topic to write messages to
 | MAX_SEARCH_RESULTS_OFFSET    | 1000                                 | The maximum offset for the number of results returned by search query
 | REQUEST_MAX_RETRIES          | 3                                    | The maximum number of attempts for a single http request due to external service failure
 | SEARCH_API_URL               | http://localhost:23100               | The host name and port for this service, dimension search API
