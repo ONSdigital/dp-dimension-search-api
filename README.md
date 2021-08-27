@@ -9,7 +9,8 @@ In order to run the service locally you will need the following:
 - [Git](https://git-scm.com/downloads)
 - [ElasticSearch](https://www.elastic.co/guide/en/elasticsearch/reference/5.4/index.html)
 
-### Note
+**Notes:**
+
 The only breaking change from verion 5.x to 6.x of elasticsearch is highlighting will
 not work correctly but the api will stil be able to send back responses.
 
