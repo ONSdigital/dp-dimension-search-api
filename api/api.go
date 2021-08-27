@@ -11,7 +11,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
 	dphandlers "github.com/ONSdigital/dp-net/handlers"
 	"github.com/ONSdigital/dp-net/http"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 )
@@ -72,7 +72,7 @@ func CreateSearchAPI(ctx context.Context,
 	middlewareChain := alice.New(middleware.Whitelist(middleware.HealthcheckFilter(healthCheck.Handler)))
 
 	if hasPrivateEndpoints {
-		log.Event(ctx, "private endpoints are enabled. using identity middleware", log.INFO)
+		log.Info(ctx, "private endpoints are enabled. using identity middleware")
 		identityClient := identityclient.New(authAPIURL)
 
 		middlewareChain = middlewareChain.Append(dphandlers.IdentityWithHTTPClient(identityClient))
@@ -85,9 +85,9 @@ func CreateSearchAPI(ctx context.Context,
 	httpServer.HandleOSSignals = false
 
 	go func() {
-		log.Event(ctx, "Starting api...", log.INFO)
+		log.Info(ctx, "Starting api...")
 		if err := httpServer.ListenAndServe(); err != nil {
-			log.Event(ctx, "api http server returned error", log.ERROR, log.Error(err))
+			log.Error(ctx, "api http server returned error", err)
 			errorChan <- err
 		}
 	}()
@@ -130,6 +130,6 @@ func Close(ctx context.Context) error {
 	if err := httpServer.Shutdown(ctx); err != nil {
 		return err
 	}
-	log.Event(ctx, "graceful shutdown of http server complete", log.INFO)
+	log.Info(ctx, "graceful shutdown of http server complete")
 	return nil
 }

@@ -1,10 +1,9 @@
-dp-dimension-search-api
-==================
+# dp-dimension-search-api
 
 A ONS API used to search information against datasets which are published.
 
-Requirements
------------------
+## Requirements
+
 In order to run the service locally you will need the following:
 - [Go](https://golang.org/doc/install)
 - [Git](https://git-scm.com/downloads)
@@ -14,7 +13,7 @@ In order to run the service locally you will need the following:
 The only breaking change from verion 5.x to 6.x of elasticsearch is highlighting will
 not work correctly but the api will stil be able to send back responses.
 
-### Getting started
+## Getting started
 
 * Clone the repo `go get github.com/ONSdigital/dp-dimension-search-api`
 * Run elasticsearch
@@ -42,7 +41,6 @@ The `<AUTH HEADER>` must be either a valid `X-FLorence-Token` or a valid `Author
 
 Scripts for updating and debugging Kafka can be found [here](https://github.com/ONSdigital/dp-data-tools)(dp-data-tools)
 
-
 ### Configuration
 
 | Environment variable         | Default                              | Description
@@ -61,6 +59,11 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 | KAFKA_ADDR                   | localhost:9092                       | The list of kafka hosts
 | KAFKA_MAX_BYTES              | 2000000                              | The maximum permitted size of a message. Should be set equal to or smaller than the broker's `message.max.bytes`
 | KAFKA_VERSION                | "1.0.2"                              | The kafka version that this service expects to connect to
+| KAFKA_SEC_PROTO              | _unset_                              | if set to `TLS`, kafka connections will use TLS [1]
+| KAFKA_SEC_CLIENT_KEY         | _unset_                              | PEM for the client key [1]
+| KAFKA_SEC_CLIENT_CERT        | _unset_                              | PEM for the client certificate [1]
+| KAFKA_SEC_CA_CERTS           | _unset_                              | CA cert chain for the server cert [1]
+| KAFKA_SEC_SKIP_VERIFY        | false                                | ignores server certificate issues if `true` [1]
 | MAX_SEARCH_RESULTS_OFFSET    | 1000                                 | The maximum offset for the number of results returned by search query
 | REQUEST_MAX_RETRIES          | 3                                    | The maximum number of attempts for a single http request due to external service failure
 | SEARCH_API_URL               | http://localhost:23100               | The host name and port for this service, dimension search API
@@ -68,6 +71,9 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 | SIGN_ELASTICSEARCH_REQUESTS  | false                                | Boolean flag to identify whether elasticsearch requests via elastic API need to be signed if elasticsearch cluster is running in aws
 | ZEBEDEE_URL                  | http://localhost:8082                | The URL to zebedee, used to authenticate requests
 
+**Notes:**
+
+1. For more info, see the [kafka TLS examples documentation](https://github.com/ONSdigital/dp-kafka/tree/main/examples#tls)
 
 ### Contributing
 
