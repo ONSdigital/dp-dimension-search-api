@@ -3,7 +3,7 @@ module github.com/ONSdigital/dp-dimension-search-api
 go 1.16
 
 require (
-	github.com/ONSdigital/dp-api-clients-go v1.42.0
+	github.com/ONSdigital/dp-api-clients-go v1.43.0
 	github.com/ONSdigital/dp-elasticsearch/v2 v2.2.0
 	github.com/ONSdigital/dp-healthcheck v1.1.0
 	github.com/ONSdigital/dp-import v1.2.1
