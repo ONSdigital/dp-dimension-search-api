@@ -34,6 +34,8 @@ func TestSpec(t *testing.T) {
 				So(cfg.HierarchyBuiltTopic, ShouldEqual, "hierarchy-built")
 				So(cfg.KafkaMaxBytes, ShouldEqual, 2000000)
 				So(cfg.MaxRetries, ShouldEqual, 3)
+				So(cfg.KafkaVersion, ShouldEqual, "1.0.2")
+				So(cfg.KafkaSecProtocol, ShouldEqual, "")
 				So(cfg.MaxSearchResultsOffset, ShouldEqual, 1000)
 				So(cfg.SearchAPIURL, ShouldEqual, "http://localhost:23100")
 				So(cfg.ServiceAuthToken, ShouldEqual, "a507f722-f25a-4889-9653-23a2655b925c")

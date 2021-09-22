@@ -15,7 +15,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-search-api/api"
 	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
 
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 // Service represents the necessary config for dp-dimension-search-api
@@ -68,16 +68,16 @@ func (svc *Service) Start(ctx context.Context) {
 		for {
 			select {
 			case err := <-apiErrors:
-				log.Event(ctx, "api error received", log.ERROR, log.Error(err))
+				log.Error(ctx, "api error received", err)
 			}
 		}
 	}()
 
 	<-signals
-	log.Event(ctx, "os signal received", log.INFO)
+	log.Info(ctx, "os signal received")
 
 	// Gracefully shutdown the application closing any open resources.
-	log.Event(ctx, fmt.Sprintf("shutdown with timeout: %s", svc.Shutdown), log.INFO)
+	log.Info(ctx, fmt.Sprintf("shutdown with timeout: %s", svc.Shutdown))
 	ctx, cancel := context.WithTimeout(context.Background(), svc.Shutdown)
 
 	// stop any incoming requests before closing any outbound connections
@@ -85,10 +85,10 @@ func (svc *Service) Start(ctx context.Context) {
 	svc.HealthCheck.Stop()
 
 	if err := svc.HierarchyBuiltProducer.Close(ctx); err != nil {
-		log.Event(ctx, "error while attempting to shutdown hierarchy built kafka producer", log.ERROR, log.Error(err))
+		log.Error(ctx, "error while attempting to shutdown hierarchy built kafka producer", err)
 	}
 
-	log.Event(ctx, "shutdown complete", log.INFO)
+	log.Info(ctx, "shutdown complete")
 
 	cancel()
 	os.Exit(0)

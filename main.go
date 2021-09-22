@@ -16,7 +16,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
 	"github.com/ONSdigital/dp-dimension-search-api/service"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 var (
@@ -35,18 +35,18 @@ func main() {
 
 	cfg, err := config.Get()
 	if err != nil {
-		log.Event(ctx, "failed to retrieve configuration", log.FATAL, log.Error(err))
+		log.Fatal(ctx, "failed to retrieve configuration", err)
 		os.Exit(1)
 	}
 
 	// sensitive fields are omitted from config.String().
-	log.Event(ctx, "config on startup", log.INFO, log.Data{"config": cfg})
+	log.Info(ctx, "config on startup", log.Data{"config": cfg})
 
 	var esSigner *esauth.Signer
 	if cfg.SignElasticsearchRequests {
 		esSigner, err = esauth.NewAwsSigner("", "", cfg.AwsRegion, cfg.AwsService)
 		if err != nil {
-			log.Event(ctx, "failed to create aws v4 signer", log.ERROR, log.Error(err))
+			log.Error(ctx, "failed to create aws v4 signer", err)
 			os.Exit(1)
 		}
 	}
@@ -54,12 +54,24 @@ func main() {
 	elasticHTTPClient := dphttp.NewClient()
 	elasticsearch := elasticsearch.NewElasticSearchAPI(elasticHTTPClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, esSigner, cfg.AwsService, cfg.AwsRegion)
 
+	pConfig := &kafka.ProducerConfig{
+		KafkaVersion:    &cfg.KafkaVersion,
+		MaxMessageBytes: &cfg.KafkaMaxBytes,
+	}
+	if cfg.KafkaSecProtocol == "TLS" {
+		pConfig.SecurityConfig = kafka.GetSecurityConfig(
+			cfg.KafkaSecCACerts,
+			cfg.KafkaSecClientCert,
+			cfg.KafkaSecClientKey,
+			cfg.KafkaSecSkipVerify,
+		)
+	}
 	hierarchyBuiltProducer, err := kafka.NewProducer(
 		ctx,
 		cfg.Brokers,
 		cfg.HierarchyBuiltTopic,
 		kafka.CreateProducerChannels(),
-		&kafka.ProducerConfig{KafkaVersion: &cfg.KafkaVersion, MaxMessageBytes: &cfg.KafkaMaxBytes},
+		pConfig,
 	)
 	exitIfError(ctx, err, "error creating kafka hierarchyBuiltProducer")
 
@@ -103,25 +115,25 @@ func configureHealthChecks(ctx context.Context,
 
 	versionInfo, err := healthcheck.NewVersionInfo(BuildTime, GitCommit, Version)
 	if err != nil {
-		log.Event(ctx, "error creating version info", log.FATAL, log.Error(err))
+		log.Fatal(ctx, "error creating version info", err)
 		hasErrors = true
 	}
 
 	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
 
 	if err = hc.AddCheck("Dataset API", datasetAPIClient.Checker); err != nil {
-		log.Event(ctx, "error creating dataset API health check", log.Error(err))
+		log.Error(ctx, "error creating dataset API health check", err)
 		hasErrors = true
 	}
 
 	elasticClient := elastic.NewClientWithHTTPClientAndAwsSigner(cfg.ElasticSearchAPIURL, esSigner, cfg.SignElasticsearchRequests, elasticHTTPClient)
 	if err = hc.AddCheck("Elasticsearch", elasticClient.Checker); err != nil {
-		log.Event(ctx, "error creating elasticsearch health check", log.ERROR, log.Error(err))
+		log.Error(ctx, "error creating elasticsearch health check", err)
 		hasErrors = true
 	}
 
 	if err = hc.AddCheck("Kafka Producer", producer.Checker); err != nil {
-		log.Event(ctx, "error adding check for kafka producer", log.ERROR, log.Error(err))
+		log.Error(ctx, "error adding check for kafka producer", err)
 		hasErrors = true
 	}
 
@@ -129,7 +141,7 @@ func configureHealthChecks(ctx context.Context,
 		// zebedee is used only for identity checking
 		zebedeeClient := zebedee.New(cfg.AuthAPIURL)
 		if err = hc.AddCheck("Zebedee", zebedeeClient.Checker); err != nil {
-			log.Event(ctx, "error creating zebedee health check", log.ERROR, log.Error(err))
+			log.Error(ctx, "error creating zebedee health check", err)
 			hasErrors = true
 		}
 	}
@@ -143,7 +155,7 @@ func configureHealthChecks(ctx context.Context,
 
 func exitIfError(ctx context.Context, err error, message string) {
 	if err != nil {
-		log.Event(ctx, message, log.FATAL, log.Error(err))
+		log.Fatal(ctx, message, err)
 		os.Exit(1)
 	}
 }

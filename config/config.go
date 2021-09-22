@@ -23,6 +23,11 @@ type Config struct {
 	HierarchyBuiltTopic        string        `envconfig:"HIERARCHY_BUILT_TOPIC"`
 	KafkaMaxBytes              int           `envconfig:"KAFKA_MAX_BYTES"`
 	KafkaVersion               string        `envconfig:"KAFKA_VERSION"`
+	KafkaSecProtocol           string        `envconfig:"KAFKA_SEC_PROTO"`
+	KafkaSecCACerts            string        `envconfig:"KAFKA_SEC_CA_CERTS"`
+	KafkaSecClientCert         string        `envconfig:"KAFKA_SEC_CLIENT_CERT"`
+	KafkaSecClientKey          string        `envconfig:"KAFKA_SEC_CLIENT_KEY"       json:"-"`
+	KafkaSecSkipVerify         bool          `envconfig:"KAFKA_SEC_SKIP_VERIFY"`
 	MaxRetries                 int           `envconfig:"REQUEST_MAX_RETRIES"`
 	MaxSearchResultsOffset     int           `envconfig:"MAX_SEARCH_RESULTS_OFFSET"`
 	SearchAPIURL               string        `envconfig:"SEARCH_API_URL"`

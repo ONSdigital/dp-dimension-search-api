@@ -3,25 +3,21 @@ module github.com/ONSdigital/dp-dimension-search-api
 go 1.16
 
 require (
-	github.com/ONSdigital/dp-api-clients-go v1.34.4
-	github.com/ONSdigital/dp-elasticsearch/v2 v2.1.1
-	github.com/ONSdigital/dp-healthcheck v1.0.5
-	github.com/ONSdigital/dp-import v0.0.0-20180202121531-d3cc28e452c3
-	github.com/ONSdigital/dp-kafka/v2 v2.2.0
-	github.com/ONSdigital/dp-net v1.0.12
-	github.com/ONSdigital/go-ns v0.0.0-20210410105122-6d6a140e952e // indirect
-	github.com/ONSdigital/log.go v1.0.1
-	github.com/Shopify/sarama v1.29.0 // indirect
-	github.com/fatih/color v1.10.0 // indirect
+	github.com/ONSdigital/dp-api-clients-go v1.43.0
+	github.com/ONSdigital/dp-elasticsearch/v2 v2.2.0
+	github.com/ONSdigital/dp-healthcheck v1.1.0
+	github.com/ONSdigital/dp-import v1.2.1
+	github.com/ONSdigital/dp-kafka/v2 v2.4.1
+	github.com/ONSdigital/dp-net v1.2.0
+	github.com/ONSdigital/log.go/v2 v2.0.9
+	github.com/aws/aws-sdk-go v1.40.30 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gorilla/mux v1.8.0
-	github.com/hokaccha/go-prettyjson v0.0.0-20210113012101-fb4e108d2519 // indirect
 	github.com/justinas/alice v1.2.0
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/smartystreets/assertions v1.2.0 // indirect
-	github.com/smartystreets/go-aws-auth v0.0.0-20180515143844-0c1422d1fdb9 // indirect
+	github.com/klauspost/compress v1.13.4 // indirect
 	github.com/smartystreets/goconvey v1.6.4
-	github.com/smartystreets/gunit v1.4.2 // indirect
-	golang.org/x/crypto v0.0.0-20210513122933-cd7d49e622d5 // indirect
-	golang.org/x/net v0.0.0-20210510120150-4163338589ed
-	golang.org/x/sys v0.0.0-20210511113859-b0526f3d8744 // indirect
+	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
+	golang.org/x/net v0.0.0-20210825183410-e898025ed96a
+	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf // indirect
 )
