@@ -48,7 +48,7 @@ func Get() (*Config, error) {
 		AwsRegion:                  "eu-west-1",
 		AwsService:                 "es",
 		BindAddr:                   ":23100",
-		Brokers:                    []string{"localhost:9092"},
+		Brokers:                    []string{"localhost:9092", "localhost:9093", "localhost:9094"},
 		DatasetAPIURL:              "http://localhost:22000",
 		ElasticSearchAPIURL:        "http://localhost:10200",
 		GracefulShutdownTimeout:    5 * time.Second,

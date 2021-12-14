@@ -25,7 +25,7 @@ func TestSpec(t *testing.T) {
 				So(cfg.AwsRegion, ShouldEqual, "eu-west-1")
 				So(cfg.AwsService, ShouldEqual, "es")
 				So(cfg.BindAddr, ShouldEqual, ":23100")
-				So(cfg.Brokers, ShouldResemble, []string{"localhost:9092"})
+				So(cfg.Brokers, ShouldResemble, []string{"localhost:9092", "localhost:9093", "localhost:9094"})
 				So(cfg.DatasetAPIURL, ShouldEqual, "http://localhost:22000")
 				So(cfg.ElasticSearchAPIURL, ShouldEqual, "http://localhost:10200")
 				So(cfg.GracefulShutdownTimeout, ShouldEqual, 5*time.Second)
