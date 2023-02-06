@@ -59,7 +59,7 @@ func (api *API) DeleteSearchIndex(ctx context.Context, instanceID, dimension str
 func (api *API) QuerySearchIndex(ctx context.Context, instanceID, dimension, term string, limit, offset int) (*models.SearchResponse, int, error) {
 	response := &models.SearchResponse{}
 
-	path := api.url + "/" + instanceID + "_" + dimension + "/_search"
+	path := api.url + "/" + instanceID + "_" + dimension + "/_search?rest_total_hits_as_int=true"
 
 	logData := log.Data{"term": term, "path": path}
 
