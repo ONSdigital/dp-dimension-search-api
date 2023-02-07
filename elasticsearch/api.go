@@ -85,11 +85,13 @@ func (api *API) QuerySearchIndex(ctx context.Context, instanceID, dimension, ter
 	logData["response_body"] = string(responseBody)
 
 	if err = json.Unmarshal(responseBody, response); err != nil {
+		log.Info(ctx, "unable to unmarshal json body - trying ES6 struct instead", logData)
 
 		// If we fail to marshall to ES7 then try the ES6 response struct instead
 		responseEs6 := &models.SearchResponseES6{}
-		if err = json.Unmarshal(responseBody, responseEs6); err != nil {
-			log.Error(ctx, "unable to unmarshal json body", err, logData)
+		if err6 := json.Unmarshal(responseBody, responseEs6); err6 != nil {
+			log.Error(ctx, "unable to unmarshal json body to ES7 struct", err, logData)
+			log.Error(ctx, "unable to unmarshal json body to ES6 struct", err6, logData)
 			return nil, status, errs.ErrUnmarshallingJSON
 		}
 		response = &models.SearchResponse{Hits: models.Hits{
