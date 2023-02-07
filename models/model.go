@@ -12,13 +12,27 @@ func ErrorMaximumOffsetReached(m int) error {
 	return err
 }
 
+type SearchResponseES6 struct {
+	Hits HitsES6 `json:"hits"`
+}
+
+type HitsES6 struct {
+	Total   int       `json:"total"`
+	HitList []HitList `json:"hits"`
+}
+
 type SearchResponse struct {
 	Hits Hits `json:"hits"`
 }
 
 type Hits struct {
-	Total   int       `json:"total"`
+	Total   Total     `json:"total"`
 	HitList []HitList `json:"hits"`
+}
+
+type Total struct {
+	Value    int    `json:"value"`
+	Relation string `json:"relation"`
 }
 
 type HitList struct {

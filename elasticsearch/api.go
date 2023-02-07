@@ -59,7 +59,7 @@ func (api *API) DeleteSearchIndex(ctx context.Context, instanceID, dimension str
 func (api *API) QuerySearchIndex(ctx context.Context, instanceID, dimension, term string, limit, offset int) (*models.SearchResponse, int, error) {
 	response := &models.SearchResponse{}
 
-	path := api.url + "/" + instanceID + "_" + dimension + "/_search?rest_total_hits_as_int=true"
+	path := api.url + "/" + instanceID + "_" + dimension + "/_search"
 
 	logData := log.Data{"term": term, "path": path}
 
@@ -85,8 +85,20 @@ func (api *API) QuerySearchIndex(ctx context.Context, instanceID, dimension, ter
 	logData["response_body"] = string(responseBody)
 
 	if err = json.Unmarshal(responseBody, response); err != nil {
-		log.Error(ctx, "unable to unmarshal json body", err, logData)
-		return nil, status, errs.ErrUnmarshallingJSON
+
+		// If we fail to marshall to ES7 then try the ES6 response struct instead
+		responseEs6 := &models.SearchResponseES6{}
+		if err = json.Unmarshal(responseBody, responseEs6); err != nil {
+			log.Error(ctx, "unable to unmarshal json body", err, logData)
+			return nil, status, errs.ErrUnmarshallingJSON
+		}
+		response = &models.SearchResponse{Hits: models.Hits{
+			Total: models.Total{
+				Value:    responseEs6.Hits.Total,
+				Relation: "eq",
+			},
+			HitList: responseEs6.Hits.HitList,
+		}}
 	}
 
 	log.Info(ctx, "search results", logData)

@@ -123,7 +123,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	searchResults := &models.SearchResults{
-		TotalCount: response.Hits.Total,
+		TotalCount: response.Hits.Total.Value,
 		Limit:      page.Limit,
 		Offset:     page.Offset,
 	}
