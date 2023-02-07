@@ -59,7 +59,7 @@ func (api *API) DeleteSearchIndex(ctx context.Context, instanceID, dimension str
 func (api *API) QuerySearchIndex(ctx context.Context, instanceID, dimension, term string, limit, offset int) (*models.SearchResponse, int, error) {
 	response := &models.SearchResponse{}
 
-	path := api.url + "/" + instanceID + "_" + dimension + "/_search?rest_total_hits_as_int=true"
+	path := api.url + "/" + instanceID + "_" + dimension + "/_search"
 
 	logData := log.Data{"term": term, "path": path}
 
@@ -84,7 +84,9 @@ func (api *API) QuerySearchIndex(ctx context.Context, instanceID, dimension, ter
 
 	logData["response_body"] = string(responseBody)
 
-	if err = json.Unmarshal(responseBody, response); err != nil {
+	// TODO Temporarily transform response while migrating from ES6 to ES7
+	//if err = json.Unmarshal(responseBody, response); err != nil {
+	if response, err = TransformResponse(ctx, responseBody, logData); err != nil {
 		log.Error(ctx, "unable to unmarshal json body", err, logData)
 		return nil, status, errs.ErrUnmarshallingJSON
 	}
@@ -92,6 +94,55 @@ func (api *API) QuerySearchIndex(ctx context.Context, instanceID, dimension, ter
 	log.Info(ctx, "search results", logData)
 
 	return response, status, nil
+}
+
+// TODO remove raw response structs after migration to ES7
+type RawSearchResponse struct {
+	Hits RawHits `json:"hits"`
+}
+
+// TODO remove raw response structs after migration to ES7
+type RawHits struct {
+	Total   interface{}      `json:"total"`
+	HitList []models.HitList `json:"hits"`
+}
+
+// TransformResponse is a temporary transform function for migrating between ES6->ES7
+// ES6 has a int total field wheras ES7 an has an object
+// TODO remove after migration to ES7
+func TransformResponse(ctx context.Context, body []byte, logData log.Data) (*models.SearchResponse, error) {
+	rawResponse := &RawSearchResponse{}
+	if err := json.Unmarshal(body, rawResponse); err != nil {
+		log.Error(ctx, "unable to unmarshal json body", err, logData)
+		return nil, errs.ErrUnmarshallingJSON
+	}
+
+	rawTotal := rawResponse.Hits.Total
+	total := 0
+
+	switch t := rawTotal.(type) {
+	case float64:
+		total = int(t)
+	case map[string]interface{}:
+		tval := t["value"]
+		totalf64, ok := tval.(float64)
+		if !ok {
+			log.Error(ctx, "unexpected 'hits.total' when unmarshaling json body", errs.ErrUnmarshallingJSON, logData)
+			return nil, errs.ErrUnmarshallingJSON
+		}
+		total = int(totalf64)
+	default:
+		log.Error(ctx, "unexpected 'hits.total' when unmarshaling json body", errs.ErrUnmarshallingJSON, logData)
+		return nil, errs.ErrUnmarshallingJSON
+	}
+
+	response := &models.SearchResponse{
+		Hits: models.Hits{
+			Total:   total,
+			HitList: rawResponse.Hits.HitList,
+		},
+	}
+	return response, nil
 }
 
 // CallElastic builds a request to elastic search based on the method, path and payload
