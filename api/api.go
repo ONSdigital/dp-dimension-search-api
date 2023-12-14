@@ -6,6 +6,8 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/middleware"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	identityclient "github.com/ONSdigital/dp-api-clients-go/identity"
 	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
@@ -55,9 +57,10 @@ func CreateSearchAPI(ctx context.Context,
 	host, bindAddr, authAPIURL string, errorChan chan error, searchOutputQueue OutputQueue,
 	datasetAPIClient DatasetAPIClient, serviceAuthToken string, elasticsearch Elasticsearcher,
 	defaultMaxResults int, hasPrivateEndpoints bool,
-	healthCheck *healthcheck.HealthCheck) {
+	healthCheck *healthcheck.HealthCheck, oTServiceName string) {
 
 	router := mux.NewRouter()
+	router.Use(otelmux.Middleware(oTServiceName))
 	routes(host,
 		router,
 		searchOutputQueue,
@@ -78,7 +81,7 @@ func CreateSearchAPI(ctx context.Context,
 		middlewareChain = middlewareChain.Append(dphandlers.IdentityWithHTTPClient(identityClient))
 	}
 
-	alice := middlewareChain.Then(router)
+	alice := middlewareChain.Then(otelhttp.NewHandler(router, "/"))
 	httpServer = http.NewServer(bindAddr, alice)
 
 	// Disable this here to allow service to manage graceful shutdown of the entire app.

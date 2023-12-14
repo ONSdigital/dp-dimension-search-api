@@ -66,6 +66,8 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 | KAFKA_SEC_CA_CERTS           | _unset_                              | CA cert chain for the server cert [[1]](#notes_1)
 | KAFKA_SEC_SKIP_VERIFY        | false                                | ignores server certificate issues if `true` [[1]](#notes_1)
 | MAX_SEARCH_RESULTS_OFFSET    | 1000                                 | The maximum offset for the number of results returned by search query
+| OTEL_EXPORTER_OTLP_ENDPOINT  | localhost:4317                       | Endpoint for OpenTelemetry service
+| OTEL_SERVICE_NAME            | dp-dimension-search-api              | Label of service for OpenTelemetry service
 | REQUEST_MAX_RETRIES          | 3                                    | The maximum number of attempts for a single http request due to external service failure
 | SEARCH_API_URL               | http://localhost:23100               | The host name and port for this service, dimension search API
 | SERVICE_AUTH_TOKEN           | SD0108EA-825D-411C-45J3-41EF7727F123 | The token used to identify this service when authenticating
