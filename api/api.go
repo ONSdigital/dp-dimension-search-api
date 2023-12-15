@@ -31,7 +31,7 @@ type DownloadsGenerator interface {
 
 // OutputQueue - An interface used to queue search outputs
 type OutputQueue interface {
-	Queue(output *searchoutputqueue.Search) error
+	Queue(ctx context.Context, output *searchoutputqueue.Search) error
 }
 
 type HealthCheck interface {

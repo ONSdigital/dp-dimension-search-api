@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	kafka "github.com/ONSdigital/dp-kafka/v2"
+	kafka "github.com/ONSdigital/dp-kafka/v4"
 
 	"golang.org/x/net/context"
 

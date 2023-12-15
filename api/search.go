@@ -236,7 +236,7 @@ func (api *SearchAPI) createSearchIndex(w http.ResponseWriter, r *http.Request) 
 		InstanceID: instanceID,
 	}
 
-	if err := api.searchOutputQueue.Queue(output); err != nil {
+	if err := api.searchOutputQueue.Queue(ctx, output); err != nil {
 		setErrorCode(w, err)
 		return
 	}

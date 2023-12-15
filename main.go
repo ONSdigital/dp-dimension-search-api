@@ -16,7 +16,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-search-api/elasticsearch"
 	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
 	"github.com/ONSdigital/dp-dimension-search-api/service"
-	kafka "github.com/ONSdigital/dp-kafka/v2"
+	kafka "github.com/ONSdigital/dp-kafka/v4"
 	dpotelgo "github.com/ONSdigital/dp-otel-go"
 	"github.com/ONSdigital/log.go/v2/log"
 )
@@ -74,6 +74,8 @@ func main() {
 	pConfig := &kafka.ProducerConfig{
 		KafkaVersion:    &cfg.KafkaVersion,
 		MaxMessageBytes: &cfg.KafkaMaxBytes,
+		BrokerAddrs: cfg.Brokers,
+		Topic: cfg.HierarchyBuiltTopic,
 	}
 	if cfg.KafkaSecProtocol == "TLS" {
 		pConfig.SecurityConfig = kafka.GetSecurityConfig(
@@ -85,14 +87,11 @@ func main() {
 	}
 	hierarchyBuiltProducer, err := kafka.NewProducer(
 		ctx,
-		cfg.Brokers,
-		cfg.HierarchyBuiltTopic,
-		kafka.CreateProducerChannels(),
 		pConfig,
 	)
 	exitIfError(ctx, err, "error creating kafka hierarchyBuiltProducer")
 
-	hierarchyBuiltProducer.Channels().LogErrors(ctx, "error received from hierarchy built kafka producer, topic: "+cfg.HierarchyBuiltTopic)
+	hierarchyBuiltProducer.LogErrors(ctx)
 
 	outputQueue := searchoutputqueue.CreateOutputQueue(hierarchyBuiltProducer.Channels().Output)
 
