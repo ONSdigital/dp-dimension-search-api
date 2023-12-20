@@ -113,7 +113,7 @@ func main() {
 		OutputQueue:               outputQueue,
 		SearchAPIURL:              cfg.SearchAPIURL,
 		HierarchyBuiltProducer:    hierarchyBuiltProducer,
-		OTServiceName:			   cfg.OTServiceName,
+		OTServiceName:             cfg.OTServiceName,
 		ServiceAuthToken:          cfg.ServiceAuthToken,
 		Shutdown:                  cfg.GracefulShutdownTimeout,
 		SignElasticsearchRequests: cfg.SignElasticsearchRequests,

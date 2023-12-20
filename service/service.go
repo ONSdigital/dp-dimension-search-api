@@ -33,7 +33,7 @@ type Service struct {
 	OutputQueue                searchoutputqueue.Output
 	SearchAPIURL               string
 	HierarchyBuiltProducer     *kafka.Producer
-	OTServiceName			   string
+	OTServiceName              string
 	ServiceAuthToken           string
 	Shutdown                   time.Duration
 	SignElasticsearchRequests  bool

@@ -65,7 +65,7 @@ func Get() (*Config, error) {
 		MaxSearchResultsOffset:     1000,
 		OTExporterOTLPEndpoint:     "localhost:4317",
 		OTServiceName:              "dp-dimension-search-api",
-		OTBatchTimeout:               5 * time.Second,
+		OTBatchTimeout:              5 * time.Second,
 		SearchAPIURL:               "http://localhost:23100",
 		ServiceAuthToken:           "a507f722-f25a-4889-9653-23a2655b925c",
 		SignElasticsearchRequests:  false,
