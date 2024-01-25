@@ -30,6 +30,9 @@ type Config struct {
 	KafkaSecSkipVerify         bool          `envconfig:"KAFKA_SEC_SKIP_VERIFY"`
 	MaxRetries                 int           `envconfig:"REQUEST_MAX_RETRIES"`
 	MaxSearchResultsOffset     int           `envconfig:"MAX_SEARCH_RESULTS_OFFSET"`
+	OTExporterOTLPEndpoint     string        `envconfig:"OTEL_EXPORTER_OTLP_ENDPOINT"`
+	OTServiceName              string        `envconfig:"OTEL_SERVICE_NAME"`
+	OTBatchTimeout             time.Duration `envconfig:"OTEL_BATCH_TIMEOUT"`
 	SearchAPIURL               string        `envconfig:"SEARCH_API_URL"`
 	ServiceAuthToken           string        `envconfig:"SERVICE_AUTH_TOKEN"         json:"-"`
 	SignElasticsearchRequests  bool          `envconfig:"SIGN_ELASTICSEARCH_REQUESTS"`
@@ -60,6 +63,9 @@ func Get() (*Config, error) {
 		KafkaVersion:               "1.0.2",
 		MaxRetries:                 3,
 		MaxSearchResultsOffset:     1000,
+		OTExporterOTLPEndpoint:     "localhost:4317",
+		OTServiceName:              "dp-dimension-search-api",
+		OTBatchTimeout:              5 * time.Second,
 		SearchAPIURL:               "http://localhost:23100",
 		ServiceAuthToken:           "a507f722-f25a-4889-9653-23a2655b925c",
 		SignElasticsearchRequests:  false,

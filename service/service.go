@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	kafka "github.com/ONSdigital/dp-kafka/v2"
+	kafka "github.com/ONSdigital/dp-kafka/v4"
 
 	"golang.org/x/net/context"
 
@@ -33,6 +33,7 @@ type Service struct {
 	OutputQueue                searchoutputqueue.Output
 	SearchAPIURL               string
 	HierarchyBuiltProducer     *kafka.Producer
+	OTServiceName              string
 	ServiceAuthToken           string
 	Shutdown                   time.Duration
 	SignElasticsearchRequests  bool
@@ -62,6 +63,7 @@ func (svc *Service) Start(ctx context.Context) {
 		svc.DefaultMaxResults,
 		svc.HasPrivateEndpoints,
 		svc.HealthCheck,
+		svc.OTServiceName,
 	)
 
 	go func() {

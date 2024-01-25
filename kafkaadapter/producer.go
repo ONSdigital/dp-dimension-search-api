@@ -1,6 +1,6 @@
 package kafkaadapter
 
-import kafka "github.com/ONSdigital/dp-kafka/v2"
+import kafka "github.com/ONSdigital/dp-kafka/v4"
 
 // NewProducerAdapter returns a Producer object containing Kafka Producer
 func NewProducerAdapter(producer *kafka.Producer) *Producer {
@@ -13,6 +13,6 @@ type Producer struct {
 }
 
 // Output mirrors the kafka producer output channel
-func (p Producer) Output() chan []byte {
+func (p Producer) Output() chan kafka.BytesMessage {
 	return p.kafkaProducer.Channels().Output
 }

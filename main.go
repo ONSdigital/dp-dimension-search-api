@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
@@ -15,7 +16,8 @@ import (
 	"github.com/ONSdigital/dp-dimension-search-api/elasticsearch"
 	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
 	"github.com/ONSdigital/dp-dimension-search-api/service"
-	kafka "github.com/ONSdigital/dp-kafka/v2"
+	kafka "github.com/ONSdigital/dp-kafka/v4"
+	dpotelgo "github.com/ONSdigital/dp-otel-go"
 	"github.com/ONSdigital/log.go/v2/log"
 )
 
@@ -51,12 +53,30 @@ func main() {
 		}
 	}
 
+	// Set up OpenTelemetry
+	otelConfig := dpotelgo.Config{
+		OtelServiceName:          cfg.OTServiceName,
+		OtelExporterOtlpEndpoint: cfg.OTExporterOTLPEndpoint,
+		OtelBatchTimeout:         cfg.OTBatchTimeout,
+	}
+
+	otelShutdown, oErr := dpotelgo.SetupOTelSDK(ctx, otelConfig)
+	if oErr != nil {
+		log.Error(ctx, "error setting up OpenTelemetry - hint: ensure OTEL_EXPORTER_OTLP_ENDPOINT is set", oErr)
+	}
+	// Handle shutdown properly so nothing leaks.
+	defer func() {
+		err = errors.Join(err, otelShutdown(context.Background()))
+	}()
+
 	elasticHTTPClient := dphttp.NewClient()
 	elasticsearch := elasticsearch.NewElasticSearchAPI(elasticHTTPClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, esSigner, cfg.AwsService, cfg.AwsRegion)
 
 	pConfig := &kafka.ProducerConfig{
 		KafkaVersion:    &cfg.KafkaVersion,
 		MaxMessageBytes: &cfg.KafkaMaxBytes,
+		BrokerAddrs: cfg.Brokers,
+		Topic: cfg.HierarchyBuiltTopic,
 	}
 	if cfg.KafkaSecProtocol == "TLS" {
 		pConfig.SecurityConfig = kafka.GetSecurityConfig(
@@ -68,14 +88,11 @@ func main() {
 	}
 	hierarchyBuiltProducer, err := kafka.NewProducer(
 		ctx,
-		cfg.Brokers,
-		cfg.HierarchyBuiltTopic,
-		kafka.CreateProducerChannels(),
 		pConfig,
 	)
 	exitIfError(ctx, err, "error creating kafka hierarchyBuiltProducer")
 
-	hierarchyBuiltProducer.Channels().LogErrors(ctx, "error received from hierarchy built kafka producer, topic: "+cfg.HierarchyBuiltTopic)
+	hierarchyBuiltProducer.LogErrors(ctx)
 
 	outputQueue := searchoutputqueue.CreateOutputQueue(hierarchyBuiltProducer.Channels().Output)
 
@@ -96,6 +113,7 @@ func main() {
 		OutputQueue:               outputQueue,
 		SearchAPIURL:              cfg.SearchAPIURL,
 		HierarchyBuiltProducer:    hierarchyBuiltProducer,
+		OTServiceName:             cfg.OTServiceName,
 		ServiceAuthToken:          cfg.ServiceAuthToken,
 		Shutdown:                  cfg.GracefulShutdownTimeout,
 		SignElasticsearchRequests: cfg.SignElasticsearchRequests,

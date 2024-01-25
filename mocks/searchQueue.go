@@ -1,6 +1,7 @@
 package mocks
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
@@ -18,7 +19,7 @@ type MessageData struct {
 }
 
 // Queue checks whether the filter job has errored
-func (bs *BuildSearch) Queue(search *searchoutputqueue.Search) error {
+func (bs *BuildSearch) Queue(ctx context.Context, search *searchoutputqueue.Search) error {
 	if bs.ReturnError {
 		return fmt.Errorf("No message produced for hierarchy built")
 	}
