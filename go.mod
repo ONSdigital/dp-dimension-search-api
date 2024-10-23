@@ -1,18 +1,9 @@
 module github.com/ONSdigital/dp-dimension-search-api
 
-go 1.20
-
-// to avoid 'sonatype-2021-4899' non-CVE Vulnerability
-exclude github.com/gorilla/sessions v1.2.1
+go 1.23.2
 
 //to avoid  [CVE-2022-29153] CWE-918: Server-Side Request Forgery (SSRF)
 exclude github.com/hashicorp/consul/api v1.1.0
-
-// [CVE-2024-24786] CWE-835: Loop with Unreachable Exit Condition ('Infinite Loop')
-replace google.golang.org/protobuf => google.golang.org/protobuf v1.33.0
-
-// [CVE-2023-48795] CWE-354: Improper Validation of Integrity Check Value
-replace golang.org/x/crypto => golang.org/x/crypto v0.17.0
 
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.43.0
@@ -29,7 +20,7 @@ require (
 	github.com/smartystreets/goconvey v1.8.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.46.1
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.46.1
-	golang.org/x/net v0.18.0
+	golang.org/x/net v0.21.0
 )
 
 require (
@@ -86,11 +77,11 @@ require (
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.15.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/crypto v0.28.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230822172742-b8732ec3820d // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
 	google.golang.org/grpc v1.59.0 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/protobuf v1.35.1 // indirect
 )
