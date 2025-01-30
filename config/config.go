@@ -70,7 +70,7 @@ func Get() (*Config, error) {
 		SearchAPIURL:               "http://localhost:23100",
 		ServiceAuthToken:           "a507f722-f25a-4889-9653-23a2655b925c",
 		SignElasticsearchRequests:  false,
-		EnableURLRewriting:         true,
+		EnableURLRewriting:         false,
 	}
 
 	return cfg, envconfig.Process("", cfg)
