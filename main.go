@@ -75,8 +75,8 @@ func main() {
 	pConfig := &kafka.ProducerConfig{
 		KafkaVersion:    &cfg.KafkaVersion,
 		MaxMessageBytes: &cfg.KafkaMaxBytes,
-		BrokerAddrs: cfg.Brokers,
-		Topic: cfg.HierarchyBuiltTopic,
+		BrokerAddrs:     cfg.Brokers,
+		Topic:           cfg.HierarchyBuiltTopic,
 	}
 	if cfg.KafkaSecProtocol == "TLS" {
 		pConfig.SecurityConfig = kafka.GetSecurityConfig(
@@ -117,6 +117,7 @@ func main() {
 		ServiceAuthToken:          cfg.ServiceAuthToken,
 		Shutdown:                  cfg.GracefulShutdownTimeout,
 		SignElasticsearchRequests: cfg.SignElasticsearchRequests,
+		EnableURLRewriting:        cfg.EnableURLRewriting,
 	}
 
 	svc.Start(ctx)

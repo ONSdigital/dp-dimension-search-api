@@ -50,6 +50,7 @@ type SearchAPI struct {
 	internalToken       string
 	router              *mux.Router
 	searchOutputQueue   OutputQueue
+	enableURLRewriting  bool
 }
 
 // CreateSearchAPI manages all the routes configured to API
@@ -57,7 +58,7 @@ func CreateSearchAPI(ctx context.Context,
 	host, bindAddr, authAPIURL string, errorChan chan error, searchOutputQueue OutputQueue,
 	datasetAPIClient DatasetAPIClient, serviceAuthToken string, elasticsearch Elasticsearcher,
 	defaultMaxResults int, hasPrivateEndpoints bool,
-	healthCheck *healthcheck.HealthCheck, oTServiceName string) {
+	healthCheck *healthcheck.HealthCheck, oTServiceName string, enableURLRewriting bool) {
 
 	router := mux.NewRouter()
 	router.Use(otelmux.Middleware(oTServiceName))
@@ -69,7 +70,8 @@ func CreateSearchAPI(ctx context.Context,
 		elasticsearch,
 		defaultMaxResults,
 		hasPrivateEndpoints,
-		healthCheck)
+		healthCheck,
+		enableURLRewriting)
 
 	// Create new middleware chain with whitelisted handler for /health endpoint
 	middlewareChain := alice.New(middleware.Whitelist(middleware.HealthcheckFilter(healthCheck.Handler)))
@@ -104,7 +106,8 @@ func routes(host string,
 	elasticsearch Elasticsearcher,
 	defaultMaxResults int,
 	hasPrivateEndpoints bool,
-	healthCheck *healthcheck.HealthCheck) *SearchAPI {
+	healthCheck *healthcheck.HealthCheck,
+	enableURLRewriting bool) *SearchAPI {
 
 	api := SearchAPI{
 		datasetAPIClient:    datasetAPIClient,
@@ -115,6 +118,7 @@ func routes(host string,
 		searchOutputQueue:   searchOutputQueue,
 		host:                host,
 		router:              router,
+		enableURLRewriting:  enableURLRewriting,
 	}
 
 	api.router.HandleFunc("/health", healthCheck.Handler)

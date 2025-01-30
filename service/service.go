@@ -38,6 +38,7 @@ type Service struct {
 	Shutdown                   time.Duration
 	SignElasticsearchRequests  bool
 	HasPrivateEndpoints        bool
+	EnableURLRewriting         bool
 }
 
 // Start handles consumption of events
@@ -64,6 +65,7 @@ func (svc *Service) Start(ctx context.Context) {
 		svc.HasPrivateEndpoints,
 		svc.HealthCheck,
 		svc.OTServiceName,
+		svc.EnableURLRewriting,
 	)
 
 	go func() {
