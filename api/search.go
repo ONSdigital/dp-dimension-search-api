@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -129,30 +128,32 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		Limit:      page.Limit,
 		Offset:     page.Offset,
 	}
-
-	var dimenstionSearchAPILinksBuilder *links.Builder
 	if api.enableURLRewriting {
-		dimenstionSearchAPIUrl, _ := url.Parse(api.host)
-		dimenstionSearchAPILinksBuilder = links.FromHeadersOrDefault(&r.Header, dimenstionSearchAPIUrl)
-	}
+		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
+		for _, result := range response.Hits.HitList {
 
-	for _, result := range response.Hits.HitList {
-		if api.enableURLRewriting {
-			newLink, err := dimenstionSearchAPILinksBuilder.BuildLink(result.Source.URL)
+			newLink, err := dimensionSearchAPILinksBuilder.BuildLink(result.Source.URL)
 			if err == nil {
 				result.Source.DimensionOptionURL = newLink
 			} else {
 				result.Source.DimensionOptionURL = result.Source.URL
 			}
-		} else {
-			result.Source.DimensionOptionURL = result.Source.URL
+			result.Source.URL = ""
+			result = getSnippets(ctx, result)
+			searchResults.Items = append(searchResults.Items, result.Source)
 		}
-		result.Source.URL = ""
-		result = getSnippets(ctx, result)
 
-		searchResults.Items = append(searchResults.Items, result.Source)
+	} else {
+		for _, result := range response.Hits.HitList {
+			result.Source.DimensionOptionURL = result.Source.URL
+			result.Source.URL = ""
+
+			result = getSnippets(ctx, result)
+
+			doc := result.Source
+			searchResults.Items = append(searchResults.Items, doc)
+		}
 	}
-
 	searchResults.Count = len(searchResults.Items)
 
 	b, err := json.Marshal(searchResults)

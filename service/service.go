@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -50,10 +51,14 @@ func (svc *Service) Start(ctx context.Context) {
 	apiErrors := make(chan error, 1)
 
 	svc.HealthCheck.Start(ctx)
+	SearchAPIURL, err := url.Parse(svc.SearchAPIURL)
+	if err != nil {
+		log.Fatal(ctx, "error parsing SearchAPIURL API URL", err, log.Data{"url": svc.SearchAPIURL})
+	}
 
 	api.CreateSearchAPI(
 		ctx,
-		svc.SearchAPIURL,
+		SearchAPIURL,
 		svc.BindAddr,
 		svc.AuthAPIURL,
 		apiErrors,

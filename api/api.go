@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"net/url"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/middleware"
@@ -46,7 +47,7 @@ type SearchAPI struct {
 	defaultMaxResults   int
 	elasticsearch       Elasticsearcher
 	hasPrivateEndpoints bool
-	host                string
+	host                *url.URL
 	internalToken       string
 	router              *mux.Router
 	searchOutputQueue   OutputQueue
@@ -55,7 +56,7 @@ type SearchAPI struct {
 
 // CreateSearchAPI manages all the routes configured to API
 func CreateSearchAPI(ctx context.Context,
-	host, bindAddr, authAPIURL string, errorChan chan error, searchOutputQueue OutputQueue,
+	host *url.URL, bindAddr, authAPIURL string, errorChan chan error, searchOutputQueue OutputQueue,
 	datasetAPIClient DatasetAPIClient, serviceAuthToken string, elasticsearch Elasticsearcher,
 	defaultMaxResults int, hasPrivateEndpoints bool,
 	healthCheck *healthcheck.HealthCheck, oTServiceName string, enableURLRewriting bool) {
@@ -98,7 +99,7 @@ func CreateSearchAPI(ctx context.Context,
 	}()
 }
 
-func routes(host string,
+func routes(host *url.URL,
 	router *mux.Router,
 	searchOutputQueue OutputQueue,
 	datasetAPIClient DatasetAPIClient,

@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strconv"
 	"testing"
@@ -21,6 +22,7 @@ import (
 
 var (
 	defaultMaxResults = 200
+	host              = &url.URL{Host: "localhost", Scheme: "http"}
 )
 
 type testOpts struct {
@@ -38,6 +40,7 @@ type testOpts struct {
 	searchReturnError     bool
 	privateSubnet         bool
 	enableURLRewriting    bool
+	externalRequest       bool
 }
 type testRes struct {
 	w              *httptest.ResponseRecorder
@@ -64,7 +67,12 @@ func setupTest(opts testOpts) testRes {
 		opts.serviceAuthToken = "1234"
 	}
 
-	api := routes("http://localhost:1111", mux.NewRouter(), &mocks.BuildSearch{ReturnError: opts.searchReturnError}, datasetAPIMock, opts.serviceAuthToken, &mocks.Elasticsearch{InternalServerError: opts.esInternalServerError, IndexNotFound: opts.esIndexNotFound}, opts.maxResults, opts.privateSubnet, nil, opts.enableURLRewriting)
+	if opts.externalRequest {
+		r.Header.Add("X-Forwarded-Proto", "https")
+		r.Header.Add("X-Forwarded-Host", "api.example.com")
+		r.Header.Add("X-Forwarded-Path-Prefix", "/v1")
+	}
+	api := routes(host, mux.NewRouter(), &mocks.BuildSearch{ReturnError: opts.searchReturnError}, datasetAPIMock, opts.serviceAuthToken, &mocks.Elasticsearch{InternalServerError: opts.esInternalServerError, IndexNotFound: opts.esIndexNotFound}, opts.maxResults, opts.privateSubnet, nil, opts.enableURLRewriting)
 
 	api.router.ServeHTTP(w, r)
 
@@ -144,7 +152,7 @@ func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 		So(searchResults.Limit, ShouldEqual, 50)
 		So(searchResults.Offset, ShouldEqual, 0)
 		So(searchResults.Items[0].Code, ShouldEqual, "frs34g5t98hdd")
-		So(searchResults.Items[0].DimensionOptionURL, ShouldEqual, "http://localhost:1111/testing/1")
+		So(searchResults.Items[0].DimensionOptionURL, ShouldEqual, "http://localhost/testing/1")
 		So(searchResults.Items[0].HasData, ShouldEqual, true)
 		So(searchResults.Items[0].Label, ShouldEqual, "something and someone")
 		So(searchResults.Items[0].NumberOfChildren, ShouldEqual, 3)
@@ -157,7 +165,7 @@ func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 		So(searchResults.Items[0].Matches.Label[1].Start, ShouldEqual, 13)
 		So(searchResults.Items[0].Matches.Label[1].End, ShouldEqual, 19)
 		So(searchResults.Items[1].Code, ShouldEqual, "gt534g5t98hs1")
-		So(searchResults.Items[1].DimensionOptionURL, ShouldEqual, "http://localhost:1111/testing/2")
+		So(searchResults.Items[1].DimensionOptionURL, ShouldEqual, "http://localhost/testing/2")
 		So(searchResults.Items[1].HasData, ShouldEqual, false)
 		So(searchResults.Items[1].Label, ShouldEqual, "something else and someone else")
 		So(searchResults.Items[1].NumberOfChildren, ShouldEqual, 10)
@@ -169,6 +177,28 @@ func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 		So(searchResults.Items[1].Matches.Label[1].End, ShouldEqual, 25)
 		So(searchResults.Items[1].Matches, ShouldResemble, models.Matches{Code: []models.Snippet(nil), Label: []models.Snippet{{Start: 1, End: 9}, {Start: 19, End: 25}}})
 	})
+
+	Convey("Given the search query satisfies the search index then return a status 200 with URL rewriting enabled and X-forwarded added as an external request", t, func() {
+		testres := setupTest(testOpts{
+			url:                "http://localhost:23100/dimension-search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			reqHasAuth:         true,
+			enableURLRewriting: true,
+			externalRequest:    true,
+		})
+
+		So(testres.w.Code, ShouldEqual, http.StatusOK)
+
+		// Check response json
+		searchResults := getSearchResults(testres.w.Body)
+
+		So(searchResults.Count, ShouldEqual, 2)
+		So(len(searchResults.Items), ShouldEqual, 2)
+
+		So(searchResults.Items[0].DimensionOptionURL, ShouldEqual, "https://api.example.com/v1/testing/1")
+		So(searchResults.Items[1].DimensionOptionURL, ShouldEqual, "https://api.example.com/v1/testing/2")
+		So(searchResults.Items[1].Matches, ShouldResemble, models.Matches{Code: []models.Snippet(nil), Label: []models.Snippet{{Start: 1, End: 9}, {Start: 19, End: 25}}})
+	})
+
 	Convey("Given the search query satisfies the search index when limit and offset parameters are set then return a status 200", t, func() {
 		testres := setupTest(testOpts{
 			url:        "http://localhost:23100/dimension-search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&limit=5&offset=20",
