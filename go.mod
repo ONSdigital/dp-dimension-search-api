@@ -12,7 +12,7 @@ require (
 	github.com/ONSdigital/dp-import v1.4.0
 	github.com/ONSdigital/dp-kafka/v4 v4.1.0
 	github.com/ONSdigital/dp-net v1.5.0
-	github.com/ONSdigital/dp-net/v2 v2.19.0
+	github.com/ONSdigital/dp-net/v2 v2.20.0
 	github.com/ONSdigital/dp-otel-go v0.0.8
 	github.com/ONSdigital/log.go/v2 v2.4.3
 	github.com/golang/glog v1.2.4

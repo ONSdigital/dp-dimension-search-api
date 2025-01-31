@@ -1,0 +1,16 @@
+FROM golang:1.23.4-bullseye AS base
+
+ENV GOCACHE=/go/.go/cache GOPATH=/go/.go/path TZ=Europe/London
+
+# Install github.com/cespare/reflex
+RUN GOBIN=/bin go install github.com/cespare/reflex@latest
+RUN PATH=$PATH:/bin
+
+# Clean cache, as we want all modules in the container to be under /go/.go/path
+RUN go clean -modcache
+
+RUN git config --global --add safe.directory /go
+
+# Map between the working directories of dev and live
+RUN ln -s /go /dp-dimension-search-api
+WORKDIR /dp-dimension-search-api

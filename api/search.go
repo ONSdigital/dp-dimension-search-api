@@ -133,7 +133,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	var dimenstionSearchAPILinksBuilder *links.Builder
 	if api.enableURLRewriting {
 		dimenstionSearchAPIUrl, _ := url.Parse(api.host)
-		dimenstionSearchAPILinksBuilder = links.FromHeadersOrDefault(&r.Header, r, dimenstionSearchAPIUrl)
+		dimenstionSearchAPILinksBuilder = links.FromHeadersOrDefault(&r.Header, dimenstionSearchAPIUrl)
 	}
 
 	for _, result := range response.Hits.HitList {
