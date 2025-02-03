@@ -47,7 +47,6 @@ type SearchAPI struct {
 	elasticsearch       Elasticsearcher
 	hasPrivateEndpoints bool
 	host                string
-	internalToken       string
 	router              *mux.Router
 	searchOutputQueue   OutputQueue
 }

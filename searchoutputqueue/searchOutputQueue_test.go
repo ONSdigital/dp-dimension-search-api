@@ -21,7 +21,8 @@ func TestFilterOuputQueue(t *testing.T) {
 		So(message, ShouldNotBeNil)
 
 		var searchMessage events.HierarchyBuilt
-		events.HierarchyBuiltSchema.Unmarshal(message.Value, &searchMessage)
+		err = events.HierarchyBuiltSchema.Unmarshal(message.Value, &searchMessage)
+		So(err, ShouldBeNil)
 
 		So(searchMessage.InstanceID, ShouldEqual, search.InstanceID)
 		So(searchMessage.DimensionName, ShouldEqual, search.Dimension)

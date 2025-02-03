@@ -39,4 +39,13 @@ acceptance-web: build
 test:
 	go test -cover -race ./...
 
+.PHONY: lint
+lint:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.4
+	golangci-lint run ./...
+
+.PHONY: test-component
+test-component:
+	exit
+
 .PHONY: build debug test

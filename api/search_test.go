@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -515,7 +515,7 @@ func TestCreateSearchIndexEndpointInWebReturnsNotFound(t *testing.T) {
 }
 
 func getSearchResults(body *bytes.Buffer) *models.SearchResults {
-	jsonBody, err := ioutil.ReadAll(body)
+	jsonBody, err := io.ReadAll(body)
 	if err != nil {
 		os.Exit(1)
 	}

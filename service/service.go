@@ -67,11 +67,8 @@ func (svc *Service) Start(ctx context.Context) {
 	)
 
 	go func() {
-		for {
-			select {
-			case err := <-apiErrors:
-				log.Error(ctx, "api error received", err)
-			}
+		for err := range apiErrors {
+			log.Error(ctx, "api error received", err)
 		}
 	}()
 

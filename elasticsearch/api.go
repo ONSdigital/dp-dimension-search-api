@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -152,7 +151,7 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 
 	logData["status_code"] = resp.StatusCode
 
-	jsonBody, err := ioutil.ReadAll(resp.Body)
+	jsonBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Error(ctx, "failed to read response body from call to elastic", err, logData)
 		return nil, resp.StatusCode, err
