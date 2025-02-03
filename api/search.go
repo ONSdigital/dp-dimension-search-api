@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -27,11 +26,6 @@ const (
 
 	internalError         = "internal server error"
 	exceedsDefaultMaximum = "the maximum offset has been reached, the offset cannot be more than"
-)
-
-var (
-	err        error
-	reNotFound = regexp.MustCompile(`\bbody: (\w+ not found)[\n$]`)
 )
 
 func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {

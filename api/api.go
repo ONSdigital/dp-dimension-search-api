@@ -48,7 +48,6 @@ type SearchAPI struct {
 	elasticsearch       Elasticsearcher
 	hasPrivateEndpoints bool
 	host                *url.URL
-	internalToken       string
 	router              *mux.Router
 	searchOutputQueue   OutputQueue
 	enableURLRewriting  bool

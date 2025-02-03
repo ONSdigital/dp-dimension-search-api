@@ -39,4 +39,12 @@ acceptance-web: build
 test:
 	go test -cover -race ./...
 
+.PHONY: lint
+lint:
+	golangci-lint run --timeout=180s ./...
+
+.PHONY: test-component
+test-component:
+	exit
+
 .PHONY: build debug test
