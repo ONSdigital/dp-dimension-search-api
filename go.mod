@@ -2,6 +2,9 @@ module github.com/ONSdigital/dp-dimension-search-api
 
 go 1.23
 
+//to avoid  [CVE-2022-29153] CWE-918: Server-Side Request Forgery (SSRF)
+exclude github.com/hashicorp/consul/api v1.1.0
+
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.43.0
 	github.com/ONSdigital/dp-elasticsearch/v2 v2.3.0
