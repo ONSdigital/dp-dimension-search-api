@@ -201,7 +201,7 @@ func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 
 	convey.Convey("Given the search query satisfies the search index when limit and offset parameters are set then return a status 200", t, func() {
 		testres := setupTest(testOpts{
-			url:                "http://localhost:23100/dimension-search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			url:                "http://localhost:23100/dimension-search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&limit=5&offset=20",
 			reqHasAuth:         true,
 			enableURLRewriting: true,
 			externalRequest:    true,
