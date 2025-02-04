@@ -116,6 +116,7 @@ func main() {
 		ServiceAuthToken:          cfg.ServiceAuthToken,
 		Shutdown:                  cfg.GracefulShutdownTimeout,
 		SignElasticsearchRequests: cfg.SignElasticsearchRequests,
+		EnableURLRewriting:        cfg.EnableURLRewriting,
 	}
 
 	svc.Start(ctx)

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strconv"
 	"testing"
@@ -21,6 +22,7 @@ import (
 
 var (
 	defaultMaxResults = 200
+	host              = &url.URL{Host: "localhost", Scheme: "http"}
 )
 
 type testOpts struct {
@@ -37,6 +39,8 @@ type testOpts struct {
 	reqHasAuth            bool
 	searchReturnError     bool
 	privateSubnet         bool
+	enableURLRewriting    bool
+	externalRequest       bool
 }
 type testRes struct {
 	w              *httptest.ResponseRecorder
@@ -63,7 +67,12 @@ func setupTest(opts testOpts) testRes {
 		opts.serviceAuthToken = "1234"
 	}
 
-	api := routes("host", mux.NewRouter(), &mocks.BuildSearch{ReturnError: opts.searchReturnError}, datasetAPIMock, opts.serviceAuthToken, &mocks.Elasticsearch{InternalServerError: opts.esInternalServerError, IndexNotFound: opts.esIndexNotFound}, opts.maxResults, opts.privateSubnet, nil)
+	if opts.externalRequest {
+		r.Header.Add("X-Forwarded-Proto", "https")
+		r.Header.Add("X-Forwarded-Host", "api.example.com")
+		r.Header.Add("X-Forwarded-Path-Prefix", "/v1")
+	}
+	api := routes(host, mux.NewRouter(), &mocks.BuildSearch{ReturnError: opts.searchReturnError}, datasetAPIMock, opts.serviceAuthToken, &mocks.Elasticsearch{InternalServerError: opts.esInternalServerError, IndexNotFound: opts.esIndexNotFound}, opts.maxResults, opts.privateSubnet, nil, opts.enableURLRewriting)
 
 	api.router.ServeHTTP(w, r)
 
@@ -85,8 +94,9 @@ func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 
 	convey.Convey("Given the search query satisfies the search index then return a status 200", t, func() {
 		testres := setupTest(testOpts{
-			url:        "http://localhost:23100/dimension-search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
-			reqHasAuth: true,
+			url:                "http://localhost:23100/dimension-search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			reqHasAuth:         true,
+			enableURLRewriting: false,
 		})
 
 		convey.So(testres.w.Code, convey.ShouldEqual, http.StatusOK)
@@ -125,11 +135,76 @@ func TestGetSearchWithAuthReturnsOK(t *testing.T) {
 		convey.So(searchResults.Items[1].Matches, convey.ShouldResemble, models.Matches{Code: []models.Snippet(nil), Label: []models.Snippet{{Start: 1, End: 9}, {Start: 19, End: 25}}})
 	})
 
+	convey.Convey("Given the search query satisfies the search index then return a status 200 with URL rewriting enabled", t, func() {
+		testres := setupTest(testOpts{
+			url:                "http://localhost:23100/dimension-search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			reqHasAuth:         true,
+			enableURLRewriting: true,
+		})
+
+		convey.So(testres.w.Code, convey.ShouldEqual, http.StatusOK)
+
+		// Check response json
+		searchResults := getSearchResults(testres.w.Body)
+
+		convey.So(searchResults.Count, convey.ShouldEqual, 2)
+		convey.So(len(searchResults.Items), convey.ShouldEqual, 2)
+		convey.So(searchResults.Limit, convey.ShouldEqual, 50)
+		convey.So(searchResults.Offset, convey.ShouldEqual, 0)
+		convey.So(searchResults.Items[0].Code, convey.ShouldEqual, "frs34g5t98hdd")
+		convey.So(searchResults.Items[0].DimensionOptionURL, convey.ShouldEqual, "http://localhost/testing/1")
+		convey.So(searchResults.Items[0].HasData, convey.ShouldEqual, true)
+		convey.So(searchResults.Items[0].Label, convey.ShouldEqual, "something and someone")
+		convey.So(searchResults.Items[0].NumberOfChildren, convey.ShouldEqual, 3)
+		convey.So(len(searchResults.Items[0].Matches.Code), convey.ShouldEqual, 1)
+		convey.So(searchResults.Items[0].Matches.Code[0].Start, convey.ShouldEqual, 1)
+		convey.So(searchResults.Items[0].Matches.Code[0].End, convey.ShouldEqual, 13)
+		convey.So(len(searchResults.Items[0].Matches.Label), convey.ShouldEqual, 2)
+		convey.So(searchResults.Items[0].Matches.Label[0].Start, convey.ShouldEqual, 1)
+		convey.So(searchResults.Items[0].Matches.Label[0].End, convey.ShouldEqual, 9)
+		convey.So(searchResults.Items[0].Matches.Label[1].Start, convey.ShouldEqual, 13)
+		convey.So(searchResults.Items[0].Matches.Label[1].End, convey.ShouldEqual, 19)
+		convey.So(searchResults.Items[1].Code, convey.ShouldEqual, "gt534g5t98hs1")
+		convey.So(searchResults.Items[1].DimensionOptionURL, convey.ShouldEqual, "http://localhost/testing/2")
+		convey.So(searchResults.Items[1].HasData, convey.ShouldEqual, false)
+		convey.So(searchResults.Items[1].Label, convey.ShouldEqual, "something else and someone else")
+		convey.So(searchResults.Items[1].NumberOfChildren, convey.ShouldEqual, 10)
+		convey.So(len(searchResults.Items[1].Matches.Code), convey.ShouldEqual, 0)
+		convey.So(len(searchResults.Items[1].Matches.Label), convey.ShouldEqual, 2)
+		convey.So(searchResults.Items[1].Matches.Label[0].Start, convey.ShouldEqual, 1)
+		convey.So(searchResults.Items[1].Matches.Label[0].End, convey.ShouldEqual, 9)
+		convey.So(searchResults.Items[1].Matches.Label[1].Start, convey.ShouldEqual, 19)
+		convey.So(searchResults.Items[1].Matches.Label[1].End, convey.ShouldEqual, 25)
+		convey.So(searchResults.Items[1].Matches, convey.ShouldResemble, models.Matches{Code: []models.Snippet(nil), Label: []models.Snippet{{Start: 1, End: 9}, {Start: 19, End: 25}}})
+	})
+
+	convey.Convey("Given the search query satisfies the search index then return a status 200 with URL rewriting enabled and X-forwarded added as an external request", t, func() {
+		testres := setupTest(testOpts{
+			url:                "http://localhost:23100/dimension-search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			reqHasAuth:         true,
+			enableURLRewriting: true,
+			externalRequest:    true,
+		})
+
+		convey.So(testres.w.Code, convey.ShouldEqual, http.StatusOK)
+
+		// Check response json
+		searchResults := getSearchResults(testres.w.Body)
+
+		convey.So(searchResults.Count, convey.ShouldEqual, 2)
+		convey.So(len(searchResults.Items), convey.ShouldEqual, 2)
+
+		convey.So(searchResults.Items[0].DimensionOptionURL, convey.ShouldEqual, "https://api.example.com/v1/testing/1")
+		convey.So(searchResults.Items[1].DimensionOptionURL, convey.ShouldEqual, "https://api.example.com/v1/testing/2")
+		convey.So(searchResults.Items[1].Matches, convey.ShouldResemble, models.Matches{Code: []models.Snippet(nil), Label: []models.Snippet{{Start: 1, End: 9}, {Start: 19, End: 25}}})
+	})
+
 	convey.Convey("Given the search query satisfies the search index when limit and offset parameters are set then return a status 200", t, func() {
 		testres := setupTest(testOpts{
-			url:        "http://localhost:23100/dimension-search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&limit=5&offset=20",
-			maxResults: 40,
-			reqHasAuth: true,
+			url:                "http://localhost:23100/dimension-search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term",
+			reqHasAuth:         true,
+			enableURLRewriting: true,
+			externalRequest:    true,
 		})
 		convey.So(testres.w.Code, convey.ShouldEqual, http.StatusOK)
 

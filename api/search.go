@@ -11,6 +11,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-search-api/models"
 	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
 	"github.com/ONSdigital/dp-net/request"
+	"github.com/ONSdigital/dp-net/v2/links"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
 )
@@ -121,18 +122,33 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		Limit:      page.Limit,
 		Offset:     page.Offset,
 	}
+	if api.enableURLRewriting {
+		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
+		for _, result := range response.Hits.HitList {
 
-	//nolint:gocritic // rangeValCopy: each iteration copies 184 bytes (consider pointers or indexing)
-	for _, result := range response.Hits.HitList {
-		result.Source.DimensionOptionURL = result.Source.URL
-		result.Source.URL = ""
+			newLink, err := dimensionSearchAPILinksBuilder.BuildLink(result.Source.URL)
+			if err == nil {
+				result.Source.DimensionOptionURL = newLink
+			} else {
+				result.Source.DimensionOptionURL = result.Source.URL
+			}
+			result.Source.URL = ""
+			result = getSnippets(ctx, result)
+			searchResults.Items = append(searchResults.Items, result.Source)
+		}
 
-		result = getSnippets(ctx, result)
+	} else {
+		//nolint:gocritic // rangeValCopy: each iteration copies 184 bytes (consider pointers or indexing)
+		for _, result := range response.Hits.HitList {
+			result.Source.DimensionOptionURL = result.Source.URL
+			result.Source.URL = ""
 
-		doc := result.Source
-		searchResults.Items = append(searchResults.Items, doc)
+			result = getSnippets(ctx, result)
+
+			doc := result.Source
+			searchResults.Items = append(searchResults.Items, doc)
+		}
 	}
-
 	searchResults.Count = len(searchResults.Items)
 
 	b, err := json.Marshal(searchResults)

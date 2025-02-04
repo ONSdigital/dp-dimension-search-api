@@ -38,6 +38,7 @@ func TestSpec(t *testing.T) {
 				convey.So(cfg.MaxSearchResultsOffset, convey.ShouldEqual, 1000)
 				convey.So(cfg.SearchAPIURL, convey.ShouldEqual, "http://localhost:23100")
 				convey.So(cfg.ServiceAuthToken, convey.ShouldEqual, "a507f722-f25a-4889-9653-23a2655b925c")
+				convey.So(cfg.EnableURLRewriting, convey.ShouldEqual, false)
 			})
 		})
 	})

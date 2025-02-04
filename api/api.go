@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"net/url"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/middleware"
@@ -46,17 +47,19 @@ type SearchAPI struct {
 	defaultMaxResults   int
 	elasticsearch       Elasticsearcher
 	hasPrivateEndpoints bool
-	host                string
+	host                *url.URL
 	router              *mux.Router
 	searchOutputQueue   OutputQueue
+	enableURLRewriting  bool
 }
 
 // CreateSearchAPI manages all the routes configured to API
 func CreateSearchAPI(ctx context.Context,
-	host, bindAddr, authAPIURL string, errorChan chan error, searchOutputQueue OutputQueue,
+	host *url.URL, bindAddr, authAPIURL string, errorChan chan error, searchOutputQueue OutputQueue,
 	datasetAPIClient DatasetAPIClient, serviceAuthToken string, elasticsearch Elasticsearcher,
 	defaultMaxResults int, hasPrivateEndpoints bool,
-	healthCheck *healthcheck.HealthCheck, oTServiceName string) {
+	healthCheck *healthcheck.HealthCheck, oTServiceName string, enableURLRewriting bool) {
+
 	router := mux.NewRouter()
 	router.Use(otelmux.Middleware(oTServiceName))
 	routes(host,
@@ -67,7 +70,8 @@ func CreateSearchAPI(ctx context.Context,
 		elasticsearch,
 		defaultMaxResults,
 		hasPrivateEndpoints,
-		healthCheck)
+		healthCheck,
+		enableURLRewriting)
 
 	// Create new middleware chain with whitelisted handler for /health endpoint
 	middlewareChain := alice.New(middleware.Whitelist(middleware.HealthcheckFilter(healthCheck.Handler)))
@@ -94,7 +98,7 @@ func CreateSearchAPI(ctx context.Context,
 	}()
 }
 
-func routes(host string,
+func routes(host *url.URL,
 	router *mux.Router,
 	searchOutputQueue OutputQueue,
 	datasetAPIClient DatasetAPIClient,
@@ -102,7 +106,9 @@ func routes(host string,
 	elasticsearch Elasticsearcher,
 	defaultMaxResults int,
 	hasPrivateEndpoints bool,
-	healthCheck *healthcheck.HealthCheck) *SearchAPI {
+	healthCheck *healthcheck.HealthCheck,
+	enableURLRewriting bool) *SearchAPI {
+
 	api := SearchAPI{
 		datasetAPIClient:    datasetAPIClient,
 		serviceAuthToken:    serviceAuthToken,
@@ -112,6 +118,7 @@ func routes(host string,
 		searchOutputQueue:   searchOutputQueue,
 		host:                host,
 		router:              router,
+		enableURLRewriting:  enableURLRewriting,
 	}
 
 	api.router.HandleFunc("/health", healthCheck.Handler)
