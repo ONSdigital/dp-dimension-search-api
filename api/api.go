@@ -59,7 +59,6 @@ func CreateSearchAPI(ctx context.Context,
 	datasetAPIClient DatasetAPIClient, serviceAuthToken string, elasticsearch Elasticsearcher,
 	defaultMaxResults int, hasPrivateEndpoints bool,
 	healthCheck *healthcheck.HealthCheck, oTServiceName string, enableURLRewriting bool) {
-
 	router := mux.NewRouter()
 	router.Use(otelmux.Middleware(oTServiceName))
 	routes(host,
@@ -108,7 +107,6 @@ func routes(host *url.URL,
 	hasPrivateEndpoints bool,
 	healthCheck *healthcheck.HealthCheck,
 	enableURLRewriting bool) *SearchAPI {
-
 	api := SearchAPI{
 		datasetAPIClient:    datasetAPIClient,
 		serviceAuthToken:    serviceAuthToken,
