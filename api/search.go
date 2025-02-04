@@ -122,6 +122,7 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 		Offset:     page.Offset,
 	}
 
+	//nolint:gocritic // rangeValCopy: each iteration copies 184 bytes (consider pointers or indexing)
 	for _, result := range response.Hits.HitList {
 		result.Source.DimensionOptionURL = result.Source.URL
 		result.Source.URL = ""
@@ -146,13 +147,13 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error(ctx, "error writing response", err, logData)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	log.Info(ctx, "getSearch endpoint: successfully searched index", logData)
 }
 
 func getSnippets(ctx context.Context, result models.HitList) models.HitList {
-
 	if len(result.Highlight.Code) > 0 {
 		highlightedCode := result.Highlight.Code[0]
 		var prevEnd int
@@ -178,7 +179,7 @@ func getSnippets(ctx context.Context, result models.HitList) models.HitList {
 			result.Source.Matches.Code = append(result.Source.Matches.Code, snippet)
 			log.Info(ctx, "getSearch endpoint: added code snippet", logData)
 
-			highlightedCode = string(highlightedCode[end+2:])
+			highlightedCode = highlightedCode[end+2:]
 		}
 	}
 
@@ -207,7 +208,7 @@ func getSnippets(ctx context.Context, result models.HitList) models.HitList {
 			result.Source.Matches.Label = append(result.Source.Matches.Label, snippet)
 			log.Info(ctx, "getSearch endpoint: added label snippet", logData)
 
-			highlightedLabel = string(highlightedLabel[end+2:])
+			highlightedLabel = highlightedLabel[end+2:]
 		}
 	}
 
@@ -285,7 +286,6 @@ func setError(err error) (searchError error) {
 }
 
 func setErrorCode(w http.ResponseWriter, err error) {
-
 	switch {
 	case errs.NotFoundMap[err]:
 		http.Error(w, err.Error(), http.StatusNotFound)

@@ -38,7 +38,6 @@ func main() {
 	cfg, err := config.Get()
 	if err != nil {
 		log.Fatal(ctx, "failed to retrieve configuration", err)
-		os.Exit(1)
 	}
 
 	// sensitive fields are omitted from config.String().
@@ -75,8 +74,8 @@ func main() {
 	pConfig := &kafka.ProducerConfig{
 		KafkaVersion:    &cfg.KafkaVersion,
 		MaxMessageBytes: &cfg.KafkaMaxBytes,
-		BrokerAddrs: cfg.Brokers,
-		Topic: cfg.HierarchyBuiltTopic,
+		BrokerAddrs:     cfg.Brokers,
+		Topic:           cfg.HierarchyBuiltTopic,
 	}
 	if cfg.KafkaSecProtocol == "TLS" {
 		pConfig.SecurityConfig = kafka.GetSecurityConfig(
@@ -128,13 +127,11 @@ func configureHealthChecks(ctx context.Context,
 	esSigner *esauth.Signer,
 	producer *kafka.Producer,
 	datasetAPIClient *dataset.Client) *healthcheck.HealthCheck {
-
 	hasErrors := false
 
 	versionInfo, err := healthcheck.NewVersionInfo(BuildTime, GitCommit, Version)
 	if err != nil {
 		log.Fatal(ctx, "error creating version info", err)
-		hasErrors = true
 	}
 
 	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
@@ -174,6 +171,5 @@ func configureHealthChecks(ctx context.Context,
 func exitIfError(ctx context.Context, err error, message string) {
 	if err != nil {
 		log.Fatal(ctx, message, err)
-		os.Exit(1)
 	}
 }

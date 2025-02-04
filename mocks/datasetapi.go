@@ -18,8 +18,8 @@ type DatasetAPI struct {
 }
 
 // GetVersion represents the mocked version that queries the dataset API to get a version resource
-func (api *DatasetAPI) GetVersion(ctx context.Context, userAuthToken, serviceAuthToken, downloadServiceAuthToken, collectionID, datasetID, edition, version string) (ver dataset.Version, err error) {
-	api.IsAuthenticated = len(serviceAuthToken) > 0
+func (api *DatasetAPI) GetVersion(_ context.Context, _, serviceAuthToken, _, _, _, _, _ string) (ver dataset.Version, err error) {
+	api.IsAuthenticated = serviceAuthToken != ""
 	isBadAuthExpectation := (api.RequireNoAuth && api.IsAuthenticated) || (api.RequireAuth && !api.IsAuthenticated)
 	api.Calls++
 

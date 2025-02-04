@@ -108,7 +108,7 @@ func (api *API) QuerySearchIndex(ctx context.Context, instanceID, dimension, ter
 }
 
 // CallElastic builds a request to elastic search based on the method, path and payload
-func (api *API) CallElastic(ctx context.Context, path, method string, payload interface{}) ([]byte, int, error) {
+func (api *API) CallElastic(ctx context.Context, path, method string, payload interface{}) (responseBody []byte, statusCode int, err error) {
 	logData := log.Data{"url": path, "method": method}
 
 	URL, err := url.Parse(path)
@@ -128,7 +128,7 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 		logData["payload"] = string(payload.([]byte))
 		bodyReader = bytes.NewReader(payload.([]byte))
 	} else {
-		req, err = http.NewRequest(method, path, nil)
+		req, err = http.NewRequest(method, path, http.NoBody)
 	}
 	// check req, above, didn't error
 	if err != nil {
@@ -137,8 +137,8 @@ func (api *API) CallElastic(ctx context.Context, path, method string, payload in
 	}
 
 	if api.signRequests {
-		if err = api.awsSDKSigner.Sign(req, bodyReader, time.Now()); err != nil {
-			return nil, 0, err
+		if signErr := api.awsSDKSigner.Sign(req, bodyReader, time.Now()); signErr != nil {
+			return nil, 0, signErr
 		}
 	}
 

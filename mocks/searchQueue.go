@@ -19,9 +19,9 @@ type MessageData struct {
 }
 
 // Queue checks whether the filter job has errored
-func (bs *BuildSearch) Queue(ctx context.Context, search *searchoutputqueue.Search) error {
+func (bs *BuildSearch) Queue(_ context.Context, _ *searchoutputqueue.Search) error {
 	if bs.ReturnError {
-		return fmt.Errorf("No message produced for hierarchy built")
+		return fmt.Errorf("no message produced for hierarchy built")
 	}
 	return nil
 }

@@ -35,7 +35,7 @@ func (search *Output) Queue(ctx context.Context, outputSearch *Search) error {
 		return err
 	}
 
-	search.searchOutputQueue <- kafka.BytesMessage{Value: bytes, Context: ctx} 
+	search.searchOutputQueue <- kafka.BytesMessage{Value: bytes, Context: ctx}
 
 	return nil
 }

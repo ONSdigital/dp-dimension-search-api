@@ -15,7 +15,7 @@ type Elasticsearch struct {
 }
 
 // QuerySearchIndex represents the mocked version of building a query and then calling elasticsearch index
-func (api *Elasticsearch) QuerySearchIndex(ctx context.Context, instanceID, dimension, term string, limit, offset int) (*models.SearchResponse, int, error) {
+func (api *Elasticsearch) QuerySearchIndex(_ context.Context, _, _, _ string, _, _ int) (*models.SearchResponse, int, error) {
 	if api.InternalServerError {
 		return nil, 0, errs.ErrInternalServer
 	}
@@ -65,7 +65,7 @@ func (api *Elasticsearch) QuerySearchIndex(ctx context.Context, instanceID, dime
 }
 
 // DeleteSearchIndex represents the mocked version that removes an index from elasticsearch
-func (api *Elasticsearch) DeleteSearchIndex(ctx context.Context, instanceID, dimension string) (int, error) {
+func (api *Elasticsearch) DeleteSearchIndex(_ context.Context, _, _ string) (int, error) {
 	if api.InternalServerError {
 		return 0, errs.ErrInternalServer
 	}

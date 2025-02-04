@@ -6,25 +6,25 @@ import (
 
 	"github.com/ONSdigital/dp-import/events"
 	kafka "github.com/ONSdigital/dp-kafka/v4"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/smartystreets/goconvey/convey"
 )
 
 func TestFilterOuputQueue(t *testing.T) {
-	Convey("When a search output is created, a message is sent to kafka", t, func() {
+	convey.Convey("When a search output is created, a message is sent to kafka", t, func() {
 		searchOutputQueue := make(chan kafka.BytesMessage, 1)
 		outputQueue := CreateOutputQueue(searchOutputQueue)
 		search := Search{InstanceID: "12345678", Dimension: "aggregate"}
 		err := outputQueue.Queue(context.Background(), &search)
-		So(err, ShouldBeNil)
+		convey.So(err, convey.ShouldBeNil)
 
 		message := <-searchOutputQueue
-		So(message, ShouldNotBeNil)
+		convey.So(message, convey.ShouldNotBeNil)
 
 		var searchMessage events.HierarchyBuilt
 		err = events.HierarchyBuiltSchema.Unmarshal(message.Value, &searchMessage)
-		So(err, ShouldBeNil)
+		convey.So(err, convey.ShouldBeNil)
 
-		So(searchMessage.InstanceID, ShouldEqual, search.InstanceID)
-		So(searchMessage.DimensionName, ShouldEqual, search.Dimension)
+		convey.So(searchMessage.InstanceID, convey.ShouldEqual, search.InstanceID)
+		convey.So(searchMessage.DimensionName, convey.ShouldEqual, search.Dimension)
 	})
 }
