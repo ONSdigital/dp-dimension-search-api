@@ -6,39 +6,39 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-dimension-search-api/config"
-	"github.com/smartystreets/goconvey/convey"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestSpec(t *testing.T) {
-	convey.Convey("Given an environment with no environment variables set", t, func() {
+	Convey("Given an environment with no environment variables set", t, func() {
 		os.Clearenv()
 		cfg, err := config.Get()
 
-		convey.Convey("When the config values are retrieved", func() {
-			convey.Convey("There should be no error returned", func() {
-				convey.So(err, convey.ShouldBeNil)
+		Convey("When the config values are retrieved", func() {
+			Convey("There should be no error returned", func() {
+				So(err, ShouldBeNil)
 			})
 
-			convey.Convey("The values should be set to the expected defaults", func() {
-				convey.So(cfg.AuthAPIURL, convey.ShouldEqual, "http://localhost:8082")
-				convey.So(cfg.AwsRegion, convey.ShouldEqual, "eu-west-1")
-				convey.So(cfg.AwsService, convey.ShouldEqual, "es")
-				convey.So(cfg.BindAddr, convey.ShouldEqual, ":23100")
-				convey.So(cfg.Brokers, convey.ShouldResemble, []string{"localhost:9092", "localhost:9093", "localhost:9094"})
-				convey.So(cfg.DatasetAPIURL, convey.ShouldEqual, "http://localhost:22000")
-				convey.So(cfg.ElasticSearchAPIURL, convey.ShouldEqual, "http://localhost:10200")
-				convey.So(cfg.GracefulShutdownTimeout, convey.ShouldEqual, 5*time.Second)
-				convey.So(cfg.HealthCheckInterval, convey.ShouldEqual, 30*time.Second)
-				convey.So(cfg.HealthCheckCriticalTimeout, convey.ShouldEqual, 90*time.Second)
-				convey.So(cfg.HierarchyBuiltTopic, convey.ShouldEqual, "hierarchy-built")
-				convey.So(cfg.KafkaMaxBytes, convey.ShouldEqual, 2000000)
-				convey.So(cfg.MaxRetries, convey.ShouldEqual, 3)
-				convey.So(cfg.KafkaVersion, convey.ShouldEqual, "1.0.2")
-				convey.So(cfg.KafkaSecProtocol, convey.ShouldEqual, "")
-				convey.So(cfg.MaxSearchResultsOffset, convey.ShouldEqual, 1000)
-				convey.So(cfg.SearchAPIURL, convey.ShouldEqual, "http://localhost:23100")
-				convey.So(cfg.ServiceAuthToken, convey.ShouldEqual, "a507f722-f25a-4889-9653-23a2655b925c")
-				convey.So(cfg.EnableURLRewriting, convey.ShouldEqual, false)
+			Convey("The values should be set to the expected defaults", func() {
+				So(cfg.AuthAPIURL, ShouldEqual, "http://localhost:8082")
+				So(cfg.AwsRegion, ShouldEqual, "eu-west-1")
+				So(cfg.AwsService, ShouldEqual, "es")
+				So(cfg.BindAddr, ShouldEqual, ":23100")
+				So(cfg.Brokers, ShouldResemble, []string{"localhost:9092", "localhost:9093", "localhost:9094"})
+				So(cfg.DatasetAPIURL, ShouldEqual, "http://localhost:22000")
+				So(cfg.ElasticSearchAPIURL, ShouldEqual, "http://localhost:10200")
+				So(cfg.GracefulShutdownTimeout, ShouldEqual, 5*time.Second)
+				So(cfg.HealthCheckInterval, ShouldEqual, 30*time.Second)
+				So(cfg.HealthCheckCriticalTimeout, ShouldEqual, 90*time.Second)
+				So(cfg.HierarchyBuiltTopic, ShouldEqual, "hierarchy-built")
+				So(cfg.KafkaMaxBytes, ShouldEqual, 2000000)
+				So(cfg.MaxRetries, ShouldEqual, 3)
+				So(cfg.KafkaVersion, ShouldEqual, "1.0.2")
+				So(cfg.KafkaSecProtocol, ShouldEqual, "")
+				So(cfg.MaxSearchResultsOffset, ShouldEqual, 1000)
+				So(cfg.SearchAPIURL, ShouldEqual, "http://localhost:23100")
+				So(cfg.ServiceAuthToken, ShouldEqual, "a507f722-f25a-4889-9653-23a2655b925c")
+				So(cfg.EnableURLRewriting, ShouldEqual, false)
 			})
 		})
 	})

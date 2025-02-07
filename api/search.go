@@ -124,8 +124,8 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 	}
 	if api.enableURLRewriting {
 		dimensionSearchAPILinksBuilder := links.FromHeadersOrDefault(&r.Header, api.host)
-		//nolint:gocritic // rangeValCopy: each iteration copies 184 bytes (consider pointers or indexing)
-		for _, result := range response.Hits.HitList {
+		for i := range response.Hits.HitList {
+			result := &response.Hits.HitList[i]
 			newLink, err := dimensionSearchAPILinksBuilder.BuildLink(result.Source.URL)
 			if err == nil {
 				result.Source.DimensionOptionURL = newLink
@@ -133,16 +133,16 @@ func (api *SearchAPI) getSearch(w http.ResponseWriter, r *http.Request) {
 				result.Source.DimensionOptionURL = result.Source.URL
 			}
 			result.Source.URL = ""
-			result = getSnippets(ctx, result)
+			*result = getSnippets(ctx, *result)
 			searchResults.Items = append(searchResults.Items, result.Source)
 		}
 	} else {
-		//nolint:gocritic // rangeValCopy: each iteration copies 184 bytes (consider pointers or indexing)
-		for _, result := range response.Hits.HitList {
+		for i := range response.Hits.HitList {
+			result := &response.Hits.HitList[i]
 			result.Source.DimensionOptionURL = result.Source.URL
 			result.Source.URL = ""
 
-			result = getSnippets(ctx, result)
+			*result = getSnippets(ctx, *result)
 
 			doc := result.Source
 			searchResults.Items = append(searchResults.Items, doc)
