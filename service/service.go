@@ -53,6 +53,7 @@ func (svc *Service) Start(ctx context.Context) {
 	SearchAPIURL, err := url.Parse(svc.SearchAPIURL)
 	if err != nil {
 		log.Fatal(ctx, "error parsing SearchAPIURL API URL", err, log.Data{"url": svc.SearchAPIURL})
+		os.Exit(1)
 	}
 
 	api.CreateSearchAPI(
