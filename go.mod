@@ -1,9 +1,6 @@
 module github.com/ONSdigital/dp-dimension-search-api
 
-go 1.23
-
-//to avoid  [CVE-2022-29153] CWE-918: Server-Side Request Forgery (SSRF)
-exclude github.com/hashicorp/consul/api v1.1.0
+go 1.24.0
 
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.43.0
@@ -22,7 +19,7 @@ require (
 	github.com/smartystreets/goconvey v1.8.1
 	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.59.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.59.0
-	golang.org/x/net v0.34.0
+	golang.org/x/net v0.46.0
 )
 
 require (
@@ -78,9 +75,9 @@ require (
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.5.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.32.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/crypto v0.43.0 // indirect
+	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/text v0.30.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250127172529-29210b9bc287 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250127172529-29210b9bc287 // indirect
 	google.golang.org/grpc v1.70.0 // indirect
