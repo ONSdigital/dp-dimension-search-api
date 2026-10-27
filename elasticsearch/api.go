@@ -66,15 +66,15 @@ func (api *API) QuerySearchIndex(ctx context.Context, instanceID, dimension, ter
 
 	body := buildSearchQuery(term, limit, offset)
 
-	bytes, err := json.Marshal(body)
+	bodyBytes, err := json.Marshal(body)
 	if err != nil {
 		log.Error(ctx, "unable to marshal elastic search query to bytes", err, logData)
 		return nil, 0, errs.ErrMarshallingQuery
 	}
 
-	logData["request_body"] = string(bytes)
+	logData["request_body"] = string(bodyBytes)
 
-	responseBody, status, err := api.CallElastic(ctx, path, "GET", bytes)
+	responseBody, status, err := api.CallElastic(ctx, path, "GET", bodyBytes)
 	logData["status"] = status
 	if err != nil {
 		log.Error(ctx, "failed to call elasticsearch", err, logData)
@@ -239,7 +239,7 @@ func buildSearchQuery(term string, limit, offset int) *Body {
 		},
 	}
 
-	listOfScores := []Scores{}
+	listOfScores := make([]Scores, 0, 1)
 	listOfScores = append(listOfScores, scores)
 
 	query := &Body{

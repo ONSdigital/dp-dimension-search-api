@@ -47,6 +47,7 @@ func Get() (*Config, error) {
 		return cfg, nil
 	}
 
+	//nolint:gosec // local development defaults, real values come from env vars
 	cfg = &Config{
 		AuthAPIURL:                 "http://localhost:8082",
 		AwsRegion:                  "eu-west-1",
@@ -79,6 +80,6 @@ func Get() (*Config, error) {
 // String is implemented to prevent sensitive fields being logged.
 // The config is returned as JSON with sensitive fields omitted.
 func (config Config) String() string {
-	json, _ := json.Marshal(config)
-	return string(json)
+	configJSON, _ := json.Marshal(config)
+	return string(configJSON)
 }

@@ -82,8 +82,8 @@ func CreateSearchAPI(ctx context.Context,
 		middlewareChain = middlewareChain.Append(dphandlers.IdentityWithHTTPClient(identityClient))
 	}
 
-	alice := middlewareChain.Then(otelhttp.NewHandler(router, "/"))
-	httpServer = http.NewServer(bindAddr, alice)
+	chainedHandler := middlewareChain.Then(otelhttp.NewHandler(router, "/"))
+	httpServer = http.NewServer(bindAddr, chainedHandler)
 
 	// Disable this here to allow service to manage graceful shutdown of the entire app.
 	httpServer.HandleOSSignals = false

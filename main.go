@@ -70,7 +70,7 @@ func main() {
 	}()
 
 	elasticHTTPClient := dphttp.NewClient()
-	elasticsearch := elasticsearch.NewElasticSearchAPI(elasticHTTPClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, esSigner, cfg.AwsService, cfg.AwsRegion)
+	esAPI := elasticsearch.NewElasticSearchAPI(elasticHTTPClient, cfg.ElasticSearchAPIURL, cfg.SignElasticsearchRequests, esSigner, cfg.AwsService, cfg.AwsRegion)
 
 	pConfig := &kafka.ProducerConfig{
 		KafkaVersion:    &cfg.KafkaVersion,
@@ -105,7 +105,7 @@ func main() {
 		BindAddr:                  cfg.BindAddr,
 		DatasetAPIClient:          datasetAPIClient,
 		DefaultMaxResults:         cfg.MaxSearchResultsOffset,
-		Elasticsearch:             elasticsearch,
+		Elasticsearch:             esAPI,
 		ElasticsearchURL:          cfg.ElasticSearchAPIURL,
 		HasPrivateEndpoints:       cfg.HasPrivateEndpoints,
 		HealthCheck:               hc,

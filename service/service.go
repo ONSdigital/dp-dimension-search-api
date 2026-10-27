@@ -11,7 +11,7 @@ import (
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v4"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/ONSdigital/dp-dimension-search-api/api"
 	"github.com/ONSdigital/dp-dimension-search-api/searchoutputqueue"
