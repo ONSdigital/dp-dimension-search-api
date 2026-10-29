@@ -259,6 +259,30 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		So(testres.datasetAPIMock.IsAuthenticated, ShouldEqual, false)
 	})
 
+	Convey("Given the dataset id provided has invalid characters return status 404 (not found)", t, func() {
+		testres := setupTest(testOpts{
+			url: "http://localhost:23100/dimension-search/datasets/!?something_here.this()/editions/2017/versions/1/dimensions/aggregate?q=term",
+		})
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.datasetAPIMock.Calls, ShouldEqual, 0)
+	})
+
+	Convey("Given the edition provided has invalid characters return status 404 (not found)", t, func() {
+		testres := setupTest(testOpts{
+			url: "http://localhost:23100/dimension-search/datasets/123/editions/??_something()/versions/1/dimensions/aggregate?q=term",
+		})
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.datasetAPIMock.Calls, ShouldEqual, 0)
+	})
+
+	Convey("Given the dimension provided has invalid characters return status 404 (not found)", t, func() {
+		testres := setupTest(testOpts{
+			url: "http://localhost:23100/dimension-search/datasets/123/editions/2017/versions/1/dimensions/!.this().thing?q=term",
+		})
+		So(testres.w.Code, ShouldEqual, http.StatusNotFound)
+		So(testres.datasetAPIMock.Calls, ShouldEqual, 0)
+	})
+
 	Convey("Given the limit parameter in request is not a number return status 400 (bad request)", t, func() {
 		testres := setupTest(testOpts{
 			url: "http://localhost:23100/dimension-search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=term&limit=four",
@@ -281,6 +305,14 @@ func TestGetSearchFailureScenarios(t *testing.T) {
 		})
 		So(testres.w.Code, ShouldEqual, http.StatusBadRequest)
 		So(testres.w.Body.String(), ShouldContainSubstring, errs.ErrEmptySearchTerm.Error())
+	})
+
+	Convey("Given the query parameter, q has invalid characters return status 400 (bad request)", t, func() {
+		testres := setupTest(testOpts{
+			url: "http://localhost:23100/dimension-search/datasets/123/editions/2017/versions/1/dimensions/aggregate?q=!!..something()",
+		})
+		So(testres.w.Code, ShouldEqual, http.StatusBadRequest)
+		So(testres.w.Body.String(), ShouldContainSubstring, errs.ErrInvalidSearchTerm.Error())
 	})
 
 	Convey("Given the offset parameter exceeds the default maximum results return status 400 (bad request)", t, func() {
