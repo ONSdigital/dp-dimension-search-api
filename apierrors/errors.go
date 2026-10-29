@@ -8,6 +8,7 @@ var (
 	ErrDeleteIndexNotFound    = errors.New("search index not found")
 	ErrEditionNotFound        = errors.New("edition not found")
 	ErrEmptySearchTerm        = errors.New("empty search term")
+	ErrInvalidSearchTerm      = errors.New("invalid search term")
 	ErrIndexNotFound          = errors.New("search index not found")
 	ErrInternalServer         = errors.New("internal server error")
 	ErrMarshallingQuery       = errors.New("failed to marshal query to bytes for request body to send to elastic")
@@ -27,5 +28,6 @@ var (
 	BadRequestMap = map[error]bool{
 		ErrEmptySearchTerm:        true,
 		ErrParsingQueryParameters: true,
+		ErrInvalidSearchTerm:      true,
 	}
 )

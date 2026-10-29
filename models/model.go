@@ -2,10 +2,13 @@ package models
 
 import (
 	"errors"
+	"regexp"
 	"strconv"
 
 	errs "github.com/ONSdigital/dp-dimension-search-api/apierrors"
 )
+
+var searchTermPattern = regexp.MustCompile(`^[A-Za-z0-9_+-]+$`)
 
 func ErrorMaximumOffsetReached(m int) error {
 	err := errors.New("the maximum offset has been reached, the offset cannot be more than " + strconv.Itoa(m))
@@ -89,6 +92,10 @@ type PageVariables struct {
 func (page *PageVariables) ValidateQueryParameters(term string) error {
 	if term == "" {
 		return errs.ErrEmptySearchTerm
+	}
+
+	if !searchTermPattern.MatchString(term) {
+		return errs.ErrInvalidSearchTerm
 	}
 
 	if page.Offset >= page.DefaultMaxResults {

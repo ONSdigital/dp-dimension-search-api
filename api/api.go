@@ -120,7 +120,7 @@ func routes(host *url.URL,
 	}
 
 	api.router.HandleFunc("/health", healthCheck.Handler)
-	api.router.HandleFunc("/dimension-search/datasets/{id}/editions/{edition}/versions/{version}/dimensions/{name}", api.getSearch).Methods("GET")
+	api.router.HandleFunc("/dimension-search/datasets/{id:[A-Za-z0-9_-]+}/editions/{edition:[A-Za-z0-9_-]+}/versions/{version}/dimensions/{name:[A-Za-z0-9_+-]+}", api.getSearch).Methods("GET")
 
 	if hasPrivateEndpoints {
 		api.router.HandleFunc("/dimension-search/instances/{instance_id}/dimensions/{dimension}", dphandlers.CheckIdentity(api.createSearchIndex)).Methods("PUT")
